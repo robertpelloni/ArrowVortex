@@ -52,7 +52,7 @@ jobs:
         if: github.ref_name == 'beta'
         uses: actions/upload-artifact@v4
         with:
-          name: AV
+          name: ArrowVortex-${{ github.sha }}
           path: |
             bin/assets
             bin/noteskins
