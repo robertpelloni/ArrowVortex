@@ -27,12 +27,14 @@ class DialogSongProperties : public EditorDialog {
 
    private:
     struct BannerWidget;
+    struct CdTitleWidget;
 
     void myCreateWidgets();
     void myUpdateWidgets();
 
     void myUpdateProperties();
     void myUpdateBanner();
+    void myUpdateCdTitle();
 
     void mySetProperty(int p);
     void mySetDisplayBpm();
@@ -50,6 +52,7 @@ class DialogSongProperties : public EditorDialog {
     BpmRange myDisplayBpmRange;
 
     BannerWidget* myBannerWidget;
+    CdTitleWidget* myCdTitleWidget;
     WgCycleButton* myBpmTypeList;
     WgSpinner *mySpinMinBPM, *mySpinMaxBPM;
     std::string myPreviewStart, myPreviewEnd;

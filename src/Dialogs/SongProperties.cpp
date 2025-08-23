@@ -38,19 +38,45 @@ struct DialogSongProperties::BannerWidget : public GuiWidget {
     Texture tex;
 };
 
+struct DialogSongProperties::CdTitleWidget : public GuiWidget {
+    CdTitleWidget(GuiContext* gui) : GuiWidget(gui) {
+        width_ = BANNER_W;
+        height_ = 75;
+    }
+    void onDraw() override {
+        recti r = rect_;
+        auto h = tex.height();
+        auto w = tex.width();
+        // Scale the CD Title to fit if it is too big
+        auto aspect = (float)w / (float)h;
+        if (h > height_) {
+            h = height_;
+            w = (int)round((h * aspect));
+        }
+        if (w > width_) {
+            w = width_;
+            h = (int)round((w / aspect));
+        }
+        // Place the CD Title in the middle of the box
+        r = {rect_.x + (width_ - w) / 2, rect_.y + (height_ - h) / 2, w, h};
+        if (tex.handle()) {
+            Draw::fill(r, Colors::white, tex.handle());
+        }
+    }
+    Texture tex;
+};
+
 DialogSongProperties::~DialogSongProperties() {
     gNotefield->toggleShowSongPreview();
 }
 
 DialogSongProperties::DialogSongProperties() {
     gNotefield->toggleShowSongPreview();
-
     setTitle("SIMFILE PROPERTIES");
-
     myCreateWidgets();
-
     myUpdateProperties();
     myUpdateBanner();
+    myUpdateCdTitle();
     myUpdateWidgets();
 }
 
@@ -69,6 +95,8 @@ static WgLineEdit* CreateField(RowLayout& layout, const std::string& label,
 void DialogSongProperties::myCreateWidgets() {
     myLayout.row().col(418);
     myBannerWidget = myLayout.add<BannerWidget>();
+    myLayout.add<WgSeperator>();
+    myCdTitleWidget = myLayout.add<CdTitleWidget>();
     myLayout.add<WgSeperator>();
 
     myLayout.row().col(72).col(342);
@@ -267,6 +295,21 @@ void DialogSongProperties::myUpdateBanner() {
     }
 }
 
+void DialogSongProperties::myUpdateCdTitle() {
+    myCdTitleWidget->tex = Texture();
+    if (gSimfile->isOpen()) {
+        auto meta = gSimfile->get();
+        std::string filename = meta->cdTitle;
+        if (filename.length()) {
+            std::string path = gSimfile->getDir() + filename;
+            myCdTitleWidget->tex = Texture(path.c_str());
+            if (myCdTitleWidget->tex.handle() == 0) {
+                HudWarning("Could not open \"%s\".", filename.c_str());
+            }
+        }
+    }
+}
+
 // ================================================================================================
 // Other functions.
 
@@ -274,6 +317,7 @@ void DialogSongProperties::onChanges(int changes) {
     if (changes & VCM_SONG_PROPERTIES_CHANGED) {
         myUpdateProperties();
         myUpdateWidgets();
+        myUpdateCdTitle();
     }
     if (changes & VCM_BANNER_PATH_CHANGED) {
         myUpdateBanner();
