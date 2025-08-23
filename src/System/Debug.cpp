@@ -41,7 +41,7 @@ void openLogFile() {
     if (sHasLogFile) return;
 
     FILE* fp = nullptr;
-    if (_wfopen_s(&fp, sLogPath, L"w") == 0) {
+    if (_wfopen_s(&fp, sLogPath, L"w") == 0 && fp) {
         fwrite("\xEF\xBB\xBF", 1, 3, fp);  // UTF-8 BOM.
         fclose(fp);
     }
@@ -54,12 +54,12 @@ void openConsole() {
 
     AllocConsole();
 
-    long hOut =
-        _open_osfhandle((intptr_t)GetStdHandle(STD_OUTPUT_HANDLE), _O_WTEXT);
-    long hIn =
-        _open_osfhandle((intptr_t)GetStdHandle(STD_INPUT_HANDLE), _O_WTEXT);
-    long hErr =
-        _open_osfhandle((intptr_t)GetStdHandle(STD_ERROR_HANDLE), _O_WTEXT);
+    long hOut = _open_osfhandle(
+        reinterpret_cast<intptr_t>(GetStdHandle(STD_OUTPUT_HANDLE)), _O_WTEXT);
+    long hIn = _open_osfhandle(
+        reinterpret_cast<intptr_t>(GetStdHandle(STD_INPUT_HANDLE)), _O_WTEXT);
+    long hErr = _open_osfhandle(
+        reinterpret_cast<intptr_t>(GetStdHandle(STD_ERROR_HANDLE)), _O_WTEXT);
 
     *stdout = *_fdopen(hOut, "w");
     *stdin = *_fdopen(hIn, "r");
@@ -80,14 +80,14 @@ static bool sLogBlankLine = false;
 
 static void WriteToLogAndConsole(const char* msg) {
     FILE* fp = nullptr;
-    if (sHasLogFile && _wfopen_s(&fp, sLogPath, L"a") == 0) {
+    if (sHasLogFile && _wfopen_s(&fp, sLogPath, L"a") == 0 && fp) {
         fwrite(msg, 1, strlen(msg), fp);
         fclose(fp);
     }
     if (sHasConsole) {
         WideString wmsg = Widen(msg);
         WriteConsoleW(GetStdHandle(STD_OUTPUT_HANDLE), wmsg.str(),
-                      wmsg.length(), nullptr, 0);
+                      wmsg.length(), nullptr, nullptr);
     }
 }
 
@@ -168,7 +168,7 @@ static const char* sDashLine = "-----------------------------------";
 
 static LRESULT CALLBACK CBTProc(INT nCode, WPARAM wParam, LPARAM lParam) {
     if (nCode == HCBT_ACTIVATE) {
-        HWND hWndChild = (HWND)wParam;
+        HWND hWndChild = reinterpret_cast<HWND>(wParam);
 
         UINT result;
         if (GetDlgItem(hWndChild, IDYES))
@@ -187,7 +187,7 @@ static LRESULT CALLBACK CBTProc(INT nCode, WPARAM wParam, LPARAM lParam) {
 
 static int ShowMessageBox(HWND hWnd, LPCSTR lpcText, LPCSTR lpcCaption,
                           UINT uType) {
-    sHook = SetWindowsHookEx(WH_CBT, &CBTProc, 0, GetCurrentThreadId());
+    sHook = SetWindowsHookEx(WH_CBT, &CBTProc, nullptr, GetCurrentThreadId());
     return MessageBox(hWnd, lpcText, lpcCaption, uType);
 }
 
@@ -221,13 +221,14 @@ bool assrt(const char* exp, const char* file, int line, const char* func,
         Debug::WriteToLogAndConsole(buffer);
         Debug::WriteToLogAndConsole(sDashLine);
 
-        int answer =
-            ShowMessageBox(0, buffer, "ASSERT", MB_ICONERROR | MB_YESNOCANCEL);
+        int answer = ShowMessageBox(nullptr, buffer, "ASSERT",
+                                    MB_ICONERROR | MB_YESNOCANCEL);
         if (answer == IDYES) {
             return true;
         } else if (answer == IDCANCEL) {
             if (!AddIgnore(id)) {
-                MessageBoxA(0, "Maximum number of ignorable asserts reached.",
+                MessageBoxA(nullptr,
+                            "Maximum number of ignorable asserts reached.",
                             "ERROR", MB_ICONERROR | MB_OK);
             }
         }

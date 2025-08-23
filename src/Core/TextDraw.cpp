@@ -117,8 +117,8 @@ void TextDraw::create() {
     RD->glyphCap = 16;
 
     int vcap = RD->glyphCap * 4;
-    RD->vpos = (int*)malloc(sizeof(int) * 2 * vcap);
-    RD->vtex = (float*)malloc(sizeof(float) * 2 * vcap);
+    RD->vpos = static_cast<int*>(malloc(sizeof(int) * 2 * vcap));
+    RD->vtex = static_cast<float*>(malloc(sizeof(float) * 2 * vcap));
 
     CreateShaders();
 }
@@ -139,8 +139,14 @@ void TextDraw::destroy() {
 static void AllocateMoreGlyphs() {
     RD->glyphCap *= 2;
     int vcap = RD->glyphCap * 4;
-    RD->vpos = (int*)realloc(RD->vpos, sizeof(int) * 2 * vcap);
-    RD->vtex = (float*)realloc(RD->vtex, sizeof(float) * 2 * vcap);
+    auto tmp = realloc(RD->vpos, sizeof(int) * 2 * vcap);
+    if (tmp) {
+        RD->vpos = static_cast<int*>(tmp);
+    }
+    tmp = realloc(RD->vtex, sizeof(float) * 2 * vcap);
+    if (tmp) {
+        RD->vtex = static_cast<float*>(tmp);
+    }
 }
 
 static void DrawCurrentGlyphs() {
