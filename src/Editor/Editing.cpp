@@ -77,7 +77,7 @@ struct EditingImpl : public Editing {
     // ================================================================================================
     // EditingImpl :: constructor and destructor.
 
-    ~EditingImpl() {}
+    ~EditingImpl() = default;
 
     EditingImpl() {
         myCurPlayer = 0;
@@ -103,7 +103,7 @@ struct EditingImpl : public Editing {
         }
     }
 
-    void saveSettings(XmrNode& settings) {
+    void saveSettings(XmrNode& settings) override {
         XmrNode* editing = settings.addChild("editing");
 
         editing->addAttrib("useJumpToNextNote", myUseJumpToNextNote);
@@ -161,9 +161,9 @@ struct EditingImpl : public Editing {
                     edit.rem.append(CompressNote(*note));
                     gNotes->modify(edit, false);
                 } else {
-                    edit.add.append({row, row, (uint32_t)col,
-                                     (uint32_t)myCurPlayer, NOTE_STEP_OR_HOLD,
-                                     quant});
+                    edit.add.append({row, row, static_cast<uint32_t>(col),
+                                     static_cast<uint32_t>(myCurPlayer),
+                                     NOTE_STEP_OR_HOLD, quant});
                     if (evt.keyflags & Keyflag::SHIFT) {
                         edit.add.begin()->type = NOTE_MINE;
                         gNotes->modify(edit, false);
@@ -288,7 +288,7 @@ struct EditingImpl : public Editing {
         }
     }
 
-    void onChanges(int changes) {
+    void onChanges(int changes) override {
         if (changes & VCM_CHART_CHANGED) {
             if (myCurPlayer >= gStyle->getNumPlayers()) {
                 myCurPlayer = 0;
@@ -324,10 +324,9 @@ struct EditingImpl : public Editing {
             if (pnote.endRow < pnote.startRow) {
                 auto hold = gNotes->getNoteIntersecting(note.row, col);
                 if (hold && hold->endrow > hold->row) {
-                    if ((int)note.row > hold->row &&
-                        (int)note.row <= hold->endrow &&
-                        (int)note.endrow > hold->endrow) {
-                        note.row = (uint32_t)hold->row;
+                    if (note.row > hold->row && note.row <= hold->endrow &&
+                        note.endrow > hold->endrow) {
+                        note.row = static_cast<uint32_t>(hold->row);
                     }
                 }
             }
@@ -347,7 +346,7 @@ struct EditingImpl : public Editing {
         pnote.mode = PLACE_NONE;
     }
 
-    void deleteSelection() {
+    void deleteSelection() override {
         if (gSelection->getType() == Selection::TEMPO) {
             gTempo->removeSelectedSegments();
         } else {
@@ -355,7 +354,7 @@ struct EditingImpl : public Editing {
         }
     }
 
-    void changeHoldsToRolls() {
+    void changeHoldsToRolls() override {
         if (gChart->isClosed()) return;
 
         NoteEdit edit;
@@ -392,7 +391,7 @@ struct EditingImpl : public Editing {
         }
     }
 
-    void changeHoldsToType(NoteType type) {
+    void changeHoldsToType(NoteType type) override {
         NoteEdit edit;
         gSelection->getSelectedNotes(edit.add);
 
@@ -453,7 +452,7 @@ struct EditingImpl : public Editing {
         }
     }
 
-    void changeNotesToType(NoteType type) {
+    void changeNotesToType(NoteType type) override {
         static const NotesMan::EditDescription descs[NUM_NOTE_TYPES] = {
             {"Converted %1 step to step.", "Converted %1 steps to steps."},
             {"Converted %1 step to mine.", "Converted %1 steps to mines."},
@@ -465,7 +464,7 @@ struct EditingImpl : public Editing {
         changeNoteTypeToType(NOTE_STEP_OR_HOLD, type, &descs[type]);
     }
 
-    void changeMinesToType(NoteType type) {
+    void changeMinesToType(NoteType type) override {
         static const NotesMan::EditDescription descs[NUM_NOTE_TYPES] = {
             {"Converted %1 mine to step.", "Converted %1 mines to steps."},
             {"Converted %1 mine to mine.", "Converted %1 mines to mines."},
@@ -477,7 +476,7 @@ struct EditingImpl : public Editing {
         changeNoteTypeToType(NOTE_MINE, type, &descs[type]);
     }
 
-    void changeFakesToType(NoteType type) {
+    void changeFakesToType(NoteType type) override {
         static const NotesMan::EditDescription descs[NUM_NOTE_TYPES] = {
             {"Converted %1 fake to step.", "Converted %1 fakes to steps."},
             {"Converted %1 fake to mine.", "Converted %1 fakes to mines."},
@@ -489,7 +488,7 @@ struct EditingImpl : public Editing {
         changeNoteTypeToType(NOTE_FAKE, type, &descs[type]);
     }
 
-    void changeLiftsToType(NoteType type) {
+    void changeLiftsToType(NoteType type) override {
         static const NotesMan::EditDescription descs[NUM_NOTE_TYPES] = {
             {"Converted %1 lift to step.", "Converted %1 lifts to steps."},
             {"Converted %1 lift to mine.", "Converted %1 lifts to mines."},
@@ -501,7 +500,7 @@ struct EditingImpl : public Editing {
         changeNoteTypeToType(NOTE_LIFT, type, &descs[type]);
     }
 
-    void changePlayerNumber() {
+    void changePlayerNumber() override {
         int numPlayers = gStyle->getNumPlayers();
 
         // Check if the current style actually supports more than 1 player.
@@ -545,9 +544,9 @@ struct EditingImpl : public Editing {
 
     template <typename T>
     static T readFromBuffer(Vector<uint8_t>& buffer, int& pos) {
-        if (pos + (int)sizeof(T) <= buffer.size()) {
+        if (pos + sizeof(T) <= buffer.size()) {
             pos += sizeof(T);
-            return *(T*)(buffer.data() + pos - sizeof(T));
+            return *static_cast<T*>(buffer.data() + pos - sizeof(T));
         }
         pos = buffer.size();
         return 0;
@@ -602,7 +601,7 @@ struct EditingImpl : public Editing {
         }
     }
 
-    void mirrorNotes(MirrorType type) {
+    void mirrorNotes(MirrorType type) override {
         NoteEdit edit;
         gSelection->getSelectedNotes(edit.add);
 
@@ -650,7 +649,7 @@ struct EditingImpl : public Editing {
         }
     }
 
-    void scaleNotes(int numerator, int denominator) {
+    void scaleNotes(int numerator, int denominator) override {
         NoteEdit edit;
         gSelection->getSelectedNotes(edit.add);
         edit.rem = edit.add;
@@ -671,9 +670,8 @@ struct EditingImpl : public Editing {
         // outside the selection range.
         if (gSelection->getType() == Selection::REGION) {
             auto region = gSelection->getSelectedRegion();
-            for (auto it = edit.add.begin(), end = edit.add.end(); it != end;
-                 ++it) {
-                if (it->row > region.endRow) it->row = -1;
+            for (auto& it : edit.add) {
+                if (it.row > region.endRow) it.row = -1;
             }
             edit.add.cleanup();
         }
@@ -693,7 +691,7 @@ struct EditingImpl : public Editing {
         }
     }
 
-    void insertRows(int row, int numRows, bool curChartOnly) {
+    void insertRows(int row, int numRows, bool curChartOnly) override {
         if (gSimfile->isOpen()) {
             gHistory->startChain();
             gTempo->insertRows(row, numRows, curChartOnly);
@@ -719,7 +717,7 @@ struct EditingImpl : public Editing {
         }
     }
 
-    void injectBoundingBpmChange() {
+    void injectBoundingBpmChange() override {
         if (gSimfile->isClosed() || !gView->isTimeBased()) {
             return;
         }
@@ -729,7 +727,7 @@ struct EditingImpl : public Editing {
         gTempo->injectBoundingBpmChange(anchor_row);
     }
 
-    void shiftAnchorRowToMousePosition(bool is_destructive) {
+    void shiftAnchorRowToMousePosition(bool is_destructive) override {
         if (gSimfile->isClosed() || !gView->isTimeBased()) {
             return;
         }
@@ -777,7 +775,7 @@ struct EditingImpl : public Editing {
     // ================================================================================================
     // EditingImpl :: routine functions.
 
-    void convertRoutineToCouples() {
+    void convertRoutineToCouples() override {
         const char* title = "Convert Routine to ITG Couples";
 
         // Find all routine charts.
@@ -846,7 +844,7 @@ struct EditingImpl : public Editing {
         gHistory->finishChain(title);
     }
 
-    void convertCouplesToRoutine() {
+    void convertCouplesToRoutine() override {
         auto segments = gTempo->getSegments();
 
         // Find all doubles charts.
@@ -924,7 +922,7 @@ struct EditingImpl : public Editing {
         gHistory->finishChain("Convert ITG Couples to Routine");
     }
 
-    void exportNotesAsLuaTable() {
+    void exportNotesAsLuaTable() override {
         const Chart* chart = gChart->get();
         if (!chart) {
             HudInfo("No notes to export, open a chart first.");
@@ -976,7 +974,7 @@ struct EditingImpl : public Editing {
         }
     }
 
-    void drawGhostNotes() {
+    void drawGhostNotes() override {
         for (int col = 0; col < SIM_MAX_COLUMNS; ++col) {
             auto& pnote = myPlacingNotes[col];
             pnote.endRow = gView->getCursorRow();
@@ -986,28 +984,28 @@ struct EditingImpl : public Editing {
         }
     }
 
-    void toggleJumpToNextNote() {
+    void toggleJumpToNextNote() override {
         myUseJumpToNextNote = !myUseJumpToNextNote;
         gMenubar->update(Menubar::USE_JUMP_TO_NEXT_NOTE);
     }
 
-    bool hasJumpToNextNote() { return myUseJumpToNextNote; }
+    bool hasJumpToNextNote() override { return myUseJumpToNextNote; }
 
-    void toggleUndoRedoJump() {
+    void toggleUndoRedoJump() override {
         myUseUndoRedoJump = !myUseUndoRedoJump;
         gMenubar->update(Menubar::USE_UNDO_REDO_JUMP);
     }
 
-    bool hasUndoRedoJump() { return myUseUndoRedoJump; }
+    bool hasUndoRedoJump() override { return myUseUndoRedoJump; }
 
-    void toggleTimeBasedCopy() {
+    void toggleTimeBasedCopy() override {
         myUseTimeBasedCopy = !myUseTimeBasedCopy;
         gMenubar->update(Menubar::USE_TIME_BASED_COPY);
     }
 
-    bool hasTimeBasedCopy() { return myUseTimeBasedCopy; }
+    bool hasTimeBasedCopy() override { return myUseTimeBasedCopy; }
 
-    void setVisualSyncAnchor(VisualSyncAnchor anchor) {
+    void setVisualSyncAnchor(VisualSyncAnchor anchor) override {
         myVisualSyncAnchor = anchor;
         switch (myVisualSyncAnchor) {
             case VisualSyncAnchor::RECEPTORS:
@@ -1022,7 +1020,7 @@ struct EditingImpl : public Editing {
         gMenubar->update(Menubar::VISUAL_SYNC_ANCHOR);
     }
 
-    VisualSyncAnchor getVisualSyncMode() { return myVisualSyncAnchor; }
+    VisualSyncAnchor getVisualSyncMode() override { return myVisualSyncAnchor; }
 
 };  // EditingImpl
 
@@ -1033,11 +1031,11 @@ Editing* gEditing = nullptr;
 
 void Editing::create(XmrNode& settings) {
     gEditing = new EditingImpl();
-    ((EditingImpl*)gEditing)->loadSettings(settings);
+    static_cast<EditingImpl*>(gEditing)->loadSettings(settings);
 }
 
 void Editing::destroy() {
-    delete (EditingImpl*)gEditing;
+    delete static_cast<EditingImpl*>(gEditing);
     gEditing = nullptr;
 }
 

@@ -42,7 +42,7 @@ struct StatusbarImpl : public Statusbar {
     // ================================================================================================
     // StatusbarImpl :: constructor / destructor.
 
-    ~StatusbarImpl() {}
+    ~StatusbarImpl() = default;
 
     StatusbarImpl() {
         myShowChart = true;
@@ -76,7 +76,7 @@ struct StatusbarImpl : public Statusbar {
         }
     }
 
-    void saveSettings(XmrNode& settings) {
+    void saveSettings(XmrNode& settings) override {
         XmrNode* statusbar = settings.addChild("statusbar");
 
         statusbar->addAttrib("showChart", myShowChart);
@@ -94,7 +94,7 @@ struct StatusbarImpl : public Statusbar {
     // ================================================================================================
     // StatusbarImpl :: member functions.
 
-    void draw() {
+    void draw() override {
         Vector<std::string> info;
 
         TextStyle textStyle;
@@ -177,75 +177,75 @@ struct StatusbarImpl : public Statusbar {
     // ================================================================================================
     // StatusbarImpl :: toggle/check functions.
 
-    void StatusbarImpl::toggleChart() {
+    void toggleChart() override {
         myShowChart = !myShowChart;
         gMenubar->update(Menubar::STATUSBAR_CHART);
     }
 
-    void StatusbarImpl::toggleSnap() {
+    void toggleSnap() override {
         myShowSnap = !myShowSnap;
         gMenubar->update(Menubar::STATUSBAR_SNAP);
     }
 
-    void StatusbarImpl::toggleBpm() {
+    void toggleBpm() override {
         myShowBpm = !myShowBpm;
         gMenubar->update(Menubar::STATUSBAR_BPM);
     }
 
-    void StatusbarImpl::toggleRow() {
+    void toggleRow() override {
         myShowRow = !myShowRow;
         gMenubar->update(Menubar::STATUSBAR_ROW);
     }
 
-    void StatusbarImpl::toggleBeat() {
+    void toggleBeat() override {
         myShowBeat = !myShowBeat;
         gMenubar->update(Menubar::STATUSBAR_BEAT);
     }
 
-    void StatusbarImpl::toggleMeasure() {
+    void toggleMeasure() override {
         myShowMeasure = !myShowMeasure;
         gMenubar->update(Menubar::STATUSBAR_MEASURE);
     }
 
-    void StatusbarImpl::toggleTime() {
+    void toggleTime() override {
         myShowTime = !myShowTime;
         gMenubar->update(Menubar::STATUSBAR_TIME);
     }
 
-    void StatusbarImpl::toggleTimingMode() {
+    void toggleTimingMode() override {
         myShowTimingMode = !myShowTimingMode;
         gMenubar->update(Menubar::STATUSBAR_TIMING_MODE);
     }
 
-    void StatusbarImpl::toggleScroll() {
+    void toggleScroll() override {
         myShowScroll = !myShowScroll;
         gMenubar->update(Menubar::STATUSBAR_SCROLL);
     }
 
-    void StatusbarImpl::toggleSpeed() {
+    void toggleSpeed() override {
         myShowSpeed = !myShowSpeed;
         gMenubar->update(Menubar::STATUSBAR_SPEED);
     }
 
-    bool StatusbarImpl::hasChart() { return myShowChart; }
+    bool hasChart() override { return myShowChart; }
 
-    bool StatusbarImpl::hasSnap() { return myShowSnap; }
+    bool hasSnap() override { return myShowSnap; }
 
-    bool StatusbarImpl::hasBpm() { return myShowBpm; }
+    bool hasBpm() override { return myShowBpm; }
 
-    bool StatusbarImpl::hasRow() { return myShowRow; }
+    bool hasRow() override { return myShowRow; }
 
-    bool StatusbarImpl::hasBeat() { return myShowBeat; }
+    bool hasBeat() override { return myShowBeat; }
 
-    bool StatusbarImpl::hasMeasure() { return myShowMeasure; }
+    bool hasMeasure() override { return myShowMeasure; }
 
-    bool StatusbarImpl::hasTime() { return myShowTime; }
+    bool hasTime() override { return myShowTime; }
 
-    bool StatusbarImpl::hasTimingMode() { return myShowTimingMode; }
+    bool hasTimingMode() override { return myShowTimingMode; }
 
-    bool StatusbarImpl::hasScroll() { return myShowScroll; }
+    bool hasScroll() override { return myShowScroll; }
 
-    bool StatusbarImpl::hasSpeed() { return myShowSpeed; }
+    bool hasSpeed() override { return myShowSpeed; }
 
 };  // StatusbarImpl
 
@@ -256,11 +256,11 @@ Statusbar* gStatusbar = nullptr;
 
 void Statusbar::create(XmrNode& settings) {
     gStatusbar = new StatusbarImpl();
-    ((StatusbarImpl*)gStatusbar)->loadSettings(settings);
+    static_cast<StatusbarImpl*>(gStatusbar)->loadSettings(settings);
 }
 
 void Statusbar::destroy() {
-    delete (StatusbarImpl*)gStatusbar;
+    delete static_cast<StatusbarImpl*>(gStatusbar);
     gStatusbar = nullptr;
 }
 
