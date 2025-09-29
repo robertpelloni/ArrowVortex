@@ -12,8 +12,8 @@ if(${CMAKE_BUILD_TYPE} STREQUAL "MinSizeRel")
     set(tidy_flags "--fix-errors;--fix-notes")
     set(format_flags "-i")
 else()
-    set(tidy_flags "--warnings-as-errors")
-    set(format_flags "--dry-run --Werror")
+    set(tidy_flags "--warnings-as-errors=*")
+    set(format_flags "--dry-run")
 endif()
 set(CMAKE_CXX_CLANG_TIDY "clang-tidy;${tidy_flags};-extra-arg=/EHsc;-p=build")
 
@@ -24,6 +24,7 @@ find_package(MAD REQUIRED)
 find_package(Ogg CONFIG REQUIRED)
 find_package(Vorbis REQUIRED)
 find_package(OpenGL REQUIRED)
+find_package(iir CONFIG REQUIRED)
 
 add_subdirectory(src/Core)
 add_subdirectory(src/Dialogs)
@@ -44,6 +45,6 @@ add_custom_target(format ALL)
 add_custom_command(
     TARGET format
     PRE_BUILD
-    COMMAND clang-format ${format_flags} -style=file ${path_sources}
+    COMMAND clang-format ${format_flags} --Werror -style=file ${path_sources}
     USES_TERMINAL
 )

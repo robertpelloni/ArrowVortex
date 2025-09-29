@@ -5,6 +5,7 @@
   "builtin-baseline": "566f9496b7e00ee0cc00aca0ab90493d122d148a",
   "dependencies": [
     "freetype",
+    "iir1",
     "libmad",
     "libogg",
     "libvorbis",
