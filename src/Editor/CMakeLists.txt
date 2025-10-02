@@ -2,4 +2,7 @@ file(GLOB SRC "${CMAKE_CURRENT_SOURCE_DIR}/*.cpp")
 file(GLOB INC "${CMAKE_CURRENT_SOURCE_DIR}/*.h")
 
 add_library(Editor STATIC ${SRC} ${INC})
-target_link_libraries(Editor PRIVATE Core Dialogs MAD::MAD Managers Simfile System Aubio::aubio iir::iir_static Vorbis::vorbisfile Vorbis::vorbis Ogg::ogg)
+target_include_directories(Editor PRIVATE ${FFMPEG_INCLUDE_DIRS})
+target_link_directories(Editor PRIVATE ${FFMPEG_LIBRARY_DIRS})
+message("${FFMPEG_LIBRARIES}")
+target_link_libraries(Editor PRIVATE Core Dialogs MAD::MAD Managers Simfile System Aubio::aubio iir::iir_static Vorbis::vorbisfile Vorbis::vorbis Ogg::ogg ${FFMPEG_LIBRARIES})
