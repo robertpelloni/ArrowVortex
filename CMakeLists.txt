@@ -25,6 +25,8 @@ find_package(Ogg CONFIG REQUIRED)
 find_package(Vorbis REQUIRED)
 find_package(OpenGL REQUIRED)
 find_package(iir CONFIG REQUIRED)
+find_package(aubio CONFIG REQUIRED)
+find_package(stb REQUIRED)
 
 add_subdirectory(src/Core)
 add_subdirectory(src/Dialogs)
