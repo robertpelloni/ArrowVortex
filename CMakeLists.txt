@@ -41,13 +41,12 @@ install(DIRECTORY bin/assets DESTINATION bin)
 install(DIRECTORY bin/noteskins DESTINATION bin)
 install(DIRECTORY bin/settings DESTINATION bin)
 
-target_compile_options(ArrowVortex PUBLIC /EHsc)
-
-file(GLOB_RECURSE path_sources "src/*.cpp" "src/*.h")
+file(GLOB_RECURSE path_sources "src/*.cpp" "src/*.hpp" "src/*.c" "src/*.h")
 add_custom_target(format ALL)
 add_custom_command(
     TARGET format
-    PRE_BUILD
-    COMMAND clang-format ${format_flags} --Werror -style=file ${path_sources}
+    POST_BUILD
+    COMMAND clang-format ${format_flags} -Werror -style=file ${path_sources}
     USES_TERMINAL
 )
+add_dependencies(format ArrowVortex)
