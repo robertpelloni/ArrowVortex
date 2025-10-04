@@ -12,8 +12,8 @@ env:
   VCPKG_BINARY_SOURCES: "clear;nuget,https://nuget.pkg.github.com/uvcat7/index.json,readwrite"
 
 jobs:
-  windows:
-    name: "Build Windows x64"
+  formatting:
+    name: "Check formatting"
     runs-on: windows-2022
     permissions:
       contents: read
@@ -24,6 +24,14 @@ jobs:
         run: >
           clang-format --dry-run --Werror -style=file $(find src/ -type f \( -name '*.cpp' -o -name '*.h' -o -name '*.c' -o -name '*.hpp' \))
         shell: bash
+  windows:
+    name: "Build Windows x64"
+    runs-on: windows-2022
+    permissions:
+      contents: read
+    steps:
+      - name: Get AV
+        uses: actions/checkout@v5
       - name: Add NuGet sources
         shell: pwsh
         run: |
