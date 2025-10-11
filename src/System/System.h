@@ -1,6 +1,7 @@
 #pragma once
 
 #include <Core/Input.h>
+#include <SDL3/SDL.h>
 
 namespace Vortex {
 
@@ -49,21 +50,14 @@ struct System {
     virtual std::string openFileDlg(
         const std::string& title,
         const std::string& initialPath = std::string(),
-        const std::string& extFilters = std::string()) = 0;
+        const SDL_DialogFileFilter extFilters[], const int numFilters) = 0;
 
     /// Shows a save file dialog, see class description.
     virtual std::string saveFileDlg(
         const std::string& title,
         const std::string& initialPath = std::string(),
-        const std::string& extFilters = std::string(),
+        const SDL_DialogFileFilter extFilters[], const int numFilters,
         int* outFilterIndex = nullptr) = 0;
-
-    /// Runs a system command.
-    virtual bool runSystemCommand(const std::string& cmd) = 0;
-
-    /// Runs a system command and pipes data to it.
-    virtual bool runSystemCommand(const std::string& cmd, CommandPipe* pipe,
-                                  void* buffer) = 0;
 
     /// Opens a link to a webpage in the default browser.
     virtual void openWebpage(const std::string& link) = 0;
@@ -82,9 +76,6 @@ struct System {
 
     /// Returns the elapsed time since the application was started.
     virtual double getElapsedTime() const = 0;
-
-    /// Returns the HWND of the main window.
-    virtual void* getHWND() const = 0;
 
     /// Returns the current clipboard text.
     virtual std::string getClipboardText() const = 0;
@@ -133,6 +124,8 @@ struct System {
 
     /// Returns the build date of the application.
     static std::string getBuildData();
+
+    static void createMenu();
 };
 
 extern System* gSystem;

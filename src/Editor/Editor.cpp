@@ -58,6 +58,8 @@
 #include <algorithm>
 #include <fstream>
 
+#include <SDL3/SDL.h>
+
 namespace Vortex {
 
 extern std::string VerifySaveLoadIdentity(const Simfile& simfile);
@@ -69,23 +71,24 @@ struct DialogEntry {
     bool requestOpen;
 };
 
-static const char loadFilters[] =
-    "Supported Media (*.sm, *.ssc, *.dwi, *.osu, *.osz, *.ogg, *.mp3, "
-    "*.wav)\0*.sm;*.ssc;*.dwi;*.osu;*.osz;*.ogg;*.mp3;*.wav\0"
-    "Stepmania/ITG (*.sm)\0*.sm\0"
-    "Stepmania 5 (*.ssc)\0*.ssc\0"
-    "Dance With Intensity (*.dwi)\0*.dwi\0"
-    "Osu!mania (*.osu, *.osz)\0*.osu;*.osz\0"
-    "Ogg Vorbis (*.ogg)\0*.ogg\0"
-    "MP3 Audio (*.mp3)\0*.mp3\0"
-    "Waveform (*.wav)\0*.wav\0"
-    "All Files (*.*)\0*.*\0";
+static const SDL_DialogFileFilter loadFilters[] = {
+    {"Supported Media", "*.sm;*.ssc;*.dwi;*.osu;*.osz;*.ogg;*.mp3;*.wav"},
+    {"Stepmania/ITG", "*.sm"},
+    {"Stepmania 5", "*.ssc"},
+    {"Dance With Intensity", "*.dwi"},
+    {"Osu!mania", "*.osu;*.osz"},
+    {"Ogg Vorbis", "*.ogg"},
+    {"MP3 Audio", "*.mp3"},
+    {"Waveform", "*.wav"},
+    {"All Files", "*.*"},
+};
 
-static const char saveFilters[] =
-    "Stepmania/ITG (*.sm)\0*.sm\0"
-    "Stepmania 5 (*.ssc)\0*.ssc\0"
-    "Osu!mania (*.osu)\0*.osu\0"
-    "All Files (*.*)\0*.*\0";
+static const SDL_DialogFileFilter saveFilters[] = {
+    {"Stepmania/ITG", "*.sm"},                                               
+    {"Stepmania 5", "*.ssc"},                                               
+    {"Osu!mania", "*.osu"},
+    {"All Files", "*.*"}
+};
 
 static const int MAX_RECENT_FILES = 10;
 
@@ -229,11 +232,6 @@ struct EditorImpl : public Editor, public InputHandler {
 
         // Open the saved pinned dialogs.
         openPinnedDialogs(settings);
-
-        // openSimfile("D:\\Development\\ArrowVortex\\test\\sm\\Alchemist
-        // (Double)\\alchemist.sm"); openSimfile("D:\\Installed
-        // Games\\OpenITG\\Songs\\Really Long Stuff\\90,000 Miles\\90000
-        // Miles.sm"); openDialog(DIALOG_NEW_CHART);
     }
 
     void shutdown() {
@@ -443,9 +441,8 @@ struct EditorImpl : public Editor, public InputHandler {
     }
 
     bool openSimfile() override {
-        std::string filters(loadFilters, sizeof(loadFilters));
         std::string path =
-            gSystem->openFileDlg("Open file", std::string(), filters);
+            gSystem->openFileDlg("Open file", std::string(), loadFilters, loadFilters.size());
         return openSimfile(path);
     }
 

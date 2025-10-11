@@ -18,6 +18,10 @@
 
 #define UNICODE
 
+#define SDL_MAIN_USE_CALLBACKS
+#include <SDL3/SDL.h>
+#include <SDL3/SDL_main.h>
+#include <SDL3/SDL_video.h>
 #ifdef _WIN32
 #include <System/OpenGL.h>
 #include <winuser.h>
@@ -108,11 +112,20 @@ static int sDlgType[System::NUM_BUTTONS] = {MB_OK, MB_OKCANCEL, MB_YESNO,
 static int sDlgIcon[System::NUM_ICONS] = {0, MB_ICONASTERISK, MB_ICONWARNING,
                                           MB_ICONHAND};
 
+static void SDLCALL FileDialogCallback(void* userdata,
+                                        const char* const* filelist, int filter) {
+    if (filelist && filelist[0]) {
+        std::string* outPath = reinterpret_cast<std::string*>(userdata);
+        *outPath = filelist[0];
+    }
+}
+
 // Shows an open/save message box and returns the path selected by the user.
 static std::string ShowFileDialog(std::string title, std::string path,
-                                  std::string filters, int* index, bool save) {
-    WideString wfilter = Widen(filters);
-    WideString wtitle = Widen(title);
+                                  SDL_DialogFileFilter filters[], int num_filters, int* index,
+                                  bool save) {
+    SDL_ShowOpenFileDialog(FileDialogCallback, nullptr, nullptr, filters, num_filters, path.c_str(), 
+                           false);
 
     // Split the input path into a directory and filename.
     Path fpath = path;
@@ -212,8 +225,6 @@ namespace {
 // SystemImpl :: member data.
 
 struct SystemImpl : public System {
-    LPCWSTR myClassName = L"ArrowVortex";
-    HINSTANCE myInstance;
     std::chrono::steady_clock::time_point myApplicationStartTime;
     Cursor::Icon myCursor = Cursor::ARROW;
     Key::Code myKeyMap[256];
@@ -222,11 +233,13 @@ struct SystemImpl : public System {
     std::bitset<Key::MAX_VALUE> myKeyState;
     std::bitset<Mouse::MAX_VALUE> myMouseState;
     std::string myTitle;
-    WideString myInput;
+    std::string myInput;
     DWORD myStyle, myExStyle;
-    HWND myHWND;
-    HDC myHDC;
-    HGLRC myHRC;
+
+    SDL_GLContext myHRC;
+    SDL_Window* window = nullptr;
+    SDL_Renderer* renderer = nullptr;
+    std::string workingDirectory;
     bool myIsActive = false;
     bool myInitSuccesful = false;
     bool myIsTerminated = false;
@@ -237,34 +250,17 @@ struct SystemImpl : public System {
 
     ~SystemImpl() {
         // Destroy the rendering context.
-        if (myHRC) wglDeleteContext(myHRC);
+        if (myHRC) SDL_GL_DestroyContext(myHRC);
 
         // Destroy the window.
-        if (myHWND) DestroyWindow(myHWND);
-
-        // Deregister the window class.
-        UnregisterClassW(myClassName, myInstance);
+        if (window) SDL_DestroyWindow(window);
     }
 
     SystemImpl()
-        : myInstance(GetModuleHandle(nullptr)),
-
-          myMousePos({0, 0}),
+        : myMousePos({0, 0}),
           mySize({0, 0}),
           myTitle("ArrowVortex") {
         myApplicationStartTime = Debug::getElapsedTime();
-
-        // Register the window class.
-        WNDCLASSW wndclass = {};
-        wndclass.style = CS_HREDRAW | CS_VREDRAW | CS_DBLCLKS;
-        wndclass.lpfnWndProc = GlobalProc;
-        wndclass.hInstance = myInstance;
-        wndclass.hIcon = LoadIcon(myInstance, MAKEINTRESOURCE(MAIN_ICON));
-        wndclass.hCursor = LoadCursor(nullptr, IDC_ARROW);
-        wndclass.lpszClassName = myClassName;
-
-        ATOM classAtom = RegisterClassW(&wndclass);
-        if (LogCheckpoint(classAtom != 0, "registering window class")) return;
 
         // Initialize the keymap, which maps windows virtual keys to vortex key
         // codes.
@@ -283,48 +279,19 @@ struct SystemImpl : public System {
                 static_cast<Key::Code>(Key::NUMPAD_0 + i);
 
         // Create a window handle.
-        myStyle = WS_CLIPSIBLINGS | WS_CLIPCHILDREN | WS_OVERLAPPEDWINDOW;
-        myExStyle = WS_EX_WINDOWEDGE | WS_EX_ACCEPTFILES | WS_EX_APPWINDOW;
-        myHWND = CreateWindowExW(myExStyle, myClassName, L"ArrowVortex",
-                                 myStyle, CW_USEDEFAULT, CW_USEDEFAULT, 640,
-                                 480, nullptr, nullptr, myInstance, this);
+        if (!SDL_CreateWindowAndRenderer("ArrowVortex", 800, 600,
+                                         SDL_WINDOW_FULLSCREEN, &window,
+                                         &renderer)) {
+            SDL_Log("Couldn't create window and renderer: %s", SDL_GetError());
+        }
 
-        if (LogCheckpoint(myHWND != nullptr, "creating window")) return;
-
-        // Create a device context.
-        myHDC = GetDC(myHWND);
-        if (LogCheckpoint(myHDC != nullptr, "creating device context")) return;
-
-        // Create the pixel format descriptor.
-        PIXELFORMATDESCRIPTOR pfd;
-        memset(&pfd, 0, sizeof(pfd));
-        pfd.nSize = sizeof(PIXELFORMATDESCRIPTOR);
-        pfd.nVersion = 1;
-        pfd.dwFlags =
-            PFD_DRAW_TO_WINDOW | PFD_SUPPORT_OPENGL | PFD_DOUBLEBUFFER;
-        pfd.iPixelType = PFD_TYPE_RGBA;
-        pfd.cColorBits = 32;
-        pfd.cRedBits = 8;
-        pfd.cGreenBits = 8;
-        pfd.cBlueBits = 8;
-        pfd.cAlphaBits = 8;
-        pfd.cDepthBits = 24;
-        pfd.cStencilBits = 8;
-
-        // Set the pixel format
-#pragma warning(suppress : 6387)
-        int cpf = ChoosePixelFormat(myHDC, &pfd);
-        if (LogCheckpoint(cpf != 0, "choosing pixel format")) return;
-
-#pragma warning(suppress : 6387)
-        BOOL spf = SetPixelFormat(myHDC, cpf, &pfd);
-        if (LogCheckpoint(spf != 0, "setting pixel format")) return;
+        if (LogCheckpoint(window != nullptr, "creating window")) return;
 
         // Create the OpenGL rendering context.
-        myHRC = wglCreateContext(myHDC);
+        myHRC = SDL_GL_CreateContext(window);
         if (LogCheckpoint(myHRC != nullptr, "creating OpenGL context")) return;
 
-        BOOL mc = wglMakeCurrent(myHDC, myHRC);
+        BOOL mc = SDL_GL_MakeCurrent(window, myHRC);
         if (LogCheckpoint(mc != 0, "activating OpenGL context")) return;
 
         VortexCheckGlError();
@@ -355,19 +322,11 @@ struct SystemImpl : public System {
 
         // Make sure the window is centered on the desktop.
         mySize = {1200, 900};
-        RECT wr;
-        wr.left = max(0, GetSystemMetrics(SM_CXSCREEN) / 2 - mySize.x / 2);
-        wr.top = max(0, GetSystemMetrics(SM_CYSCREEN) / 2 - mySize.y / 2);
-        wr.right = wr.left + max(mySize.x, 0);
-        wr.bottom = wr.top + max(mySize.y, 0);
-        AdjustWindowRectEx(&wr, myStyle, FALSE, myExStyle);
-        int flags = SWP_FRAMECHANGED | SWP_NOACTIVATE | SWP_NOZORDER;
-        SetWindowPos(myHWND, nullptr, wr.left, wr.top, wr.right - wr.left,
-                     wr.bottom - wr.top, flags);
+        SDL_SetWindowSize(window, mySize.x, mySize.y);
+        SDL_SetWindowPosition(window, SDL_WINDOWPOS_CENTERED,
+                              SDL_WINDOWPOS_CENTERED);
 
         // Show the window.
-        ShowWindow(myHWND, SW_SHOW);
-        SetFocus(myHWND);
         myIsActive = true;
         myInitSuccesful = true;
     }
@@ -375,24 +334,15 @@ struct SystemImpl : public System {
     // ================================================================================================
     // SystemImpl :: message loop.
 
-    void forwardArgs() {
-        int numArgs = 0;
-        LPWSTR* wideArgs = CommandLineToArgvW(GetCommandLineW(), &numArgs);
-        Vector<std::string> args(numArgs, std::string());
-        for (int i = 0; i < numArgs; ++i) {
-            args[i] = Narrow(wideArgs[i], wcslen(wideArgs[i]));
-        }
-        gEditor->onCommandLineArgs(args.data(), args.size());
-        LocalFree(wideArgs);
-    }
-
     void createMenu() {
+#ifdef _WIN32
         HMENU menu = CreateMenu();
         gMenubar->init(reinterpret_cast<MenuItem*>(menu));
-        SetMenu(myHWND, menu);
+        SetMenu(GetActiveWindow(), menu);
+#endif
     }
 
-    void CALLBACK messageLoop() {
+    SDL_AppResult SDL_AppIterate(void* appstate) {
         using namespace std::chrono;
 
         if (!myInitSuccesful) return;
@@ -406,133 +356,123 @@ struct SystemImpl : public System {
         auto frameGuess = 960;
 #endif
 
-        Editor::create();
-        forwardArgs();
-        createMenu();
-
         // Non-vsync FPS max target
         auto frameTarget = duration<double>(1.0 / 960.0);
 
         // Enter the message loop.
         MSG message;
         auto prevTime = Debug::getElapsedTime();
-        while (!myIsTerminated) {
-            auto startTime = Debug::getElapsedTime();
+        // while (!myIsTerminated) {
+        auto startTime = Debug::getElapsedTime();
 
-            myEvents.clear();
-            // Process all windows messages.
-            myIsInsideMessageLoop = true;
-            while (PeekMessage(&message, nullptr, 0, 0,
-                               PM_NOREMOVE | PM_NOYIELD)) {
-                GetMessageW(&message, nullptr, 0, 0);
-                TranslateMessage(&message);
-                DispatchMessage(&message);
-            }
-            myIsInsideMessageLoop = false;
-
-            // Check if there were text input events.
-            if (!myInput.empty()) {
-                myEvents.addTextInput(Narrow(myInput).c_str());
-                myInput.clear();
-            }
-
-            // Set up the OpenGL view.
-            glViewport(0, 0, mySize.x, mySize.y);
-            glLoadIdentity();
-            glOrtho(0, mySize.x, mySize.y, 0, -1, 1);
-            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-            // Reset the mouse cursor.
-            myCursor = Cursor::ARROW;
-
-#ifndef NDEBUG
-            auto inputTime = Debug::getElapsedTime();
-
-            VortexCheckGlError();
-#endif
-
-            gEditor->tick();
-
-            // Display.
-            SwapBuffers(myHDC);
-
-#ifndef NDEBUG
-            auto renderTime = Debug::getElapsedTime();
-#endif
-            // Tick function.
-            duration<double> frameTime = Debug::getElapsedTime() - prevTime;
-            auto waitTime = frameTarget.count() - frameTime.count();
-
-            if (wglSwapInterval) {
-                while (Debug::getElapsedTime() - prevTime < frameTarget) {
-                    std::this_thread::yield();
-                }
-            }
-
-            // End of frame
-            auto curTime = Debug::getElapsedTime();
-            deltaTime = duration<double>(static_cast<float> min(
-                max(0, duration<double>(curTime - prevTime).count()), 0.25));
-            prevTime = curTime;
-
-#ifndef NDEBUG
-            // Do frame statistics
-            // Note that these will be wrong with VSync enabled.
-            fpsList.push_front(deltaTime.count());
-            waitList.push_front(duration<double>(curTime - renderTime).count());
-            frameList.push_front(
-                duration<double>(renderTime - inputTime).count());
-            inputList.push_front(
-                duration<double>(inputTime - startTime).count());
-
-            if (abs(deltaTime.count() - 1.0 / static_cast<double>(frameGuess)) /
-                    (1.0 / static_cast<double>(frameGuess)) >
-                0.01) {
-                lowcounts++;
-            }
-            if (fpsList.size() >= frameGuess * 2) {
-                fpsList.pop_back();
-                frameList.pop_back();
-                inputList.pop_back();
-                waitList.pop_back();
-            }
-            auto min = *std::min_element(fpsList.begin(), fpsList.end());
-            auto max = *std::max_element(fpsList.begin(), fpsList.end());
-            auto maxIndex =
-                std::distance(fpsList.begin(),
-                              std::max_element(fpsList.begin(), fpsList.end()));
-            auto siz = fpsList.size();
-            auto avg =
-                std::accumulate(fpsList.begin(), fpsList.end(), 0.0) / siz;
-            auto varianceFunc = [&avg, &siz](double accumulator, double val) {
-                return accumulator + (val - avg) * (val - avg);
-            };
-            auto std = sqrt(std::accumulate(fpsList.begin(), fpsList.end(), 0.0,
-                                            varianceFunc) /
-                            siz);
-            auto frameAvg =
-                std::accumulate(frameList.begin(), frameList.end(), 0.0) /
-                frameList.size();
-            auto frameMax = frameList.begin();
-            std::advance(frameMax, maxIndex);
-            auto inputMax = inputList.begin();
-            std::advance(inputMax, maxIndex);
-            auto waitMax = waitList.begin();
-            std::advance(waitMax, maxIndex);
-            if (frames % (frameGuess * 2) == 0) {
-                Debug::log(
-                    "frame total average: %f, frame render average %f, std dev "
-                    "%f, lowest FPS %f, highest FPS %f, highest FPS render "
-                    "time %f, highest FPS input time %f, highest FPS wait time "
-                    "%f, lag frames %d\n",
-                    avg, frameAvg, std, 1.0 / max, 1.0 / min, *frameMax,
-                    *inputMax, *waitMax, lowcounts);
-                lowcounts = 0;
-            }
-            frames++;
-#endif
+        myEvents.clear();
+        // Process all windows messages.
+        myIsInsideMessageLoop = true;
+        while (PeekMessage(&message, nullptr, 0, 0, PM_NOREMOVE | PM_NOYIELD)) {
+            GetMessageW(&message, nullptr, 0, 0);
+            TranslateMessage(&message);
+            DispatchMessage(&message);
         }
-        Editor::destroy();
+        myIsInsideMessageLoop = false;
+
+        // Check if there were text input events.
+        if (!myInput.empty()) {
+            myEvents.addTextInput(myInput.c_str());
+            myInput.clear();
+        }
+
+        // Set up the OpenGL view.
+        glViewport(0, 0, mySize.x, mySize.y);
+        glLoadIdentity();
+        glOrtho(0, mySize.x, mySize.y, 0, -1, 1);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+        // Reset the mouse cursor.
+        myCursor = Cursor::ARROW;
+
+#ifndef NDEBUG
+        auto inputTime = Debug::getElapsedTime();
+
+        VortexCheckGlError();
+#endif
+
+        gEditor->tick();
+
+        // Display.
+        SDL_GL_SwapWindow(window);
+
+#ifndef NDEBUG
+        auto renderTime = Debug::getElapsedTime();
+#endif
+        // Tick function.
+        duration<double> frameTime = Debug::getElapsedTime() - prevTime;
+        auto waitTime = frameTarget.count() - frameTime.count();
+
+        if (wglSwapInterval) {
+            while (Debug::getElapsedTime() - prevTime < frameTarget) {
+                std::this_thread::yield();
+            }
+        }
+
+        // End of frame
+        auto curTime = Debug::getElapsedTime();
+        deltaTime = duration<double>(static_cast<float> min(
+            max(0, duration<double>(curTime - prevTime).count()), 0.25));
+        prevTime = curTime;
+
+#ifndef NDEBUG
+        // Do frame statistics
+        // Note that these will be wrong with VSync enabled.
+        fpsList.push_front(deltaTime.count());
+        waitList.push_front(duration<double>(curTime - renderTime).count());
+        frameList.push_front(duration<double>(renderTime - inputTime).count());
+        inputList.push_front(duration<double>(inputTime - startTime).count());
+
+        if (abs(deltaTime.count() - 1.0 / static_cast<double>(frameGuess)) /
+                (1.0 / static_cast<double>(frameGuess)) >
+            0.01) {
+            lowcounts++;
+        }
+        if (fpsList.size() >= frameGuess * 2) {
+            fpsList.pop_back();
+            frameList.pop_back();
+            inputList.pop_back();
+            waitList.pop_back();
+        }
+        auto min = *std::min_element(fpsList.begin(), fpsList.end());
+        auto max = *std::max_element(fpsList.begin(), fpsList.end());
+        auto maxIndex = std::distance(
+            fpsList.begin(), std::max_element(fpsList.begin(), fpsList.end()));
+        auto siz = fpsList.size();
+        auto avg = std::accumulate(fpsList.begin(), fpsList.end(), 0.0) / siz;
+        auto varianceFunc = [&avg, &siz](double accumulator, double val) {
+            return accumulator + (val - avg) * (val - avg);
+        };
+        auto std = sqrt(
+            std::accumulate(fpsList.begin(), fpsList.end(), 0.0, varianceFunc) /
+            siz);
+        auto frameAvg =
+            std::accumulate(frameList.begin(), frameList.end(), 0.0) /
+            frameList.size();
+        auto frameMax = frameList.begin();
+        std::advance(frameMax, maxIndex);
+        auto inputMax = inputList.begin();
+        std::advance(inputMax, maxIndex);
+        auto waitMax = waitList.begin();
+        std::advance(waitMax, maxIndex);
+        if (frames % (frameGuess * 2) == 0) {
+            Debug::log(
+                "frame total average: %f, frame render average %f, std dev "
+                "%f, lowest FPS %f, highest FPS %f, highest FPS render "
+                "time %f, highest FPS input time %f, highest FPS wait time "
+                "%f, lag frames %d\n",
+                avg, frameAvg, std, 1.0 / max, 1.0 / min, *frameMax, *inputMax,
+                *waitMax, lowcounts);
+            lowcounts = 0;
+        }
+        frames++;
+#endif
+        //}
     }
 
     // ================================================================================================
@@ -864,89 +804,28 @@ struct SystemImpl : public System {
 
     std::string openFileDlg(const std::string& title,
                             const std::string& filename,
-                            const std::string& filters) override {
-        return ShowFileDialog(title, filename, filters, nullptr, false);
+                            SDL_DialogFileFilter filters[], int num_filters) override {
+        return ShowFileDialog(title, filename, filters, num_filters, 0, false);
     }
 
     std::string saveFileDlg(const std::string& title,
                             const std::string& filename,
-                            const std::string& filters, int* index) override {
-        return ShowFileDialog(title, filename, filters, index, true);
+                            SDL_DialogFileFilter filters[], int num_filters,
+                            int* index) override {
+        return ShowFileDialog(title, filename, filters, num_filters, index, true);
     }
 
     // ================================================================================================
     // SystemImpl :: misc/get/set functions.
 
-    bool runSystemCommand(const std::string& cmd) override {
-        return runSystemCommand(cmd, nullptr, nullptr);
-    }
-
-    bool runSystemCommand(const std::string& cmd, CommandPipe* pipe,
-                          void* buffer) override {
-        bool result = false;
-
-        // Copy the command to a Vector because CreateProcessW requires a
-        // modifiable buffer, urgh.
-        WideString wcommand = Widen(cmd);
-        Vector<wchar_t> wbuffer;
-        wbuffer.resize(wcommand.length() + 1);
-        memcpy(wbuffer.begin(), wcommand.begin(),
-               sizeof(wchar_t) * (wcommand.length() + 1));
-
-        // Create a pipe for the process's stdin.
-        STARTUPINFOW startupInfo;
-        startupInfo.cb = sizeof(startupInfo);
-        ZeroMemory(&startupInfo, sizeof(startupInfo));
-
-        HANDLE readPipe, writePipe;
-        if (pipe) {
-            // Set the bInheritHandle flag so pipe handles are inherited.
-            SECURITY_ATTRIBUTES attr;
-            attr.nLength = sizeof(SECURITY_ATTRIBUTES);
-            attr.bInheritHandle = TRUE;
-            attr.lpSecurityDescriptor = nullptr;
-
-            // Create a pipe to send data to stdin of the child process.
-            CreatePipe(&readPipe, &writePipe, &attr, 0);
-            SetHandleInformation(writePipe, HANDLE_FLAG_INHERIT, 0);
-
-            startupInfo.hStdInput = readPipe;
-            startupInfo.dwFlags |= STARTF_USESTDHANDLES;
-        }
-
-        // Fire off the process.
-        int flags = CREATE_NO_WINDOW;
-        PROCESS_INFORMATION processInfo;
-        ZeroMemory(&processInfo, sizeof(processInfo));
-        if (CreateProcessW(nullptr, wbuffer.data(), nullptr, nullptr, TRUE,
-                           flags, nullptr, nullptr, &startupInfo,
-                           &processInfo)) {
-            if (pipe) {
-                DWORD bytesWritten;
-                int bytesRead = pipe->read();
-                while (bytesRead > 0) {
-                    WriteFile(writePipe, buffer, bytesRead, &bytesWritten,
-                              nullptr);
-                    bytesRead = pipe->read();
-                }
-                CloseHandle(writePipe);
-            }
-            WaitForSingleObject(processInfo.hProcess, INFINITE);
-            CloseHandle(processInfo.hProcess);
-            CloseHandle(processInfo.hThread);
-            result = true;
-        }
-
-        return result;
-    }
-
     void openWebpage(const std::string& link) override {
-        ShellExecuteW(nullptr, nullptr, Widen(link).str(), nullptr, nullptr,
-                      SW_SHOW);
+        SDL_OpenURL(link.c_str());
     }
 
     void setWorkingDir(const std::string& path) override {
+#ifdef _WIN32
         SetCurrentDirectoryW(Widen(path).str());
+#endif
     }
 
     void setCursor(Cursor::Icon c) override { myCursor = c; }
@@ -961,8 +840,6 @@ struct SystemImpl : public System {
     double getElapsedTime() const override {
         return Debug::getElapsedTime(myApplicationStartTime);
     }
-
-    void* getHWND() const override { return myHWND; }
 
     std::string getExeDir() const override { return Narrow(sExeDir); }
 
@@ -981,10 +858,7 @@ struct SystemImpl : public System {
     vec2i getMousePos() const override { return myMousePos; }
 
     void setWindowTitle(const std::string& text) override {
-        if (!(myTitle == text)) {
-            SetWindowTextW(myHWND, Widen(text).str());
-            myTitle = text;
-        }
+        SDL_SetWindowTitle(window, text.c_str());
     }
 
     vec2i getWindowSize() const override { return mySize; }
@@ -1020,12 +894,7 @@ std::string System::getBuildData() {
 }
 
 static void ApplicationStart() {
-    // Set the executable directory as the working dir.
-    GetCurrentDirectoryW(MAX_PATH, sRunDir);
-    GetModuleFileNameW(nullptr, sExeDir, MAX_PATH);
-    wchar_t* finalSlash = wcsrchr(sExeDir, L'\\');
-    if (finalSlash) finalSlash[1] = 0;
-    SetCurrentDirectoryW(sExeDir);
+    // TODO: Set the executable directory as the working dir.
 
     // Log the application start-up time.
     Debug::openLogFile();
@@ -1042,22 +911,30 @@ static void ApplicationEnd() {
     Debug::log("Closing ArrowVortex :: %s", System::getLocalTime().c_str());
 }
 
-int APIENTRY WinMain(HINSTANCE, HINSTANCE, char*, int) {
-    //_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF |
-    //_CRTDBG_CHECK_ALWAYS_DF);
+SDL_AppResult SDL_AppEvent(void* appstate, SDL_Event* event) {
+    return SDL_APP_CONTINUE;
+}
 
+SDL_AppResult SDL_AppInit(void** appstate, int argc, char** argv) {
     ApplicationStart();
 #ifndef NDEBUG
     Debug::openConsole();
 #endif
     gSystem = new SystemImpl;
-    static_cast<SystemImpl*>(gSystem)->messageLoop();
+    // static_cast<SystemImpl*>(gSystem)->messageLoop();
+
+    Editor::create();
+    // gSystem->forwardArgs(); // arg1 is simfile path
+    gSystem->createMenu();  // TODO: multiplatform
+
+    return SDL_APP_CONTINUE;
+}
+
+void SDL_AppQuit(void* appstate) {
     delete static_cast<SystemImpl*>(gSystem);
     ApplicationEnd();
 
 #ifdef CRTDBG_MAP_ALLOC
     _CrtDumpMemoryLeaks();
 #endif
-
-    return 0;
 }
