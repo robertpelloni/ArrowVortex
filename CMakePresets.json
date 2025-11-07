@@ -50,6 +50,21 @@
       "environment": {
         "VCPKG_DEFAULT_TRIPLET": "$penv{VCPKG_DEFAULT_TRIPLET}"
       }
+    },
+    {
+      "name": "xcode",
+      "displayName": "Xcode Configuration",
+      "description": "Configure for Xcode IDE with vcpkg",
+      "binaryDir": "${sourceDir}/build-xcode",
+      "generator": "Xcode",
+      "toolchainFile": "$penv{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "VCPKG_TARGET_TRIPLET": "$penv{VCPKG_DEFAULT_TRIPLET}"
+      },
+      "environment": {
+        "VCPKG_DEFAULT_TRIPLET": "$penv{VCPKG_DEFAULT_TRIPLET}"
+      }
     }
   ],
   "buildPresets": [
@@ -68,6 +83,10 @@
     {
       "name": "vcpkg-debug",
       "configurePreset": "vcpkg-debug"
+    },
+    {
+      "name": "xcode",
+      "configurePreset": "xcode"
     }
   ]
 }
