@@ -242,7 +242,7 @@ struct NotesManImpl : public NotesMan {
         }
 
         if (myChart == chart) {
-            if (!firstTime) select(SELECT_SET, add.begin(), add.size(), false);
+            if (!firstTime) select(SELECT_SET, add.begin(), add.size(), true);
 
             if (!updated) myUpdateNotes();
 
@@ -359,8 +359,10 @@ struct NotesManImpl : public NotesMan {
 
             if (undo) {
                 NOTE_MAN->myApplyNotes(bound.chart, rem, add, false);
+                NOTE_MAN->select(SELECT_SET, rem.begin(), rem.size(), true);
             } else {
                 NOTE_MAN->myApplyNotes(bound.chart, add, rem, !redo);
+                NOTE_MAN->select(SELECT_SET, add.begin(), add.size(), redo);
             }
         }
         return msg;
@@ -665,9 +667,9 @@ struct NotesManImpl : public NotesMan {
 
         for (auto& note : myNotes) {
             bool isEligible =
-                (hasSelectedNotes   ? note.isSelected
-                 : !region.isOmni() ? region.rowIsInRegion(note.row)
-                                    : false);
+                (hasSelectedNotes    ? note.isSelected
+                 : !region.isEmpty() ? region.rowIsInRegion(note.row)
+                                     : false);
             if (isEligible) {
                 edit.rem.append(CompressNote(note));
             }
@@ -732,7 +734,7 @@ struct NotesManImpl : public NotesMan {
         static const NotesMan::EditDescription desc = {"Pasted %1 note",
                                                        "Pasted %1 notes"};
         modify(edit, !insert, &desc);
-        this->select(SELECT_SET, edit.add.begin(), edit.add.size(), false);
+        this->select(SELECT_SET, edit.add.begin(), edit.add.size(), true);
     }
 
     // ================================================================================================
