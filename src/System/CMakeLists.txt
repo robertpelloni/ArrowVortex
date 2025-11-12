@@ -25,4 +25,4 @@ add_custom_command(
 	COMMAND ${CMAKE_COMMAND} -E copy_directory
 		${PROJECT_SOURCE_DIR}/bin
 		$<TARGET_FILE_DIR:ArrowVortex>)
-target_link_libraries(ArrowVortex PRIVATE System)
+target_link_libraries(ArrowVortex PRIVATE System SDL3::SDL3)

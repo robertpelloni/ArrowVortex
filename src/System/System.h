@@ -47,17 +47,16 @@ struct System {
                                   Icon icon = I_INFO) = 0;
 
     /// Shows an open file dialog, see class description.
-    virtual std::string openFileDlg(
-        const std::string& title,
-        const std::string& initialPath = std::string(),
-        const SDL_DialogFileFilter extFilters[], const int numFilters) = 0;
+    virtual std::string openFileDlg(const std::string& title,
+                                    SDL_DialogFileFilter filters[],
+                                    int num_filters,
+                                    const std::string& filename) = 0;
 
     /// Shows a save file dialog, see class description.
-    virtual std::string saveFileDlg(
-        const std::string& title,
-        const std::string& initialPath = std::string(),
-        const SDL_DialogFileFilter extFilters[], const int numFilters,
-        int* outFilterIndex = nullptr) = 0;
+    virtual std::string saveFileDlg(const std::string& title,
+                                    SDL_DialogFileFilter filters[],
+                                    int num_filters, int* index,
+                                    const std::string& filename) = 0;
 
     /// Opens a link to a webpage in the default browser.
     virtual void openWebpage(const std::string& link) = 0;
@@ -125,7 +124,14 @@ struct System {
     /// Returns the build date of the application.
     static std::string getBuildData();
 
-    static void createMenu();
+    /// Creates the menu bar.
+    virtual void createMenu() = 0;
+
+    /// Gets the Vortex key code for the given SDL key code.
+    virtual Key::Code translateKeyCode(SDL_Keycode vkCode) = 0;
+
+    /// Handles a key press event.
+    virtual void handleKeyPress(Key::Code kc, bool repeated) = 0;
 };
 
 extern System* gSystem;
