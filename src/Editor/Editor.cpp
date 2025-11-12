@@ -70,7 +70,8 @@ struct DialogEntry {
     bool requestOpen;
 };
 
-static const SDL_DialogFileFilter loadFilters[] = {
+#define LOAD_FILTERS_COUNT 9
+static SDL_DialogFileFilter loadFilters[] = {
     {"Supported Media", "*.sm;*.ssc;*.dwi;*.osu;*.osz;*.ogg;*.mp3;*.wav"},
     {"Stepmania/ITG", "*.sm"},
     {"Stepmania 5", "*.ssc"},
@@ -82,12 +83,11 @@ static const SDL_DialogFileFilter loadFilters[] = {
     {"All Files", "*.*"},
 };
 
-static const SDL_DialogFileFilter saveFilters[] = {
-    {"Stepmania/ITG", "*.sm"},                                               
-    {"Stepmania 5", "*.ssc"},                                               
-    {"Osu!mania", "*.osu"},
-    {"All Files", "*.*"}
-};
+#define SAVE_FILTERS_COUNT 4
+static SDL_DialogFileFilter saveFilters[] = {{"Stepmania/ITG", "*.sm"},
+                                             {"Stepmania 5", "*.ssc"},
+                                             {"Osu!mania", "*.osu"},
+                                             {"All Files", "*.*"}};
 
 static const int MAX_RECENT_FILES = 10;
 
@@ -441,9 +441,8 @@ struct EditorImpl : public Editor, public InputHandler {
     }
 
     bool openSimfile() override {
-        std::string filters(loadFilters, sizeof(loadFilters));
-        fs::path path =
-            gSystem->openFileDlg("Open file", std::string(), filters);
+        fs::path path = gSystem->openFileDlg(
+            "Open file", loadFilters, LOAD_FILTERS_COUNT, std::string());
         return openSimfile(path);
     }
 
@@ -553,9 +552,9 @@ struct EditorImpl : public Editor, public InputHandler {
             };
 
             // Show the save file dialog.
-            std::string filters(saveFilters, sizeof(saveFilters));
-            fs::path path = gSystem->saveFileDlg("save file", save_path,
-                                                 filters, &filterIndex);
+            fs::path path = gSystem->saveFileDlg("save file", saveFilters,
+                                       SAVE_FILTERS_COUNT, &filterIndex,
+                                       std::string());
             if (path.empty()) return false;
 
             auto ext = pathToUtf8(path.extension());
