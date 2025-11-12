@@ -262,8 +262,7 @@ struct SystemImpl : public System {
     std::chrono::steady_clock::time_point myApplicationStartTime;
     std::map<SDL_Keycode, Key::Code> myKeyMap;
     std::string myTitle;
-    DWORD myStyle, myExStyle;
-    SDL_GLContext myHRC;
+    SDL_GLContext myHRC = nullptr;
     SDL_Renderer* renderer = nullptr;
     std::string workingDirectory;
 
@@ -302,7 +301,7 @@ struct SystemImpl : public System {
 
         // Create a window handle.
         if (!SDL_CreateWindowAndRenderer("ArrowVortex", 800, 600,
-                                         SDL_WINDOW_FULLSCREEN, &window,
+                                         SDL_WINDOW_OPENGL, &window,
                                          &renderer)) {
             SDL_Log("Couldn't create window and renderer: %s", SDL_GetError());
         }
@@ -368,40 +367,11 @@ struct SystemImpl : public System {
     // SystemImpl :: clipboard functions.
 
     bool setClipboardText(const std::string& text) override {
-        bool result = false;
-        if (OpenClipboard(nullptr)) {
-            EmptyClipboard();
-            WideString wtext = Widen(text);
-            size_t size = sizeof(wchar_t) * (wtext.length() + 1);
-            HGLOBAL bufferHandle = GlobalAlloc(GMEM_DDESHARE, size);
-            char* buffer = static_cast<char*>(GlobalLock(bufferHandle));
-            if (buffer) {
-                memcpy(buffer, wtext.str(), size);
-                GlobalUnlock(bufferHandle);
-                if (SetClipboardData(CF_UNICODETEXT, bufferHandle)) {
-                    result = true;
-                } else {
-                    GlobalFree(bufferHandle);
-                }
-            }
-            CloseClipboard();
-        }
-        return result;
+        return SDL_SetClipboardText(text.c_str());
     }
 
     std::string getClipboardText() const override {
-        std::string str;
-        if (OpenClipboard(nullptr)) {
-            HANDLE hData = GetClipboardData(CF_UNICODETEXT);
-            wchar_t* src = static_cast<wchar_t*>(GlobalLock(hData));
-            if (src) {
-                str = Narrow(src, wcslen(src));
-                GlobalUnlock(hData);
-                Str::replace(str, "\n", "");
-            }
-            CloseClipboard();
-        }
-        return str;
+        return std::string(SDL_GetClipboardText());
     }
 
     // ================================================================================================
@@ -819,8 +789,8 @@ SDL_AppResult SDL_AppEvent(void* appstate, SDL_Event* event) {
                     Key::Code kc = gSystem->translateKeyCode(event->key.key);
                     myEvents.addKeyRelease(kc, gSystem->getKeyFlags());
                     myKeyState.reset(kc);
-                    break;
                 }
+                break;
             }
             case SDL_EVENT_MOUSE_BUTTON_DOWN:
                 if (event->button.button == SDL_BUTTON_LEFT) {
@@ -833,8 +803,8 @@ SDL_AppResult SDL_AppEvent(void* appstate, SDL_Event* event) {
                                                gSystem->getKeyFlags(), false);
                         myMouseState.set(Mouse::LMB);
                     }
-                    break;
                 }
+                break;
             case SDL_EVENT_MOUSE_BUTTON_UP:
                 if (event->button.button == SDL_BUTTON_LEFT) {
                     SDL_CaptureMouse(false);
@@ -847,8 +817,8 @@ SDL_AppResult SDL_AppEvent(void* appstate, SDL_Event* event) {
                             static_cast<int>(y), gSystem->getKeyFlags());
                         myMouseState.reset(Mouse::LMB);
                     }
-                    break;
                 }
+                break;
             case SDL_EVENT_TEXT_INPUT: {
                 auto wp = event->text.text[0];
                 if (wp >= 32)
