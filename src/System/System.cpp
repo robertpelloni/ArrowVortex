@@ -867,6 +867,12 @@ SDL_AppResult SDL_AppEvent(void* appstate, SDL_Event* event) {
                 }
                 break;
             }
+                // case WM_COMMAND: {
+                //     if (myIsInsideMessageLoop) {
+                //         gEditor->onMenuAction(LOWORD(wp));
+                //     }
+                //     break;
+                // }
         };  // end of message switch.
     }
     return SDL_APP_CONTINUE;
