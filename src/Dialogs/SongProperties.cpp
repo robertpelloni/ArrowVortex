@@ -400,7 +400,8 @@ void DialogSongProperties::onPlayPreview() {
 }
 
 fs::path DialogSongProperties::fileDlgPath(const std::string& title) {
-    auto path = gSystem->openFileDlg(title);
+    // gSystem->openFileDlg(title);
+    fs::path path;
     // Hack: FileDlg eats the mouse release event, stop mouse capture directly.
     GuiManager::stopCapturingMouse(GuiManager::getMouseCapture());
     if (path.empty()) return path;

@@ -512,44 +512,22 @@ struct EditorImpl : public Editor, public InputHandler {
         return openSimfile(path);
     }
 
-    bool saveSimfile(std::string str) {
-        if (str.empty()) return false;
+    bool saveSimfile(fs::path path) {
+        if (path.empty()) return false;
 
         // Update the song directory and filename.
-        Path tmp(str);
-        auto dir = tmp.dir();
-        auto file = tmp.name();
+        auto ext = pathToUtf8(path.extension());
         auto saveFmt = SIM_SM;
 
-        if (tmp.hasExt("ssc")) {
+        if (ext == ".ssc") {
             saveFmt = SIM_SSC;
-        } else if (tmp.hasExt("osu")) {
+        } else if (ext == ".osu") {
             saveFmt = SIM_OSU;
         } else {
             saveFmt = SIM_SM;
         }
-        // Update the save format based on the selected filter index.
-        // switch (filterIndex) {
-        //    case 1:
-        //        saveFmt = SIM_SM;
-        //        break;
-        //    case 2:
-        //        saveFmt = SIM_SSC;
-        //        break;
-        //    case 3:
-        //        saveFmt = SIM_OSU;
-        //        break;
-        //    default:
-        //        if (tmp.hasExt("ssc")) {
-        //            saveFmt = SIM_SSC;
-        //        } else if (tmp.hasExt("osu")) {
-        //            saveFmt = SIM_OSU;
-        //        } else {
-        //            saveFmt = SIM_SM;
-        //        }
-        //        break;
-        //};
-        gSimfile->save(dir, file, saveFmt);
+        gSimfile->save(pathToUtf8(path.parent_path()),
+                       pathToUtf8(path.filename()), saveFmt);
     }
 
     bool saveSimfile(bool showSaveAsDialog) override {
@@ -593,7 +571,7 @@ struct EditorImpl : public Editor, public InputHandler {
 
             // Show the save file dialog.
             gSystem->saveFileDlg("save file", saveFilters, SAVE_FILTERS_COUNT,
-                                 &filterIndex, std::string());
+                                 &filterIndex, fs::path());
             return true;
         }
 

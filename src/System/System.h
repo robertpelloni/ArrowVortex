@@ -3,7 +3,7 @@
 #include <Core/Input.h>
 #include <filesystem>
 namespace fs = std::filesystem;
-#include <SDL3/SDL3.h>
+#include <SDL3/SDL.h>
 
 namespace Vortex {
 
@@ -49,16 +49,14 @@ struct System {
                                   Icon icon = I_INFO) = 0;
 
     /// Shows an open file dialog, see class description.
-    virtual std::string openFileDlg(const std::string& title,
-                                    SDL_DialogFileFilter filters[],
-                                    int num_filters,
-                                    fs::path filename) = 0;
+    virtual void openFileDlg(const std::string& title,
+                             SDL_DialogFileFilter filters[], int num_filters,
+                             fs::path filename) = 0;
 
     /// Shows a save file dialog, see class description.
-    virtual std::string saveFileDlg(const std::string& title,
-                                    SDL_DialogFileFilter filters[],
-                                    int num_filters, int* index,
-                                    fs::path filename) = 0;
+    virtual void saveFileDlg(const std::string& title,
+                             SDL_DialogFileFilter filters[], int num_filters,
+                             int* index, fs::path filename) = 0;
 
     /// Opens a link to a webpage in the default browser.
     virtual void openWebpage(const std::string& link) = 0;

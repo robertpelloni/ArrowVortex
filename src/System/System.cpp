@@ -201,7 +201,8 @@ void ShowFileDialog(std::string title, fs::path path,
                                filters, num_filters, pathToUtf8(path).c_str());
     } else {
         SDL_ShowOpenFileDialog(FileDialogOpenCallback, nullptr, nullptr,
-                               filters, num_filters, pathToUtf8(path).c_str(), false);
+                               filters, num_filters, pathToUtf8(path).c_str(),
+                               false);
     }
     return;
 }
@@ -386,7 +387,6 @@ struct SystemImpl : public System {
     // SystemImpl :: clipboard functions.
 
     bool setClipboardText(const std::string& text) override {
-
         return SDL_SetClipboardText(text.c_str());
     }
 
@@ -507,8 +507,7 @@ struct SystemImpl : public System {
     }
 
     void saveFileDlg(const std::string& title, SDL_DialogFileFilter filters[],
-                     int num_filters, int* index,
-                     fs::path filename) override {
+                     int num_filters, int* index, fs::path filename) override {
         ShowFileDialog(title, filename, filters, num_filters, index, true);
     }
 
