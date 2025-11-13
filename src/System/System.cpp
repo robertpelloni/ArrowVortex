@@ -168,26 +168,42 @@ static int sDlgType[System::NUM_BUTTONS] = {MB_OK, MB_OKCANCEL, MB_YESNO,
 static int sDlgIcon[System::NUM_ICONS] = {0, MB_ICONASTERISK, MB_ICONWARNING,
                                           MB_ICONHAND};
 
-static void SDLCALL FileDialogCallback(void* userdata,
-                                       const char* const* filelist,
-                                       int filter) {
-    if (filelist && filelist[0]) {
-        outPath = filelist[0];
+static void SDLCALL FileDialogOpenCallback(void* userdata,
+                                           const char* const* filelist,
+                                           int filter) {
+    if (!filelist) {
+        HudError("Failed to open the file dialog: \"%s\".", SDL_GetError());
+        return;
+    }
+    if (filelist[0]) {
+        gEditor->openSimfile(filelist[0]);
+    }
+}
+
+static void SDLCALL FileDialogSaveCallback(void* userdata,
+                                           const char* const* filelist,
+                                           int filter) {
+    if (!filelist) {
+        HudError("Failed to open the file dialog: \"%s\".", SDL_GetError());
+        return;
+    }
+    if (filelist[0]) {
+        gEditor->saveSimfile(filelist[0]);
     }
 }
 
 // Shows an open/save message box and returns the path selected by the user.
-static fs::path ShowFileDialog(std::string title, fs::path path,
-    SDL_DialogFileFilter filters[],
-                                  int num_filters, int* index, bool save) {
+void ShowFileDialog(std::string title, fs::path path,
+                    SDL_DialogFileFilter filters[], int num_filters, int* index,
+                    bool save) {
     if (save) {
-        SDL_ShowSaveFileDialog(FileDialogCallback, nullptr, nullptr, filters,
-                               num_filters, pathToUtf8(path).c_str());
+        SDL_ShowSaveFileDialog(FileDialogSaveCallback, nullptr, nullptr,
+                               filters, num_filters, pathToUtf8(path).c_str());
     } else {
-        SDL_ShowOpenFileDialog(FileDialogCallback, nullptr, nullptr, filters,
-                               num_filters, pathToUtf8(path).c_str(), false);
+        SDL_ShowOpenFileDialog(FileDialogOpenCallback, nullptr, nullptr,
+                               filters, num_filters, pathToUtf8(path).c_str(), false);
     }
-    return fs::path(path);
+    return;
 }
 
 // ================================================================================================
@@ -197,14 +213,8 @@ static bool LogCheckpoint(bool result, const char* description) {
     if (result) {
         Debug::log("%s :: OK\n", description);
     } else {
-        char lpMsgBuf[100];
-        DWORD code = GetLastError();
-        FormatMessageA(
-            FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS, nullptr,
-            code, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), lpMsgBuf, 60,
-            nullptr);
         Debug::blockBegin(Debug::ERROR, description);
-        Debug::log("windows error code %i: %s", code, lpMsgBuf);
+        Debug::log("SDL error message: %s", SDL_GetError());
         Debug::blockEnd();
     }
     return !result;
@@ -360,6 +370,15 @@ struct SystemImpl : public System {
         HMENU menu = CreateMenu();
         gMenubar->init(reinterpret_cast<MenuItem*>(menu));
         SetMenu(GetActiveWindow(), menu);
+        SDL_SetWindowsMessageHook(
+            [](void* userdata, tagMSG* msg) {
+                if (msg->message == WM_COMMAND) {
+                    gEditor->onMenuAction(LOWORD(msg->wParam));
+                    return false;
+                }
+                return true;
+            },
+            nullptr);
 #endif
     }
 
@@ -470,7 +489,7 @@ struct SystemImpl : public System {
                 buttons[2].flags = SDL_MESSAGEBOX_BUTTON_ESCAPEKEY_DEFAULT;
                 break;
             default:
-                break;
+                return R_CANCEL;
         }
         box.buttons = buttons;
         int result = 0;
@@ -482,18 +501,15 @@ struct SystemImpl : public System {
         return static_cast<Result>(result);
     }
 
-    std::string openFileDlg(const std::string& title,
-                            SDL_DialogFileFilter filters[], int num_filters,
-                            fs::path filename) override {
-        return ShowFileDialog(title, filename, filters, num_filters, nullptr,
-                              false);
+    void openFileDlg(const std::string& title, SDL_DialogFileFilter filters[],
+                     int num_filters, fs::path filename) override {
+        ShowFileDialog(title, filename, filters, num_filters, nullptr, false);
     }
 
-    std::string saveFileDlg(const std::string& title,
-                            SDL_DialogFileFilter filters[], int num_filters,
-                            int* index, fs::path filename) override {
-        return ShowFileDialog(title, filename, filters, num_filters, index,
-                              true);
+    void saveFileDlg(const std::string& title, SDL_DialogFileFilter filters[],
+                     int num_filters, int* index,
+                     fs::path filename) override {
+        ShowFileDialog(title, filename, filters, num_filters, index, true);
     }
 
     // ================================================================================================
@@ -852,12 +868,6 @@ SDL_AppResult SDL_AppEvent(void* appstate, SDL_Event* event) {
                 }
                 break;
             }
-                // case WM_COMMAND: {
-                //     if (myIsInsideMessageLoop) {
-                //         gEditor->onMenuAction(LOWORD(wp));
-                //     }
-                //     break;
-                // }
         };  // end of message switch.
     }
     return SDL_APP_CONTINUE;

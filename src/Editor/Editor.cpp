@@ -72,22 +72,22 @@ struct DialogEntry {
 
 #define LOAD_FILTERS_COUNT 9
 static SDL_DialogFileFilter loadFilters[] = {
-    {"Supported Media", "*.sm;*.ssc;*.dwi;*.osu;*.osz;*.ogg;*.mp3;*.wav"},
-    {"Stepmania/ITG", "*.sm"},
-    {"Stepmania 5", "*.ssc"},
-    {"Dance With Intensity", "*.dwi"},
-    {"Osu!mania", "*.osu;*.osz"},
-    {"Ogg Vorbis", "*.ogg"},
-    {"MP3 Audio", "*.mp3"},
-    {"Waveform", "*.wav"},
-    {"All Files", "*.*"},
+    {"Supported Media", "sm;ssc;dwi;osu;osz;ogg;mp3;wav"},
+    {"Stepmania/ITG", "sm"},
+    {"Stepmania 5", "ssc"},
+    {"Dance With Intensity", "dwi"},
+    {"Osu!mania", "osu;osz"},
+    {"Ogg Vorbis", "ogg"},
+    {"MP3 Audio", "mp3"},
+    {"Waveform", "wav"},
+    {"All Files", "*"},
 };
 
 #define SAVE_FILTERS_COUNT 4
-static SDL_DialogFileFilter saveFilters[] = {{"Stepmania/ITG", "*.sm"},
-                                             {"Stepmania 5", "*.ssc"},
-                                             {"Osu!mania", "*.osu"},
-                                             {"All Files", "*.*"}};
+static SDL_DialogFileFilter saveFilters[] = {{"Stepmania/ITG", "sm"},
+                                             {"Stepmania 5", "ssc"},
+                                             {"Osu!mania", "osu"},
+                                             {"All Files", "*"}};
 
 static const int MAX_RECENT_FILES = 10;
 
@@ -441,9 +441,9 @@ struct EditorImpl : public Editor, public InputHandler {
     }
 
     bool openSimfile() override {
-        fs::path path = gSystem->openFileDlg(
-            "Open file", loadFilters, LOAD_FILTERS_COUNT, std::string());
-        return openSimfile(path);
+        gSystem->openFileDlg("Open file", loadFilters, LOAD_FILTERS_COUNT,
+                             std::string());
+        return true;
     }
 
     bool openSimfile(fs::path path) override {
@@ -512,6 +512,46 @@ struct EditorImpl : public Editor, public InputHandler {
         return openSimfile(path);
     }
 
+    bool saveSimfile(std::string str) {
+        if (str.empty()) return false;
+
+        // Update the song directory and filename.
+        Path tmp(str);
+        auto dir = tmp.dir();
+        auto file = tmp.name();
+        auto saveFmt = SIM_SM;
+
+        if (tmp.hasExt("ssc")) {
+            saveFmt = SIM_SSC;
+        } else if (tmp.hasExt("osu")) {
+            saveFmt = SIM_OSU;
+        } else {
+            saveFmt = SIM_SM;
+        }
+        // Update the save format based on the selected filter index.
+        // switch (filterIndex) {
+        //    case 1:
+        //        saveFmt = SIM_SM;
+        //        break;
+        //    case 2:
+        //        saveFmt = SIM_SSC;
+        //        break;
+        //    case 3:
+        //        saveFmt = SIM_OSU;
+        //        break;
+        //    default:
+        //        if (tmp.hasExt("ssc")) {
+        //            saveFmt = SIM_SSC;
+        //        } else if (tmp.hasExt("osu")) {
+        //            saveFmt = SIM_OSU;
+        //        } else {
+        //            saveFmt = SIM_SM;
+        //        }
+        //        break;
+        //};
+        gSimfile->save(dir, file, saveFmt);
+    }
+
     bool saveSimfile(bool showSaveAsDialog) override {
         // Check if a simfile is currently open.
         if (gSimfile->isClosed()) return true;
@@ -552,35 +592,9 @@ struct EditorImpl : public Editor, public InputHandler {
             };
 
             // Show the save file dialog.
-            fs::path path = gSystem->saveFileDlg("save file", saveFilters,
-                                       SAVE_FILTERS_COUNT, &filterIndex,
-                                       std::string());
-            if (path.empty()) return false;
-
-            auto ext = pathToUtf8(path.extension());
-            Str::toLower(ext);
-
-            // Update the save format based on the selected filter index.
-            switch (filterIndex) {
-                case 1:
-                    saveFmt = SIM_SM;
-                    break;
-                case 2:
-                    saveFmt = SIM_SSC;
-                    break;
-                case 3:
-                    saveFmt = SIM_OSU;
-                    break;
-                default:
-                    if (ext == ".ssc") {
-                        saveFmt = SIM_SSC;
-                    } else if (ext == ".osu") {
-                        saveFmt = SIM_OSU;
-                    } else {
-                        saveFmt = SIM_SM;
-                    }
-                    break;
-            };
+            gSystem->saveFileDlg("save file", saveFilters, SAVE_FILTERS_COUNT,
+                                 &filterIndex, std::string());
+            return true;
         }
 
         // Save the simfile.
