@@ -49,20 +49,18 @@ struct System {
                                   Icon icon = I_INFO) = 0;
 
     /// Shows an open file dialog, see class description.
-    virtual void openFileDlg(const std::string& title,
-                             SDL_DialogFileFilter filters[], int num_filters,
-                             fs::path filename) = 0;
+    virtual fs::path openFileDlg(const std::string& title,
+                                 SDL_DialogFileFilter filters[],
+                                 int num_filters, fs::path filename) = 0;
 
     /// Shows a save file dialog, see class description.
-    virtual void saveFileDlg(const std::string& title,
-                             SDL_DialogFileFilter filters[], int num_filters,
-                             int* index, fs::path filename) = 0;
+    virtual fs::path saveFileDlg(const std::string& title,
+                                 SDL_DialogFileFilter filters[],
+                                 int num_filters, int* index,
+                                 fs::path filename) = 0;
 
     /// Opens a link to a webpage in the default browser.
     virtual void openWebpage(const std::string& link) = 0;
-
-    /// Sets the current working directory to the given path.
-    virtual void setWorkingDir(const std::string& path) = 0;
 
     /// Sends the given text to the clipboard.
     virtual bool setClipboardText(const std::string& text) = 0;
@@ -88,6 +86,8 @@ struct System {
     /// Returns the current mouse cursor icon.
     virtual Cursor::Icon getCursor() const = 0;
 
+    virtual SDL_SystemCursor getCursorResource() const = 0;
+
     /// Returns true if the given key is currently down.
     virtual bool isKeyDown(Key::Code key) const = 0;
 
@@ -105,6 +105,9 @@ struct System {
 
     /// Returns the current window size.
     virtual vec2i getWindowSize() const = 0;
+
+    /// Returns the current window scale factor.
+    virtual float getScaleFactor() const = 0;
 
     /// Returns the current window title.
     virtual const std::string& getWindowTitle() const = 0;

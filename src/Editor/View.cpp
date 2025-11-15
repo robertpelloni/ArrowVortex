@@ -186,7 +186,7 @@ struct ViewImpl : public View, public InputHandler {
     }
 
     // ================================================================================================
-    // ViewImpl :: member functions.
+    // ViewImpl :: member function
 
     double getZoomLevel() const override { return myZoomLevel; }
 
@@ -340,7 +340,7 @@ struct ViewImpl : public View, public InputHandler {
     }
 
     void setScaleLevel(double level) override {
-        level = min(max(level, 1.0), 10.0);
+        level = min(max(level, 1.0), 10.0) * gSystem->getScaleFactor();
         if (myScaleLevel != level) {
             myScaleLevel = level;
             gEditor->reportChanges(VCM_ZOOM_CHANGED);

@@ -441,9 +441,8 @@ struct EditorImpl : public Editor, public InputHandler {
     }
 
     bool openSimfile() override {
-        gSystem->openFileDlg("Open file", loadFilters, LOAD_FILTERS_COUNT,
-                             std::string());
-        return true;
+        return openSimfile(gSystem->openFileDlg(
+            "Open file", loadFilters, LOAD_FILTERS_COUNT, std::string()));
     }
 
     bool openSimfile(fs::path path) override {
@@ -512,24 +511,6 @@ struct EditorImpl : public Editor, public InputHandler {
         return openSimfile(path);
     }
 
-    bool saveSimfile(fs::path path) {
-        if (path.empty()) return false;
-
-        // Update the song directory and filename.
-        auto ext = pathToUtf8(path.extension());
-        auto saveFmt = SIM_SM;
-
-        if (ext == ".ssc") {
-            saveFmt = SIM_SSC;
-        } else if (ext == ".osu") {
-            saveFmt = SIM_OSU;
-        } else {
-            saveFmt = SIM_SM;
-        }
-        gSimfile->save(pathToUtf8(path.parent_path()),
-                       pathToUtf8(path.filename()), saveFmt);
-    }
-
     bool saveSimfile(bool showSaveAsDialog) override {
         // Check if a simfile is currently open.
         if (gSimfile->isClosed()) return true;
@@ -570,9 +551,25 @@ struct EditorImpl : public Editor, public InputHandler {
             };
 
             // Show the save file dialog.
-            gSystem->saveFileDlg("save file", saveFilters, SAVE_FILTERS_COUNT,
-                                 &filterIndex, fs::path());
-            return true;
+            save_path = gSystem->saveFileDlg("save file", saveFilters,
+                                             SAVE_FILTERS_COUNT, &filterIndex,
+                                             fs::path());
+            dir = pathToUtf8(save_path.parent_path());
+            file = pathToUtf8(save_path.filename());
+            auto ext = pathToUtf8(save_path.extension());
+
+            if (save_path.empty()) return false;
+
+            // Update the song directory and filename.
+            saveFmt = SIM_SM;
+
+            if (ext == ".ssc") {
+                saveFmt = SIM_SSC;
+            } else if (ext == ".osu") {
+                saveFmt = SIM_OSU;
+            } else {
+                saveFmt = SIM_SM;
+            }
         }
 
         // Save the simfile.
@@ -733,10 +730,12 @@ struct EditorImpl : public Editor, public InputHandler {
         Action::perform(static_cast<Action::Type>(id));
     }
 
-    void onExitProgram() override {
-        if (closeSimfile()) {
+    bool onExitProgram() override {
+        bool result = closeSimfile();
+        if (result) {
             gSystem->terminate();
         }
+        return result;
     }
 
     void notifyChanges() {
@@ -803,6 +802,7 @@ struct EditorImpl : public Editor, public InputHandler {
         notifyChanges();
 
         vec2i windowSize = gSystem->getWindowSize();
+        float scale = gSystem->getScaleFactor();
         recti r = {0, 0, windowSize.x, windowSize.y};
 
         gTextOverlay->handleInputs(events);
@@ -838,10 +838,6 @@ struct EditorImpl : public Editor, public InputHandler {
             }
         }
 
-        if (GuiMain::isCapturingMouse()) {
-            gSystem->setCursor(GuiMain::getCursorIcon());
-        }
-
         gTextOverlay->tick();
         gHistory->handleInputs(events);
         gMinimap->handleInputs(events);
@@ -862,6 +858,12 @@ struct EditorImpl : public Editor, public InputHandler {
 
         updateTitle();
         notifyChanges();
+
+        if (GuiMain::isCapturingMouse()) {
+            gSystem->setCursor(GuiMain::getCursorIcon());
+        } else {
+            gSystem->setCursor(gSystem->getCursor());
+        }
 
         if (gSimfile->isOpen()) {
             gNotefield->draw();
