@@ -26,6 +26,7 @@
 
 #include <algorithm>
 
+#define BOX_Y static_cast<int>(32 * gSystem->getScaleFactor())
 namespace Vortex {
 
 // ================================================================================================
@@ -272,7 +273,8 @@ struct TempoBoxesImpl : public TempoBoxes {
                                          : static_cast<double>(box.row)));
                 int side = Segment::meta[box.type]->side;
                 int x = baseX[side] + box.x;
-                if (IsInside(recti{x, y - 16, static_cast<int>(box.width), 32},
+                if (IsInside(recti{x, y - BOX_Y / 2,
+                                   static_cast<int>(box.width), BOX_Y},
                              mpos.x, mpos.y)) {
                     myMouseOverBox = i;
                     break;
@@ -310,13 +312,13 @@ struct TempoBoxesImpl : public TempoBoxes {
             int y = static_cast<int>(
                 oy + dy * (timeBased ? tracker.advance(box.row)
                                      : static_cast<double>(box.row)));
-            if (y < viewTop - 16 || y > viewBtm + 16) continue;
+            if (y < viewTop - BOX_Y / 2 || y > viewBtm + BOX_Y / 2) continue;
 
             int side = Segment::meta[box.type]->side;
             int x = baseX[side] + box.x;
 
             int flags = side * TileBar::FLIP_H;
-            recti r = {x, y - 16, static_cast<int>(box.width), 32};
+            recti r = {x, y - BOX_Y / 2, static_cast<int>(box.width), BOX_Y};
 
             uint32_t color = Segment::meta[box.type]->color;
             myBoxBar.draw(&batch, r, color, flags);
@@ -333,13 +335,14 @@ struct TempoBoxesImpl : public TempoBoxes {
             int y = static_cast<int>(
                 oy + dy * (timeBased ? tracker.advance(box.row)
                                      : static_cast<double>(box.row)));
-            if (y < viewTop - 16 || y > viewBtm + 16) continue;
+            if (y < viewTop - BOX_Y / 2 || y > viewBtm + BOX_Y / 2) continue;
 
             int side = Segment::meta[box.type]->side;
             int x = baseX[side] + box.x + side * 4 - 2;
 
             Text::arrange(Text::MC, textStyle, box.str.c_str());
-            Text::draw(recti{x, y - 17, static_cast<int>(box.width), 32});
+            Text::draw(recti{x, y - BOX_Y / 2 - 1, static_cast<int>(box.width),
+                             BOX_Y});
         }
 
         // Display detailed info of the mouse over box.

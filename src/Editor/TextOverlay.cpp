@@ -21,6 +21,7 @@ namespace Vortex {
 namespace {
 
 #define OVERLAY ((TextOverlayImpl*)gTextOverlay)
+#define TEXT_Y_START static_cast<int>(32 * gSystem->getScaleFactor())
 
 struct HudEntry {
     std::string text;
@@ -186,16 +187,17 @@ struct TextOverlayImpl : public TextOverlay {
 
     void UpdateScrollValues() {
         vec2i size = gSystem->getWindowSize();
-
+        int height = static_cast<int>(18 * gSystem->getScaleFactor());
+        int height_header = static_cast<int>(24 * gSystem->getScaleFactor());
         if (textOverlayMode_ == MESSAGE_LOG) {
-            textOverlayPageSize_ = max(0, (size.y - 32) / 16);
+            textOverlayPageSize_ = max(0, (size.y - TEXT_Y_START) / 16);
             textOverlayScrollEnd_ =
                 max(0, logEntries_.size() - textOverlayPageSize_);
         } else if (textOverlayMode_ == SHORTCUTS) {
             textOverlayPageSize_ = size.y;
-            textOverlayScrollEnd_ = 32;
+            textOverlayScrollEnd_ = TEXT_Y_START;
             for (const Shortcut& e : displayShortcuts_) {
-                textOverlayScrollEnd_ += e.isHeader ? 24 : 18;
+                textOverlayScrollEnd_ += e.isHeader ? height_header : height;
             }
             textOverlayScrollEnd_ =
                 max(0, textOverlayScrollEnd_ - textOverlayPageSize_);
@@ -280,8 +282,9 @@ struct TextOverlayImpl : public TextOverlay {
     void DrawTitleText(const char* left, const char* mid, const char* right) {
         vec2i size = gSystem->getWindowSize();
 
-        Draw::fill({0, 0, size.x, 28}, RGBAtoColor32(0, 0, 0, 191));
-        Draw::fill({0, 28, size.x, 1}, Colors::white);
+        int height = static_cast<int>(28 * gSystem->getScaleFactor());
+        Draw::fill({0, 0, size.x, height}, RGBAtoColor32(0, 0, 0, 191));
+        Draw::fill({0, height, size.x, 1}, Colors::white);
 
         if (right) {
             Text::arrange(Text::TR, right);
@@ -300,7 +303,10 @@ struct TextOverlayImpl : public TextOverlay {
     void DrawScrollbar() {
         if (textOverlayPageSize_ > 0 && textOverlayScrollEnd_ > 0) {
             vec2i size = gSystem->getWindowSize();
-            recti box = {size.x - 16, 32, 12, size.y - 36};
+            int width = static_cast<int>(12 * gSystem->getScaleFactor());
+            int height = static_cast<int>(28 * gSystem->getScaleFactor());
+            recti box = {size.x - width - 4, height + 4, width,
+                         size.y - height - 8};
 
             int barY =
                 box.y + box.h * textOverlayScrollPos_ /
@@ -428,7 +434,7 @@ struct TextOverlayImpl : public TextOverlay {
         textStyle.textFlags = Text::MARKUP;
 
         // Messages.
-        int x = 4, y = 32, bottomY = size.y;
+        int x = 4, y = TEXT_Y_START, bottomY = size.y;
         for (int i = textOverlayScrollPos_, n = logEntries_.size();
              i < n && y < bottomY - 16; ++i) {
             auto& m = logEntries_[i];
@@ -452,7 +458,7 @@ struct TextOverlayImpl : public TextOverlay {
         TextStyle textStyle;
         textStyle.fontSize = 11;
         Text::arrange(Text::TL, textStyle, debugLog_.c_str());
-        Text::draw(recti{4, 32, size.x - 8, size.y});
+        Text::draw(recti{4, TEXT_Y_START, size.x - 8, size.y});
 
         DrawTitleText("DEBUG LOG", "[ESC] close", "");
         DrawScrollbar();
@@ -465,20 +471,21 @@ struct TextOverlayImpl : public TextOverlay {
 
     void drawShortcuts() {
         int x = gSystem->getWindowSize().x / 2 - 325, w = 650;
-        int y = 32 - textOverlayScrollPos_;
+        int y = TEXT_Y_START - textOverlayScrollPos_;
+        int y_off = static_cast<int>(gSystem->getScaleFactor() * 18);
         for (const Shortcut& e : displayShortcuts_) {
             if (e.isHeader) {
                 Text::arrange(Text::TL, e.a.c_str());
                 Text::draw(vec2i{x, y});
-                Draw::fill({x, y + 18, w, 1}, Colors::white);
-                y += 24;
+                Draw::fill({x, y + y_off, w, 1}, Colors::white);
+                y += static_cast<int>(gSystem->getScaleFactor() * 24);
             } else {
                 Text::arrange(Text::TR, e.a.c_str());
                 Text::draw(vec2i{x + w / 2 - 10, y});
                 Text::arrange(Text::TL, e.b.c_str());
                 Text::draw(vec2i{x + w / 2 + 10, y});
 
-                y += 18;
+                y += static_cast<int>(gSystem->getScaleFactor() * 18);
             }
         }
 
@@ -517,28 +524,35 @@ struct TextOverlayImpl : public TextOverlay {
     }
 
     recti getGithubButtonRect() {
-        vec2i w = gSystem->getWindowSize();
-        return {w.x / 2 - 70, w.y / 2 - 60, 64, 28};
+        vec2i win = gSystem->getWindowSize();
+        int h = static_cast<int>(gSystem->getScaleFactor() * 28);
+        int w = static_cast<int>(gSystem->getScaleFactor() * 64);
+        int y_off = 128 - 5 * static_cast<int>(gSystem->getScaleFactor() * 16);
+        return {win.x / 2 - 3 * w / 2, win.y / 2 - y_off, w, h};
     }
 
     recti getSupportButtonRect() {
-        vec2i w = gSystem->getWindowSize();
-        return {w.x / 2 + 16, w.y / 2 - 60, 64, 28};
+        vec2i win = gSystem->getWindowSize();
+        int h = static_cast<int>(gSystem->getScaleFactor() * 28);
+        int w = static_cast<int>(gSystem->getScaleFactor() * 64);
+        int y_off = 128 - 5 * static_cast<int>(gSystem->getScaleFactor() * 16);
+        return {win.x / 2 + w / 2, win.y / 2 - y_off, w, h};
     }
 
     void drawAbout() {
         vec2i size = gSystem->getWindowSize();
 
         Text::arrange(Text::BC, "ArrowVortex release v1.0.1");
+        int h = static_cast<int>(gSystem->getScaleFactor() * 16);
         Text::draw(vec2i{size.x / 2, size.y / 2 - 128});
         std::string buildDate = "Build date: " + System::getBuildData();
         Text::arrange(Text::TC, buildDate.c_str());
-        Text::draw(vec2i{size.x / 2, size.y / 2 - 112});
+        Text::draw(vec2i{size.x / 2, size.y / 2 - 128 + h});
 
         Text::arrange(Text::TC,
                       "Join our Discord for support and our GitHub for source "
                       "code access!");
-        Text::draw(vec2i{size.x / 2, size.y / 2 - 80});
+        Text::draw(vec2i{size.x / 2, size.y / 2 - 128 + 3 * h});
 
         recti r = getSupportButtonRect();
         GuiDraw::getButton().base.draw(r);
@@ -563,7 +577,7 @@ struct TextOverlayImpl : public TextOverlay {
                       "\n"
                       "Original program and many thanks to : \n"
                       "Bram 'Fietsemaker' van de Wetering\n");
-        Text::draw(vec2i{size.x / 2, size.y / 2 - 16});
+        Text::draw(vec2i{size.x / 2, size.y / 2 - 128 + 7 * h});
 
         DrawTitleText("ABOUT", "[ESC] close", nullptr);
 

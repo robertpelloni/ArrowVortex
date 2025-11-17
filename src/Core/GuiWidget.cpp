@@ -4,6 +4,7 @@
 #include <Core/GuiManager.h>
 
 #include <System/File.h>
+#include <System/System.h>
 
 namespace Vortex {
 
@@ -20,9 +21,10 @@ uint32_t flags_;
 
 GuiWidget::GuiWidget(GuiContext* gui)
     : gui_(gui),
-      rect_({0, 0, 128, 24}),
-      width_(128),
-      height_(24),
+      rect_({0, 0, static_cast<int>(128 * gSystem->getScaleFactor()),
+             static_cast<int>(24 * gSystem->getScaleFactor())}),
+      width_(static_cast<int>(128 * gSystem->getScaleFactor())),
+      height_(static_cast<int>(24 * gSystem->getScaleFactor())),
       flags_(WF_ENABLED) {}
 
 GuiWidget::~GuiWidget() {
@@ -86,7 +88,16 @@ void GuiWidget::onUpdateSize() {}
 
 void GuiWidget::arrange(recti r) { onArrange(r); }
 
-void GuiWidget::onArrange(recti r) { rect_ = r; }
+void GuiWidget::onArrange(recti r) {
+    rect_ = r;
+    // float scale = gSystem->getScaleFactor();
+    // rect_.x -= rect_.w / 2;
+    // rect_.y -= rect_.h / 2;
+    // rect_.w = static_cast<int>(scale * rect_.w);
+    // rect_.h = static_cast<int>(scale * rect_.h);
+    // rect_.x += rect_.w / 2;
+    // rect_.y += rect_.h / 2;
+}
 
 void GuiWidget::tick() {
     if (!isCapturingFocus()) {

@@ -3,6 +3,7 @@
 #include <Core/Xmr.h>
 #include <Core/Utils.h>
 #include <Core/GuiDraw.h>
+#include <System/System.h>
 
 namespace Vortex {
 
@@ -130,12 +131,14 @@ void WgCheckbox::onDraw() {
     if (!isEnabled()) style.textColor = misc.colDisabled;
 
     Text::arrange(Text::ML, style, text.get());
-    Text::draw({r.x + 22, r.y, r.w - 24, r.h});
+    Text::draw({r.x + static_cast<int>(22 * gSystem->getScaleFactor()), r.y,
+                r.w - static_cast<int>(24 * gSystem->getScaleFactor()), r.h});
 }
 
 recti WgCheckbox::GetCheckboxRect() const {
     recti r = rect_;
-    return {r.x + 2, r.y + r.h / 2 - 8, 16, 16};
+    int size = static_cast<int>(16 * gSystem->getScaleFactor());
+    return {r.x + 2, r.y + r.h / 2 - size / 2, size, size};
 }
 
 // ================================================================================================
@@ -183,10 +186,13 @@ void WgSlider::onDraw() {
 
     auto& button = GuiDraw::getButton();
 
+    int bar_size = static_cast<int>(16 * gSystem->getScaleFactor());
+    int line_thickness = static_cast<int>(gSystem->getScaleFactor());
     // Draw the the entire bar graphic.
-    recti bar = {r.x + 3, r.y + r.h / 2 - 1, r.w - 6, 1};
+    recti bar = {r.x + 3, r.y + r.h / 2 - line_thickness / 2, r.w - 6,
+                 line_thickness};
     Draw::fill(bar, Color32(0, 255));
-    bar.y += 1;
+    bar.y += line_thickness;
     Draw::fill(bar, Color32(77, 255));
 
     // Draw the draggable button graphic.
@@ -194,7 +200,8 @@ void WgSlider::onDraw() {
         int boxX = static_cast<int>(static_cast<double>(bar.w) *
                                     (value.get() - slider_begin_) /
                                     (slider_end_ - slider_begin_));
-        recti box = {bar.x + min(max(boxX, 0), bar.w) - 4, bar.y - 8, 8, 16};
+        recti box = {bar.x + min(max(boxX, 0), bar.w) - 4, bar.y - bar_size / 2,
+                     bar_size / 2, bar_size};
 
         button.base.draw(box, 0);
         if (isCapturingMouse()) {

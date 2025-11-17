@@ -688,6 +688,12 @@ struct EditorImpl : public Editor, public InputHandler {
                 break;
         };
 
+        if (dlg == nullptr) {
+            HudError("Tried to open an invalid dialog, id %d",
+                     static_cast<int>(id));
+            return;
+        }
+
         dlg->setId(id);
 
         if (rect.w > 0 && rect.h > 0) {

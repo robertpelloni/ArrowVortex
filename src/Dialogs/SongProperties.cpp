@@ -23,7 +23,8 @@
 
 namespace Vortex {
 
-enum BannerSize { BANNER_W = 418, BANNER_H = 164 };
+#define BANNER_W static_cast<int>(418 * gSystem->getScaleFactor())
+#define BANNER_H static_cast<int>(164 * gSystem->getScaleFactor())
 
 struct DialogSongProperties::BannerWidget : public GuiWidget {
     explicit BannerWidget(GuiContext* gui) : GuiWidget(gui) {
@@ -50,7 +51,7 @@ struct DialogSongProperties::BannerWidget : public GuiWidget {
 struct DialogSongProperties::CdTitleWidget : public GuiWidget {
     explicit CdTitleWidget(GuiContext* gui) : GuiWidget(gui) {
         width_ = BANNER_W;
-        height_ = 75;
+        height_ = static_cast<int>(75 * gSystem->getScaleFactor());
     }
     void onDraw() override {
         if (tex.size() == 0 || !tex[0].handle()) return;

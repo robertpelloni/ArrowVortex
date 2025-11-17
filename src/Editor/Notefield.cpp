@@ -113,6 +113,7 @@ struct NotefieldImpl : public Notefield {
 
     uint32_t mySongBgColor;
     int myBgBrightness;
+    int myScale;
 
     int myColX[SIM_MAX_COLUMNS], myCX, myX, myY, myW;
     double myFirstVisibleTor, myLastVisibleTor;
@@ -204,7 +205,8 @@ struct NotefieldImpl : public Notefield {
 
     void draw() override {
         int cx = CenterX(gView->getRect());
-        int scale = gView->getNoteScale();
+        myScale =
+            static_cast<int>(gSystem->getScaleFactor() * gView->getNoteScale());
         bool drawWaveform = myShowWaveform && gView->isTimeBased();
 
         // Update the tweak info box if necessary.
@@ -215,7 +217,7 @@ struct NotefieldImpl : public Notefield {
             myTweakInfoBox.create();
         }
 
-        BatchSprite::setScale(scale);
+        BatchSprite::setScale(myScale);
 
         // Calculate the x-position of each note column.
         auto noteskin = gNoteskin->get();
@@ -453,7 +455,6 @@ struct NotefieldImpl : public Notefield {
 
     void drawReceptors() {
         const int cols = gStyle->getNumCols();
-        const int scale = gView->getNoteScale();
         SnapType snapType = gView->getSnapType();
 
         if (gChart->isOpen()) {
@@ -550,8 +551,7 @@ struct NotefieldImpl : public Notefield {
 
     void drawNotes() {
         const int numCols = gStyle->getNumCols();
-        const int scale = gView->getNoteScale();
-        const int signedScale = gView->hasReverseScroll() ? -scale : scale;
+        const int signedScale = gView->hasReverseScroll() ? -myScale : myScale;
         const int maxY = gView->getHeight() + 32;
         const bool isPreview = !gMusic->isPaused() && gView->hasChartPreview();
         const double currentRow = gView->getCursorBeat() * ROWS_PER_BEAT;
@@ -677,8 +677,7 @@ struct NotefieldImpl : public Notefield {
         int numCols = gStyle->getNumCols();
         int y = gView->rowToY(n.row);
 
-        const int scale = gView->getNoteScale();
-        const int signedScale = gView->hasReverseScroll() ? -scale : scale;
+        const int signedScale = gView->hasReverseScroll() ? -myScale : myScale;
 
         // Render ghost hold.
         Renderer::setColor(RGBAtoColor32(255, 255, 255, 192));
