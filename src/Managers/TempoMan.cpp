@@ -863,6 +863,14 @@ const SegmentGroup* getSegments() const
 	return nullptr;
 }
 
+void moveBeat(int row, double time)
+{
+	if (!myTempo)
+		return;
+
+	nonDestructiveShiftRowToTime(row, time);
+}
+
 // ================================================================================================
 // TempoManImpl :: visual sync
 

@@ -16,6 +16,7 @@ struct Notefield
 	virtual int getBgAlpha() = 0;
 
 	virtual void draw() = 0;
+	virtual void drawBeats() = 0;
 
 	virtual void drawGhostNote(const Note& n) = 0;
 

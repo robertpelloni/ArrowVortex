@@ -47,6 +47,9 @@ int myCursorRow;
 int myReceptorY, myReceptorX;
 double myZoomLevel, myScaleLevel;
 bool myIsDraggingReceptors;
+bool myIsDraggingBeat;
+int myDraggedBeatRow;
+int myHoveredBeatRow;
 bool myUseTimeBasedView;
 bool myUseReverseScroll;
 bool myUseChartPreview;
@@ -76,6 +79,9 @@ ViewImpl()
 	, myUseReverseScroll(false)
 	, myUseChartPreview(false)
 	, myIsDraggingReceptors(false)
+	, myIsDraggingBeat(false)
+	, myDraggedBeatRow(-1)
+	, myHoveredBeatRow(-1)
 	, myPixPerSec(32)
 	, myPixPerRow(16 * BEATS_PER_ROW)
 {
@@ -159,6 +165,12 @@ void onMousePress(MousePress& evt) override
 		myIsDraggingReceptors = true;
 		evt.setHandled();
 	}
+	if (evt.button == Mouse::LMB && myHoveredBeatRow != -1 && evt.unhandled())
+	{
+		myIsDraggingBeat = true;
+		myDraggedBeatRow = myHoveredBeatRow;
+		evt.setHandled();
+	}
 
 	if (evt.unhandled() && evt.button == Mouse::MMB) {
 		Vortex::vec2i mouse_pos = gSystem->getMousePos();
@@ -175,6 +187,10 @@ void onMouseRelease(MouseRelease& evt) override
 	if(evt.button == Mouse::LMB && myIsDraggingReceptors)
 	{
 		myIsDraggingReceptors = false;
+	}
+	if (evt.button == Mouse::LMB && myIsDraggingBeat)
+	{
+		myIsDraggingBeat = false;
 	}
 }
 
@@ -211,6 +227,37 @@ void onKeyRelease(KeyRelease& evt) override
 
 // ================================================================================================
 // ViewImpl :: member functions.
+
+namespace {
+
+	bool isMouseOverBeat(int x, int y, int& row)
+	{
+		if (!gView->isTimeBased())
+			return false;
+
+		const int hitbox = gView->applyZoom(4);
+		const View::Coords notefieldCoords = gView->getNotefieldCoords();
+		if (x < notefieldCoords.xl || x > notefieldCoords.xr)
+			return false;
+
+		// Find the beat the mouse is closest to
+		const double time = gView->offsetToTime(gView->yToOffset(y));
+		int closestRow = gTempo->timeToRow(time);
+		closestRow = gView->snapRow(closestRow, View::SNAP_CLOSEST);
+
+		// Check if the mouse is close enough to the beat
+		const double beatTime = gTempo->rowToTime(closestRow);
+		const int beatY = gView->timeToY(beatTime);
+
+		if (abs(y - beatY) <= hitbox) {
+			row = closestRow;
+			return true;
+		}
+
+		return false;
+	}
+
+} // anonymous namespace
 
 double getZoomLevel() const
 {
@@ -294,6 +341,11 @@ double getCursorOffset() const
 	return myUseTimeBasedView ? myCursorTime : myCursorRow;
 }
 
+int getHoveredBeatRow() const
+{
+	return myHoveredBeatRow;
+}
+
 void onChanges(int changes)
 {
 	if(changes & VCM_TEMPO_CHANGED)
@@ -316,11 +368,26 @@ void tick()
 		myReceptorY = gSystem->getMousePos().y - rect_.y;
 	}
 
+	// Handle beat dragging.
+	if (myIsDraggingBeat)
+	{
+		const double time = offsetToTime(yToOffset(gSystem->getMousePos().y));
+		gTempo->moveBeat(myDraggedBeatRow, time);
+	}
+
 	// Set cursor to arrows when hovering over/dragging the receptors.
 	vec2i mpos = gSystem->getMousePos();
 	if(myIsDraggingReceptors || isMouseOverReceptors(mpos.x, mpos.y))
 	{
 		gSystem->setCursor(Cursor::SIZE_ALL);
+	}
+	else if (myIsDraggingBeat || isMouseOverBeat(mpos.x, mpos.y, myHoveredBeatRow))
+	{
+		gSystem->setCursor(Cursor::SIZE_NS);
+	}
+	else
+	{
+		myHoveredBeatRow = -1;
 	}
 
 	// Update the cursor time.

@@ -83,6 +83,7 @@ struct View
 	virtual double getCursorTime() const = 0;
 	virtual double getCursorBeat() const = 0;
 	virtual ChartOffset getCursorOffset() const = 0;
+	virtual int getHoveredBeatRow() const = 0;
 
 	virtual int getWidth() const = 0;
 	virtual int getHeight() const = 0;
