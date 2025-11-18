@@ -51,6 +51,9 @@ struct TempoMan
 	/// Converts a beat offset to a time offset.
 	virtual double beatToTime(double beat) const = 0;
 
+	/// Moves the beat at the given row to the given time.
+	virtual void moveBeat(int row, double time) = 0;
+
 	/// Converts a beat offset to a measure offset.
 	virtual double beatToMeasure(double beat) const = 0;
 

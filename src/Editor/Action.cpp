@@ -263,6 +263,8 @@ void Action::perform(Type action)
 
 	CASE(TOGGLE_SHOW_WAVEFORM)
 		gNotefield->toggleShowWaveform();
+	CASE(TOGGLE_SHOW_SPECTROGRAM)
+		gWaveform->toggleSpectrogram();
 	CASE(TOGGLE_SHOW_BEAT_LINES)
 		gNotefield->toggleShowBeatLines();
 	CASE(TOGGLE_SHOW_NOTES)
