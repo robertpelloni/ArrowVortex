@@ -277,6 +277,7 @@ void draw()
 	drawBackground();
 
 	if(myShowBeatLines) drawBeatLines();
+	if (gView->isTimeBased()) drawBeats();
 	if(drawWaveform) gWaveform->drawPeaks();
 	if(gTempoBoxes->hasShowBoxes()) drawStopsAndWarps();
 
@@ -430,6 +431,27 @@ void drawBeatLines()
 		Text::arrange(Text::MR, textStyle, info.str());
 		Text::draw(vec2i{myX - dist, label.y});
 	}
+}
+
+void drawBeats()
+{
+	int row = gView->getHoveredBeatRow();
+	if (row == -1)
+		return;
+
+	Renderer::resetColor();
+	Renderer::bindShader(Renderer::SH_COLOR);
+
+	auto batch = Renderer::batchC();
+	color32 color = ToColor32({ 1, 1, 0, 1.0f });
+	DrawPosHelper drawPos;
+
+	const double time = gTempo->rowToTime(row);
+	int y = drawPos.get(row, time);
+
+	Draw::fill(&batch, { myX, y, myW, 1 }, color);
+
+	batch.flush();
 }
 
 // ================================================================================================

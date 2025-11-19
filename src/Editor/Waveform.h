@@ -48,6 +48,8 @@ public:
 	virtual int getAntiAliasing() = 0;
 
 	virtual int getWidth() = 0;
+
+	virtual void toggleSpectrogram() = 0;
 };
 
 extern Waveform* gWaveform;
