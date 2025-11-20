@@ -4,6 +4,8 @@
 
 #include <Gist.h>
 
+#include <Gist.h>
+
 #include <math.h>
 #include <stdint.h>
 #include <algorithm>
