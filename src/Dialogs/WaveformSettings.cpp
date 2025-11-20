@@ -78,6 +78,7 @@ DialogWaveformSettings::DialogWaveformSettings()
 	colMode->addItem("Flat");
 	colMode->addItem("RGB (3-Band)");
 	colMode->addItem("Spectral (Centroid)");
+	colMode->addItem("Pitch (YIN)");
 	colMode->setTooltip("Selects the coloring method for the waveform");
 
 	// Wave shape.

@@ -13,7 +13,7 @@ public:
 	enum Preset { PRESET_VORTEX, PRESET_DDREAM };
 	enum WaveShape { WS_RECTIFIED, WS_SIGNED };
 	enum Luminance { LL_UNIFORM, LL_AMPLITUDE };
-	enum ColorMode { CM_FLAT, CM_RGB, CM_SPECTRAL };
+	enum ColorMode { CM_FLAT, CM_RGB, CM_SPECTRAL, CM_PITCH };
 	enum FilterType { FT_HIGH_PASS, FT_LOW_PASS };
 
 	static void create(XmrNode& settings);

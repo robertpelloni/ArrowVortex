@@ -235,6 +235,102 @@ void update()
 }; // WaveFilterSpectral.
 
 // ================================================================================================
+// WaveFilterPitch.
+
+// Uses Gist to calculate the pitch and map it to a color.
+struct WaveFilterPitch {
+
+struct ColorPoint { uchar r, g, b; };
+Vector<ColorPoint> colorsL;
+Vector<ColorPoint> colorsR;
+bool dirty = true;
+
+static void ProcessChannel(const short* src, int numFrames, int samplerate, Vector<ColorPoint>& colors)
+{
+	const int frameSize = 1024;
+	const int hopSize = 256;
+
+	if (numFrames < frameSize) return;
+
+	colors.resize(numFrames);
+
+	Gist<float> gist(frameSize, samplerate);
+	std::vector<float> audioFrame(frameSize);
+
+	// Fill with default color
+	for(int i=0; i<numFrames; ++i) colors[i] = {255, 255, 255};
+
+	int numBlocks = (numFrames - frameSize) / hopSize;
+
+	for (int i = 0; i < numBlocks; ++i)
+	{
+		int startSample = i * hopSize;
+		for (int j = 0; j < frameSize; ++j)
+		{
+			audioFrame[j] = src[startSample + j] / 32768.0f;
+		}
+
+		gist.processAudioFrame(audioFrame);
+		float pitch = gist.pitch(); // in Hz
+
+		// Map pitch to color (Chromatic)
+		// Midi note = 69 + 12 * log2(freq / 440)
+		// C = 0, C# = 1, ... B = 11
+
+		float r=0, g=0, b=0;
+
+		if (pitch > 20.0f) {
+			float midiNote = 69.0f + 12.0f * log2(pitch / 440.0f);
+			float chroma = fmod(midiNote, 12.0f);
+			if (chroma < 0) chroma += 12.0f;
+
+			// Map 0-12 to Hue 0-360
+			float h = chroma * 30.0f; // 360 / 12
+			float s = 0.8f;
+			float v = 1.0f;
+
+			float c = v * s;
+			float x = c * (1 - fabs(fmod(h / 60.0f, 2) - 1));
+			float m = v - c;
+
+			if (h < 60) { r=c; g=x; b=0; }
+			else if (h < 120) { r=x; g=c; b=0; }
+			else if (h < 180) { r=0; g=c; b=x; }
+			else if (h < 240) { r=0; g=x; b=c; }
+			else if (h < 300) { r=x; g=0; b=c; }
+			else { r=c; g=0; b=x; }
+		} else {
+			// Unpitched / Silence -> White/Gray
+			r=1; g=1; b=1;
+		}
+
+		ColorPoint cp = { (uchar)((r)*255), (uchar)((g)*255), (uchar)((b)*255) };
+
+		int endSample = min(numFrames, startSample + hopSize);
+		for(int k=startSample; k < endSample; ++k) {
+			colors[k] = cp;
+		}
+	}
+}
+
+void update()
+{
+	if (!dirty) return;
+	auto& music = gMusic->getSamples();
+	if (!music.isCompleted()) return;
+
+	int numFrames = music.getNumFrames();
+	int samplerate = music.getFrequency();
+
+	ProcessChannel(music.samplesL(), numFrames, samplerate, colorsL);
+	ProcessChannel(music.samplesR(), numFrames, samplerate, colorsR);
+
+	dirty = false;
+}
+
+}; // WaveFilterPitch.
+
+// ================================================================================================
 // WaveformImpl :: member data.
 
 struct WaveformImpl : public Waveform {
@@ -244,6 +340,7 @@ Vector<WaveBlock*> waveformBlocks_;
 WaveFilter* waveformFilter_;
 WaveFilterRGB* waveformFilterRGB_;
 WaveFilterSpectral* waveformFilterSpectral_;
+WaveFilterPitch* waveformFilterPitch_;
 Vector<uchar> waveformTextureBuffer_;
 
 int waveformBlockWidth_, waveformSpacing_;
@@ -266,6 +363,7 @@ bool m_showSpectrogram;
 	delete waveformFilter_;
 	delete waveformFilterRGB_;
 	delete waveformFilterSpectral_;
+	delete waveformFilterPitch_;
 }
 
 WaveformImpl()
@@ -275,6 +373,7 @@ WaveformImpl()
 	waveformFilter_ = nullptr;
 	waveformFilterRGB_ = new WaveFilterRGB();
 	waveformFilterSpectral_ = new WaveFilterSpectral();
+	waveformFilterPitch_ = new WaveFilterPitch();
 	waveformOverlayFilter_ = true;
 
 	updateBlockW();
@@ -313,6 +412,7 @@ static const char* ToString(ColorMode mode)
 {
 	if(mode == CM_RGB) return "rgb";
 	if(mode == CM_SPECTRAL) return "spectral";
+	if(mode == CM_PITCH) return "pitch";
 	return "flat";
 }
 
@@ -332,6 +432,7 @@ static ColorMode ToColorMode(StringRef str)
 {
 	if(str == "rgb") return CM_RGB;
 	if(str == "spectral") return CM_SPECTRAL;
+	if(str == "pitch") return CM_PITCH;
 	return CM_FLAT;
 }
 
@@ -424,8 +525,10 @@ void onChanges(int changes)
 		if(waveformFilter_) waveformFilter_->update();
 		waveformFilterRGB_->dirty = true;
 		waveformFilterSpectral_->dirty = true;
+		waveformFilterPitch_->dirty = true;
 		if(waveformColorMode_ == CM_RGB) waveformFilterRGB_->update();
 		if(waveformColorMode_ == CM_SPECTRAL) waveformFilterSpectral_->update();
+		if(waveformColorMode_ == CM_PITCH) waveformFilterPitch_->update();
 	}
 }
 
@@ -488,6 +591,9 @@ void setColorMode(ColorMode mode)
 	}
 	else if (mode == CM_SPECTRAL) {
 		waveformFilterSpectral_->update();
+	}
+	else if (mode == CM_PITCH) {
+		waveformFilterPitch_->update();
 	}
 	clearBlocks();
 }
@@ -932,7 +1038,8 @@ void renderWaveform(Texture* textures, WaveEdge* edgeBuf, int w, int h, int bloc
 	}
 }
 
-void renderWaveformSpectral(Texture* textures, WaveEdge* edgeBuf, int w, int h, int blockId)
+template <typename FilterType>
+void renderWaveformColored(Texture* textures, WaveEdge* edgeBuf, int w, int h, int blockId, FilterType* filter)
 {
 	// Similar to standard render, but we pass a color buffer to the shape function
 	uchar* texBuf = waveformTextureBuffer_.begin();
@@ -950,13 +1057,15 @@ void renderWaveformSpectral(Texture* textures, WaveEdge* edgeBuf, int w, int h, 
 
 	for(int channel = 0; channel < 2; ++channel)
 	{
-		const auto& srcColors = (channel==0) ? waveformFilterSpectral_->colorsL : waveformFilterSpectral_->colorsR;
+		const auto& srcColors = (channel==0) ? filter->colorsL : filter->colorsR;
 		if (samplePos < srcColors.size()) {
 			double advance = samplesPerPixel * TEX_H / h;
 			for(int y=0; y<h; ++y) {
 				int idx = (int)(samplePos + y * advance);
 				if (idx < srcColors.size()) {
-					blockColors[y] = srcColors[idx];
+					// We assume ColorPoint is compatible or castable
+					const auto& sc = srcColors[idx];
+					blockColors[y] = {sc.r, sc.g, sc.b};
 				} else {
 					blockColors[y] = {255, 255, 255};
 				}
@@ -1059,7 +1168,12 @@ void renderBlock(WaveBlock* block)
 	else if(waveformColorMode_ == CM_SPECTRAL)
 	{
 		waveformFilterSpectral_->update();
-		renderWaveformSpectral(block->tex, edges.begin(), w, h, block->id);
+		renderWaveformColored(block->tex, edges.begin(), w, h, block->id, waveformFilterSpectral_);
+	}
+	else if(waveformColorMode_ == CM_PITCH)
+	{
+		waveformFilterPitch_->update();
+		renderWaveformColored(block->tex, edges.begin(), w, h, block->id, waveformFilterPitch_);
 	}
 	else if(waveformFilter_)
 	{
@@ -1187,7 +1301,7 @@ void drawPeaks()
 		TextureHandle texL = block->tex[0].handle();
 		TextureHandle texR = block->tex[1].handle();
 
-		if(waveformColorMode_ == CM_RGB || waveformColorMode_ == CM_SPECTRAL)
+		if(waveformColorMode_ == CM_RGB || waveformColorMode_ == CM_SPECTRAL || waveformColorMode_ == CM_PITCH)
 		{
 			// Draw white rect with RGBA texture
 			Draw::fill({xl - pw, y, pw * 2, TEX_H}, Colors::white, texL, uvs, Texture::RGBA);
