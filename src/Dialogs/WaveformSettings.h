@@ -25,6 +25,7 @@ private:
 	Waveform::ColorScheme settingsColorScheme_;
 	int presetIndex_;
 	int luminanceValue_;
+	int colorMode_;
 	int waveShape_;
 	int antiAliasingMode_;
 
