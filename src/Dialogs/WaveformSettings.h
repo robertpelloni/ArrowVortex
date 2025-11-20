@@ -32,6 +32,7 @@ private:
 	int filterType_;
 	float filterStrength_;
 	bool isOverlayFilterActive_;
+	bool isShowingOnsets_;
 };
 
 }; // namespace Vortex

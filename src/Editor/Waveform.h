@@ -51,6 +51,9 @@ public:
 	virtual void setAntiAliasing(int level) = 0;
 	virtual int getAntiAliasing() = 0;
 
+	virtual void setShowOnsets(bool show) = 0;
+	virtual bool hasShowOnsets() = 0;
+
 	virtual int getWidth() = 0;
 
 	virtual void toggleSpectrogram() = 0;

@@ -1,5 +1,8 @@
 #include <Editor/Waveform.h>
 #include "Spectrogram.h"
+#include <Editor/FindOnsets.h>
+
+#include <Gist.h>
 
 #include <Gist.h>
 
@@ -351,6 +354,8 @@ Luminance waveformLuminance_;
 ColorMode waveformColorMode_;
 int waveformAntiAliasingMode_;
 bool waveformOverlayFilter_;
+bool waveformShowOnsets_;
+Vector<Onset> waveformOnsets_;
 Spectrogram* m_spectrogram;
 bool m_showSpectrogram;
 
@@ -375,6 +380,7 @@ WaveformImpl()
 	waveformFilterSpectral_ = new WaveFilterSpectral();
 	waveformFilterPitch_ = new WaveFilterPitch();
 	waveformOverlayFilter_ = true;
+	waveformShowOnsets_ = false;
 
 	updateBlockW();
 	waveformTextureBuffer_.resize(TEX_W * TEX_H * 4); // RGBA size just in case
@@ -456,6 +462,8 @@ void loadSettings(XmrNode& settings)
 
 		waveform->get("antiAliasing", &waveformAntiAliasingMode_);
 		setAntiAliasing(clamp(waveformAntiAliasingMode_, 0, 3));
+
+		waveform->get("showOnsets", &waveformShowOnsets_);
 	}
 }
 
@@ -472,6 +480,7 @@ void saveSettings(XmrNode& settings)
 	waveform->addAttrib("waveStyle", ToString(waveformShape_));
 	waveform->addAttrib("colorMode", ToString(waveformColorMode_));
 	waveform->addAttrib("antiAliasing", (long)waveformAntiAliasingMode_);
+	waveform->addAttrib("showOnsets", waveformShowOnsets_);
 }
 
 // ================================================================================================
@@ -529,6 +538,23 @@ void onChanges(int changes)
 		if(waveformColorMode_ == CM_RGB) waveformFilterRGB_->update();
 		if(waveformColorMode_ == CM_SPECTRAL) waveformFilterSpectral_->update();
 		if(waveformColorMode_ == CM_PITCH) waveformFilterPitch_->update();
+
+		// Update onsets
+		waveformOnsets_.clear();
+		auto& music = gMusic->getSamples();
+		if(music.isCompleted() && music.getNumFrames() > 0)
+		{
+			// Convert to float buffer for FindOnsets
+			int numFrames = music.getNumFrames();
+			int samplerate = music.getFrequency();
+			std::vector<float> floatSamples(numFrames);
+			const short* src = music.samplesL(); // Use Left channel for onsets
+			for(int i=0; i<numFrames; ++i) {
+				floatSamples[i] = src[i] / 32768.0f;
+			}
+
+			FindOnsets(floatSamples.data(), samplerate, numFrames, 1, waveformOnsets_);
+		}
 	}
 }
 
@@ -547,7 +573,8 @@ void setPreset(Preset preset)
 		waveformShape_ = WS_RECTIFIED;
 		waveformLuminance_ = LL_UNIFORM;
 		waveformColorMode_ = CM_FLAT;
-		waveformAntiAliasingMode_ = 1;		
+		waveformAntiAliasingMode_ = 1;
+		waveformShowOnsets_ = false;
 		break;
 	case PRESET_DDREAM:
 		waveformColorScheme_.bg = {0.45f, 0.6f, 0.11f, 0.8f};
@@ -557,6 +584,7 @@ void setPreset(Preset preset)
 		waveformLuminance_ = LL_UNIFORM;
 		waveformColorMode_ = CM_FLAT;
 		waveformAntiAliasingMode_ = 0;
+		waveformShowOnsets_ = true; // Enable onsets for DDream preset
 		break;
 	};
 	clearBlocks();
@@ -623,6 +651,16 @@ void setAntiAliasing(int level)
 int getAntiAliasing()
 {
 	return waveformAntiAliasingMode_;
+}
+
+void setShowOnsets(bool show)
+{
+	waveformShowOnsets_ = show;
+}
+
+bool hasShowOnsets()
+{
+	return waveformShowOnsets_;
 }
 
 // ================================================================================================
@@ -1168,6 +1206,13 @@ void renderWaveformSpectrogram(Texture* textures, WaveEdge* edgeBuf, int w, int 
 			}
 		}
 
+		// Apply anti-aliasing
+		switch (waveformAntiAliasingMode_) {
+		case 1: antiAlias2xRGB(texBuf, w, h); break;
+		case 2: antiAlias3xRGB(texBuf, w, h); break;
+		case 3: antiAlias4xRGB(texBuf, w, h); break;
+		}
+
 		if (!textures[channel].handle() || textures[channel].format() != Texture::RGBA) {
 			textures[channel] = Texture(TEX_W, TEX_H, Texture::RGBA);
 		}
@@ -1462,6 +1507,46 @@ void drawPeaks()
 				color32 filterCol = ToColor32(waveformColorScheme_.filter);
 				Draw::fill({xl - pw, y, pw * 2, TEX_H}, filterCol, texL, uvs, Texture::ALPHA);
 				Draw::fill({xr - pw, y, pw * 2, TEX_H}, filterCol, texR, uvs, Texture::ALPHA);
+			}
+		}
+	}
+
+	// Draw onset lines
+	if (waveformShowOnsets_)
+	{
+		// Determine visible time range
+		// We can reuse visibilityStartY/EndY but they are in pixels.
+		// We need sample range or time range.
+		// visibilityStartY corresponds to timeToY(0) - height (if reversed)
+
+		// Let's iterate through onsets and check if they are visible.
+		// Onsets are stored as sample indices (int pos).
+		auto& music = gMusic->getSamples();
+		double samplesPerSec = (double)music.getFrequency();
+
+		// Optimization: binary search for first visible onset?
+		// For now, linear scan is fast enough for typical song (few hundred beats).
+
+		int viewH = gView->getHeight();
+		int viewTop = 0; // Relative to screen
+
+		for(const auto& onset : waveformOnsets_)
+		{
+			double time = (double)onset.pos / samplesPerSec;
+			int y = gView->timeToY(time);
+
+			// Check visibility (y is in screen coordinates)
+			// gView->timeToY returns screen Y relative to current scroll.
+			// Wait, gView->timeToY includes scroll offset.
+			// So if y is between 0 and viewH, it's visible.
+
+			if (y >= -2 && y <= viewH + 2)
+			{
+				// Draw line
+				// Width is full width of waveform?
+				// xl and xr are left and right edges of waveform channels.
+				// Let's draw across the whole width.
+				Draw::fill({xl - pw, y, pw * 2 + border * 2 + pw * 2, 1}, RGBAtoColor32(255, 50, 50, 200));
 			}
 		}
 	}
