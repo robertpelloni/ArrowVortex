@@ -16,6 +16,7 @@ DialogWaveformSettings::DialogWaveformSettings()
 
 	settingsColorScheme_ = gWaveform->getColors();
 	luminanceValue_ = gWaveform->getLuminance();
+	colorMode_ = gWaveform->getColorMode();
 	waveShape_ = gWaveform->getWaveShape();
 	antiAliasingMode_ = gWaveform->getAntiAliasing();
 	isOverlayFilterActive_ = gWaveform->getOverlayFilter();
@@ -69,6 +70,15 @@ DialogWaveformSettings::DialogWaveformSettings()
 	lum->addItem("Uniform");
 	lum->addItem("Amplitude");
 	lum->setTooltip("Determines the lightness of the waveform peaks");
+
+	// Color Mode.
+	WgCycleButton* colMode = myLayout.add<WgCycleButton>("Color Mode");
+	colMode->value.bind(&colorMode_);
+	colMode->onChange.bind(this, &DialogWaveformSettings::myUpdateSettings);
+	colMode->addItem("Flat");
+	colMode->addItem("RGB (3-Band)");
+	colMode->addItem("Spectral (Centroid)");
+	colMode->setTooltip("Selects the coloring method for the waveform");
 
 	// Wave shape.
 	WgCycleButton* shape = myLayout.add<WgCycleButton>("Wave shape");
@@ -131,6 +141,7 @@ void DialogWaveformSettings::myApplyPreset()
 	gWaveform->setPreset((Waveform::Preset)presetIndex_);
 	settingsColorScheme_ = gWaveform->getColors();
 	luminanceValue_ = gWaveform->getLuminance();
+	colorMode_ = gWaveform->getColorMode();
 	waveShape_ = gWaveform->getWaveShape();
 	antiAliasingMode_ = gWaveform->getAntiAliasing();
 }
@@ -140,6 +151,7 @@ void DialogWaveformSettings::myUpdateSettings()
 	gWaveform->setColors(settingsColorScheme_);
 	gWaveform->setAntiAliasing(antiAliasingMode_);
 	gWaveform->setLuminance((Waveform::Luminance)luminanceValue_);
+	gWaveform->setColorMode((Waveform::ColorMode)colorMode_);
 	gWaveform->setWaveShape((Waveform::WaveShape)waveShape_);
 }
 
