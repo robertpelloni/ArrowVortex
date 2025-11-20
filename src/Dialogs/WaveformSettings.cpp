@@ -76,8 +76,9 @@ DialogWaveformSettings::DialogWaveformSettings()
 	colMode->value.bind(&colorMode_);
 	colMode->onChange.bind(this, &DialogWaveformSettings::myUpdateSettings);
 	colMode->addItem("Flat");
-	colMode->addItem("RGB (Spectral)");
-	colMode->setTooltip("Selects between single color or multi-band frequency color");
+	colMode->addItem("RGB (3-Band)");
+	colMode->addItem("Spectral (Centroid)");
+	colMode->setTooltip("Selects the coloring method for the waveform");
 
 	// Wave shape.
 	WgCycleButton* shape = myLayout.add<WgCycleButton>("Wave shape");

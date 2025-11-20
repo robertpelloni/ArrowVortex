@@ -1,9 +1,12 @@
 #include <Editor/Waveform.h>
 #include "Spectrogram.h"
 
+#include <Gist.h>
+
 #include <math.h>
 #include <stdint.h>
 #include <algorithm>
+#include <vector>
 
 #include <Core/Utils.h>
 #include <Core/Draw.h>
@@ -137,6 +140,101 @@ void update()
 }; // WaveFilterRGB.
 
 // ================================================================================================
+// WaveFilterSpectral.
+
+// Uses Gist to calculate the spectral centroid and map it to a color.
+struct WaveFilterSpectral {
+
+struct ColorPoint { uchar r, g, b; };
+Vector<ColorPoint> colorsL;
+Vector<ColorPoint> colorsR;
+bool dirty = true;
+
+static void ProcessChannel(const short* src, int numFrames, int samplerate, Vector<ColorPoint>& colors)
+{
+	// Frame size for FFT analysis. Gist uses powers of 2.
+	// 1024 at 44100Hz is about 23ms.
+	const int frameSize = 1024;
+	const int hopSize = 256; // Overlap
+
+	if (numFrames < frameSize) return;
+
+	colors.resize(numFrames);
+
+	Gist<float> gist(frameSize, samplerate);
+	std::vector<float> audioFrame(frameSize);
+
+	// Fill with default color
+	for(int i=0; i<numFrames; ++i) colors[i] = {255, 255, 255};
+
+	int numBlocks = (numFrames - frameSize) / hopSize;
+
+	for (int i = 0; i < numBlocks; ++i)
+	{
+		int startSample = i * hopSize;
+		for (int j = 0; j < frameSize; ++j)
+		{
+			audioFrame[j] = src[startSample + j] / 32768.0f;
+		}
+
+		gist.processAudioFrame(audioFrame);
+		float centroid = gist.spectralCentroid(); // in Hz
+
+		// Map centroid to color (HSV -> RGB)
+		// H: Map 0-8000Hz to 0-360 (or partial range)
+		// Low freq = Red (0), High freq = Blue (240) or Purple (280)
+		float normalizedFreq = clamp(centroid / 5000.0f, 0.0f, 1.0f);
+		// Inverted: Low=Red, High=Blue
+		float h = (1.0f - normalizedFreq) * 240.0f;
+		// Wait, usually Low=Red, High=Blue is intuitive? No, heat maps use Red=High energy.
+		// Let's do Low Freq = Red, High Freq = Blue/Violet.
+		// Red is 0, Blue is 240.
+		h = normalizedFreq * 280.0f;
+
+		float s = 0.8f;
+		float v = 1.0f;
+
+		// Simple HSV to RGB
+		float c = v * s;
+		float x = c * (1 - fabs(fmod(h / 60.0f, 2) - 1));
+		float m = v - c;
+		float r=0, g=0, b=0;
+
+		if (h < 60) { r=c; g=x; b=0; }
+		else if (h < 120) { r=x; g=c; b=0; }
+		else if (h < 180) { r=0; g=c; b=x; }
+		else if (h < 240) { r=0; g=x; b=c; }
+		else if (h < 300) { r=x; g=0; b=c; }
+		else { r=c; g=0; b=x; }
+
+		ColorPoint cp = { (uchar)((r+m)*255), (uchar)((g+m)*255), (uchar)((b+m)*255) };
+
+		// Fill the hop region with this color
+		int endSample = min(numFrames, startSample + hopSize);
+		for(int k=startSample; k < endSample; ++k) {
+			colors[k] = cp;
+		}
+	}
+}
+
+void update()
+{
+	if (!dirty) return;
+	auto& music = gMusic->getSamples();
+	if (!music.isCompleted()) return;
+
+	int numFrames = music.getNumFrames();
+	int samplerate = music.getFrequency();
+
+	ProcessChannel(music.samplesL(), numFrames, samplerate, colorsL);
+	ProcessChannel(music.samplesR(), numFrames, samplerate, colorsR);
+
+	dirty = false;
+}
+
+}; // WaveFilterSpectral.
+
+// ================================================================================================
 // WaveformImpl :: member data.
 
 struct WaveformImpl : public Waveform {
@@ -145,6 +243,7 @@ Vector<WaveBlock*> waveformBlocks_;
 
 WaveFilter* waveformFilter_;
 WaveFilterRGB* waveformFilterRGB_;
+WaveFilterSpectral* waveformFilterSpectral_;
 Vector<uchar> waveformTextureBuffer_;
 
 int waveformBlockWidth_, waveformSpacing_;
@@ -166,6 +265,7 @@ bool m_showSpectrogram;
 	for(auto block : waveformBlocks_) delete block;
 	delete waveformFilter_;
 	delete waveformFilterRGB_;
+	delete waveformFilterSpectral_;
 }
 
 WaveformImpl()
@@ -174,6 +274,7 @@ WaveformImpl()
 
 	waveformFilter_ = nullptr;
 	waveformFilterRGB_ = new WaveFilterRGB();
+	waveformFilterSpectral_ = new WaveFilterSpectral();
 	waveformOverlayFilter_ = true;
 
 	updateBlockW();
@@ -211,6 +312,7 @@ static const char* ToString(Luminance lum)
 static const char* ToString(ColorMode mode)
 {
 	if(mode == CM_RGB) return "rgb";
+	if(mode == CM_SPECTRAL) return "spectral";
 	return "flat";
 }
 
@@ -229,6 +331,7 @@ static Luminance ToLuminance(StringRef str)
 static ColorMode ToColorMode(StringRef str)
 {
 	if(str == "rgb") return CM_RGB;
+	if(str == "spectral") return CM_SPECTRAL;
 	return CM_FLAT;
 }
 
@@ -320,7 +423,9 @@ void onChanges(int changes)
 	{
 		if(waveformFilter_) waveformFilter_->update();
 		waveformFilterRGB_->dirty = true;
+		waveformFilterSpectral_->dirty = true;
 		if(waveformColorMode_ == CM_RGB) waveformFilterRGB_->update();
+		if(waveformColorMode_ == CM_SPECTRAL) waveformFilterSpectral_->update();
 	}
 }
 
@@ -380,6 +485,9 @@ void setColorMode(ColorMode mode)
 	waveformColorMode_ = mode;
 	if(mode == CM_RGB) {
 		waveformFilterRGB_->update();
+	}
+	else if (mode == CM_SPECTRAL) {
+		waveformFilterSpectral_->update();
 	}
 	clearBlocks();
 }
@@ -491,6 +599,42 @@ void edgeShapeSignedRGB(uchar* dst, const WaveEdge* edge, int w, int h, int chan
 			dst[x * 4 + channelOffset] = (uchar)min(val, 255);
 			int a = max((int)dst[x*4+3], (int)dst[x*4+channelOffset]);
 			dst[x*4+3] = (uchar)a;
+		}
+	}
+}
+
+void edgeShapeRectifiedSpectral(uchar* dst, const WaveEdge* edge, int w, int h, const WaveFilterSpectral::ColorPoint* colors)
+{
+	int cx = w / 2;
+	for(int y = 0; y < h; ++y, dst += w * 4, ++edge)
+	{
+		int mag = max(abs(edge->l), abs(edge->r));
+		int l = cx - mag;
+		int r = cx + mag;
+		const auto& cp = colors[y];
+		for(int x = l; x < r; ++x) {
+			// Use the spectral color, but modulated by edge luminance
+			dst[x*4+0] = (cp.r * edge->lum) >> 8;
+			dst[x*4+1] = (cp.g * edge->lum) >> 8;
+			dst[x*4+2] = (cp.b * edge->lum) >> 8;
+			dst[x*4+3] = 255;
+		}
+	}
+}
+
+void edgeShapeSignedSpectral(uchar* dst, const WaveEdge* edge, int w, int h, const WaveFilterSpectral::ColorPoint* colors)
+{
+	int cx = w / 2;
+	for(int y = 0; y < h; ++y, dst += w * 4, ++edge)
+	{
+		int l = cx + min(edge->l, 0);
+		int r = cx + max(edge->r, 0);
+		const auto& cp = colors[y];
+		for(int x = l; x < r; ++x) {
+			dst[x*4+0] = (cp.r * edge->lum) >> 8;
+			dst[x*4+1] = (cp.g * edge->lum) >> 8;
+			dst[x*4+2] = (cp.b * edge->lum) >> 8;
+			dst[x*4+3] = 255;
 		}
 	}
 }
@@ -788,6 +932,70 @@ void renderWaveform(Texture* textures, WaveEdge* edgeBuf, int w, int h, int bloc
 	}
 }
 
+void renderWaveformSpectral(Texture* textures, WaveEdge* edgeBuf, int w, int h, int blockId)
+{
+	// Similar to standard render, but we pass a color buffer to the shape function
+	uchar* texBuf = waveformTextureBuffer_.begin();
+
+	auto& music = gMusic->getSamples();
+	double samplesPerSec = (double)music.getFrequency();
+	double samplesPerPixel = samplesPerSec / fabs(gView->getPixPerSec());
+	double samplesPerBlock = (double)TEX_H * samplesPerPixel;
+	int64_t samplePos = max((int64_t)0, (int64_t)(samplesPerBlock * (double)blockId));
+
+	// Collect colors for this block
+	// We need to sample the color array at the same rate as the pixels (lines)
+	Vector<WaveFilterSpectral::ColorPoint> blockColors;
+	blockColors.resize(h);
+
+	for(int channel = 0; channel < 2; ++channel)
+	{
+		const auto& srcColors = (channel==0) ? waveformFilterSpectral_->colorsL : waveformFilterSpectral_->colorsR;
+		if (samplePos < srcColors.size()) {
+			double advance = samplesPerPixel * TEX_H / h;
+			for(int y=0; y<h; ++y) {
+				int idx = (int)(samplePos + y * advance);
+				if (idx < srcColors.size()) {
+					blockColors[y] = srcColors[idx];
+				} else {
+					blockColors[y] = {255, 255, 255};
+				}
+			}
+		}
+
+		memset(texBuf, 0, w * h * 4);
+
+		// Process edges (using standard sampleEdges on original audio)
+		sampleEdges(edgeBuf, w, h, channel, blockId, false);
+
+		if (waveformLuminance_ == LL_UNIFORM) {
+			edgeLumUniform(edgeBuf, h);
+		}
+		else if (waveformLuminance_ == LL_AMPLITUDE) {
+			edgeLumAmplitude(edgeBuf, w, h);
+		}
+
+		if (waveformShape_ == WS_RECTIFIED) {
+			edgeShapeRectifiedSpectral(texBuf, edgeBuf, w, h, blockColors.begin());
+		}
+		else if (waveformShape_ == WS_SIGNED) {
+			edgeShapeSignedSpectral(texBuf, edgeBuf, w, h, blockColors.begin());
+		}
+
+		// Anti-alias
+		switch (waveformAntiAliasingMode_) {
+		case 1: antiAlias2xRGB(texBuf, w, h); break;
+		case 2: antiAlias3xRGB(texBuf, w, h); break;
+		case 3: antiAlias4xRGB(texBuf, w, h); break;
+		}
+
+		if (!textures[channel].handle() || textures[channel].format() != Texture::RGBA) {
+			textures[channel] = Texture(TEX_W, TEX_H, Texture::RGBA);
+		}
+		textures[channel].modify(0, 0, waveformBlockWidth_, TEX_H, texBuf);
+	}
+}
+
 void renderWaveformRGB(Texture* textures, WaveEdge* edgeBuf, int w, int h, int blockId)
 {
 	uchar* texBuf = waveformTextureBuffer_.begin();
@@ -847,6 +1055,11 @@ void renderBlock(WaveBlock* block)
 		// Update RGB filter if needed (might have been lazy loaded)
 		waveformFilterRGB_->update();
 		renderWaveformRGB(block->tex, edges.begin(), w, h, block->id);
+	}
+	else if(waveformColorMode_ == CM_SPECTRAL)
+	{
+		waveformFilterSpectral_->update();
+		renderWaveformSpectral(block->tex, edges.begin(), w, h, block->id);
 	}
 	else if(waveformFilter_)
 	{
@@ -974,7 +1187,7 @@ void drawPeaks()
 		TextureHandle texL = block->tex[0].handle();
 		TextureHandle texR = block->tex[1].handle();
 
-		if(waveformColorMode_ == CM_RGB)
+		if(waveformColorMode_ == CM_RGB || waveformColorMode_ == CM_SPECTRAL)
 		{
 			// Draw white rect with RGBA texture
 			Draw::fill({xl - pw, y, pw * 2, TEX_H}, Colors::white, texL, uvs, Texture::RGBA);
