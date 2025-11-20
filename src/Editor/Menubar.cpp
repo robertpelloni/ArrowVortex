@@ -264,6 +264,8 @@ void init(Item* menu)
 	add(hTempo, SWITCH_TO_SYNC_MODE, "Sync mode");
 	add(hTempo, OPEN_DIALOG_TEMPO_BREAKDOWN, "Breakdown...");
 	sub(hTempo, myVisualSyncMenu, "Visual sync anchor");
+	sep(hTempo);
+	add(hTempo, APPLY_SYNC_LAYOUT, "Apply Sync Layout");
 
 	// Audio > Volume menu.
 	Item* hAudioVol = newMenu();
