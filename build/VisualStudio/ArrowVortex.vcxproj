@@ -121,8 +121,8 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
       <Optimization>Disabled</Optimization>
-      <AdditionalIncludeDirectories>..\..\lib;..\..\lib\freetype\include\freetype;..\..\lib\freetype\include;..\..\lib\libmad\include;..\..\lib\libvorbis\include;..\..\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>DEBUG;_DEBUG;_CRTDBG_MAP_ALLOC;_CRT_SECURE_NO_WARNINGS;_HAS_EXCEPTIONS=0;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>..\..\lib;..\..\lib\freetype\include\freetype;..\..\lib\freetype\include;..\..\lib\libmad\include;..\..\lib\libvorbis\include;..\..\src;..\..\lib\gist\src;..\..\lib\gist\libs\kiss_fft130;..\..\lib\libaca\inc;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>DEBUG;_DEBUG;_CRTDBG_MAP_ALLOC;_CRT_SECURE_NO_WARNINGS;_HAS_EXCEPTIONS=0;USE_KISS_FFT;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <MinimalRebuild>false</MinimalRebuild>
       <ExceptionHandling>Sync</ExceptionHandling>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
@@ -149,8 +149,8 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
       <Optimization>Disabled</Optimization>
-      <AdditionalIncludeDirectories>..\..\lib;..\..\lib\freetype\include\freetype;..\..\lib\freetype\include;..\..\lib\libmad\include;..\..\lib\libvorbis\include;..\..\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>DEBUG;_DEBUG;_CRTDBG_MAP_ALLOC;_CRT_SECURE_NO_WARNINGS;_HAS_EXCEPTIONS=0;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>..\..\lib;..\..\lib\freetype\include\freetype;..\..\lib\freetype\include;..\..\lib\libmad\include;..\..\lib\libvorbis\include;..\..\src;..\..\lib\gist\src;..\..\lib\gist\libs\kiss_fft130;..\..\lib\libaca\inc;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>DEBUG;_DEBUG;_CRTDBG_MAP_ALLOC;_CRT_SECURE_NO_WARNINGS;_HAS_EXCEPTIONS=0;USE_KISS_FFT;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <MinimalRebuild>false</MinimalRebuild>
       <ExceptionHandling>Sync</ExceptionHandling>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
@@ -183,8 +183,8 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <FavorSizeOrSpeed>Size</FavorSizeOrSpeed>
       <WholeProgramOptimization>false</WholeProgramOptimization>
-      <AdditionalIncludeDirectories>..\..\lib;..\..\lib\freetype\include\freetype;..\..\lib\freetype\include;..\..\lib\libmad\include;..\..\lib\libvorbis\include;..\..\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>NDEBUG;_CRT_SECURE_NO_WARNINGS;_HAS_EXCEPTIONS=0;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>..\..\lib;..\..\lib\freetype\include\freetype;..\..\lib\freetype\include;..\..\lib\libmad\include;..\..\lib\libvorbis\include;..\..\src;..\..\lib\gist\src;..\..\lib\gist\libs\kiss_fft130;..\..\lib\libaca\inc;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>NDEBUG;_CRT_SECURE_NO_WARNINGS;_HAS_EXCEPTIONS=0;USE_KISS_FFT;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ExceptionHandling>Sync</ExceptionHandling>
       <BasicRuntimeChecks>Default</BasicRuntimeChecks>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
@@ -213,8 +213,8 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <FavorSizeOrSpeed>Size</FavorSizeOrSpeed>
       <WholeProgramOptimization>false</WholeProgramOptimization>
-      <AdditionalIncludeDirectories>..\..\lib;..\..\lib\freetype\include\freetype;..\..\lib\freetype\include;..\..\lib\libmad\include;..\..\lib\libvorbis\include;..\..\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>NDEBUG;_CRT_SECURE_NO_WARNINGS;_HAS_EXCEPTIONS=0;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>..\..\lib;..\..\lib\freetype\include\freetype;..\..\lib\freetype\include;..\..\lib\libmad\include;..\..\lib\libvorbis\include;..\..\src;..\..\lib\gist\src;..\..\lib\gist\libs\kiss_fft130;..\..\lib\libaca\inc;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>NDEBUG;_CRT_SECURE_NO_WARNINGS;_HAS_EXCEPTIONS=0;USE_KISS_FFT;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ExceptionHandling>Sync</ExceptionHandling>
       <BasicRuntimeChecks>Default</BasicRuntimeChecks>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
@@ -246,8 +246,8 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <FavorSizeOrSpeed>Size</FavorSizeOrSpeed>
       <WholeProgramOptimization>false</WholeProgramOptimization>
-      <AdditionalIncludeDirectories>..\..\lib;..\..\lib\freetype\include\freetype;..\..\lib\freetype\include;..\..\lib\libmad\include;..\..\lib\libvorbis\include;..\..\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>NDEBUG;_CRT_SECURE_NO_WARNINGS;_HAS_EXCEPTIONS=0;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>..\..\lib;..\..\lib\freetype\include\freetype;..\..\lib\freetype\include;..\..\lib\libmad\include;..\..\lib\libvorbis\include;..\..\src;..\..\lib\gist\src;..\..\lib\gist\libs\kiss_fft130;..\..\lib\libaca\inc;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>NDEBUG;_CRT_SECURE_NO_WARNINGS;_HAS_EXCEPTIONS=0;USE_KISS_FFT;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ExceptionHandling>Sync</ExceptionHandling>
       <BasicRuntimeChecks>Default</BasicRuntimeChecks>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
@@ -279,8 +279,8 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <FavorSizeOrSpeed>Size</FavorSizeOrSpeed>
       <WholeProgramOptimization>false</WholeProgramOptimization>
-      <AdditionalIncludeDirectories>..\..\lib;..\..\lib\freetype\include\freetype;..\..\lib\freetype\include;..\..\lib\libmad\include;..\..\lib\libvorbis\include;..\..\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>NDEBUG;_CRT_SECURE_NO_WARNINGS;_HAS_EXCEPTIONS=0;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>..\..\lib;..\..\lib\freetype\include\freetype;..\..\lib\freetype\include;..\..\lib\libmad\include;..\..\lib\libvorbis\include;..\..\src;..\..\lib\gist\src;..\..\lib\gist\libs\kiss_fft130;..\..\lib\libaca\inc;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>NDEBUG;_CRT_SECURE_NO_WARNINGS;_HAS_EXCEPTIONS=0;USE_KISS_FFT;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ExceptionHandling>Sync</ExceptionHandling>
       <BasicRuntimeChecks>Default</BasicRuntimeChecks>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
@@ -384,6 +384,7 @@
     <ClCompile Include="..\..\src\Editor\TextOverlay.cpp" />
     <ClCompile Include="..\..\src\Editor\View.cpp" />
     <ClCompile Include="..\..\src\Editor\Waveform.cpp" />
+    <ClCompile Include="..\..\src\Editor\Spectrogram.cpp" />
     <ClCompile Include="..\..\src\Managers\ChartMan.cpp" />
     <ClCompile Include="..\..\src\Managers\MetadataMan.cpp" />
     <ClCompile Include="..\..\src\Managers\NoteMan.cpp" />
@@ -412,6 +413,48 @@
     <ClCompile Include="..\..\src\System\Mixer.cpp" />
     <ClCompile Include="..\..\src\System\System.cpp" />
     <ClCompile Include="..\..\src\System\Thread.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\..\lib\gist\src\Gist.cpp" />
+    <ClCompile Include="..\..\lib\gist\src\CoreTimeDomainFeatures.cpp" />
+    <ClCompile Include="..\..\lib\gist\src\CoreFrequencyDomainFeatures.cpp" />
+    <ClCompile Include="..\..\lib\gist\src\OnsetDetectionFunction.cpp" />
+    <ClCompile Include="..\..\lib\gist\src\Yin.cpp" />
+    <ClCompile Include="..\..\lib\gist\src\MFCC.cpp" />
+    <ClCompile Include="..\..\lib\gist\src\WindowFunctions.cpp" />
+    <ClCompile Include="..\..\lib\gist\libs\kiss_fft130\kiss_fft.c" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\..\lib\libaca\src\AcaAll.cpp" />
+    <ClCompile Include="..\..\lib\libaca\src\BeatHisto.cpp" />
+    <ClCompile Include="..\..\lib\libaca\src\Chord.cpp" />
+    <ClCompile Include="..\..\lib\libaca\src\ChordFromBlock.cpp" />
+    <ClCompile Include="..\..\lib\libaca\src\Feature.cpp" />
+    <ClCompile Include="..\..\lib\libaca\src\FeatureFromBlock.cpp" />
+    <ClCompile Include="..\..\lib\libaca\src\Fft.cpp" />
+    <ClCompile Include="..\..\lib\libaca\src\Key.cpp" />
+    <ClCompile Include="..\..\lib\libaca\src\KeyFromChroma.cpp" />
+    <ClCompile Include="..\..\lib\libaca\src\Novelty.cpp" />
+    <ClCompile Include="..\..\lib\libaca\src\NoveltyFromBlock.cpp" />
+    <ClCompile Include="..\..\lib\libaca\src\Pitch.cpp" />
+    <ClCompile Include="..\..\lib\libaca\src\PitchFromBlock.cpp" />
+    <ClCompile Include="..\..\lib\libaca\src\Spectrogram.cpp" />
+    <ClCompile Include="..\..\lib\libaca\src\SubFingerprint.cpp" />
+    <ClCompile Include="..\..\lib\libaca\src\ToolBlockAudio.cpp" />
+    <ClCompile Include="..\..\lib\libaca\src\ToolCcf.cpp" />
+    <ClCompile Include="..\..\lib\libaca\src\ToolConversion.cpp" />
+    <ClCompile Include="..\..\lib\libaca\src\ToolFingerprint.cpp" />
+    <ClCompile Include="..\..\lib\libaca\src\ToolGammatone.cpp" />
+    <ClCompile Include="..\..\lib\libaca\src\ToolGmm.cpp" />
+    <ClCompile Include="..\..\lib\libaca\src\ToolGmmClassifier.cpp" />
+    <ClCompile Include="..\..\lib\libaca\src\ToolLeaveOneOutCrossVal.cpp" />
+    <ClCompile Include="..\..\lib\libaca\src\ToolNmf.cpp" />
+    <ClCompile Include="..\..\lib\libaca\src\ToolPca.cpp" />
+    <ClCompile Include="..\..\lib\libaca\src\ToolSeqFeatureSel.cpp" />
+    <ClCompile Include="..\..\lib\libaca\src\ToolSimpleDtw.cpp" />
+    <ClCompile Include="..\..\lib\libaca\src\ToolSimpleKmeans.cpp" />
+    <ClCompile Include="..\..\lib\libaca\src\ToolSimpleKnn.cpp" />
+    <ClCompile Include="..\..\lib\libaca\src\ToolViterbi.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\src\Core\ByteStream.h" />

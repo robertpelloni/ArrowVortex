@@ -1,4 +1,5 @@
 #include <Editor/Waveform.h>
+#include "Spectrogram.h"
 
 #include <math.h>
 #include <stdint.h>
@@ -108,6 +109,8 @@ WaveShape waveformShape_;
 Luminance waveformLuminance_;
 int waveformAntiAliasingMode_;
 bool waveformOverlayFilter_;
+Spectrogram* m_spectrogram;
+bool m_showSpectrogram;
 
 // ================================================================================================
 // ViewImpl :: constructor / destructor.
@@ -129,6 +132,9 @@ WaveformImpl()
 	waveformTextureBuffer_.resize(TEX_W * TEX_H);
 
 	clearBlocks();
+
+	m_spectrogram = new Spectrogram(1024, 44100);
+	m_showSpectrogram = false;
 }
 
 // ================================================================================================
@@ -630,6 +636,12 @@ void drawBackground()
 
 void drawPeaks()
 {
+	if (m_showSpectrogram)
+	{
+		m_spectrogram->draw();
+		return;
+	}
+
 	updateBlockW();
 
 	bool reversed = gView->hasReverseScroll();
@@ -694,6 +706,10 @@ void drawPeaks()
 	}
 }
 
+void toggleSpectrogram()
+{
+	m_showSpectrogram = !m_showSpectrogram;
+}
 }; // WaveformImpl.
 
 // ================================================================================================

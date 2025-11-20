@@ -359,6 +359,7 @@ void init(Item* menu)
 	// View menu.
 	myViewMenu = newMenu();
 	add(myViewMenu, TOGGLE_SHOW_WAVEFORM, "Show waveform");
+	add(myViewMenu, TOGGLE_SHOW_SPECTROGRAM, "Show spectrogram");
 	add(myViewMenu, TOGGLE_SHOW_BEAT_LINES, "Show beat lines");
 	add(myViewMenu, TOGGLE_SHOW_TEMPO_BOXES, "Show tempo boxes");
 	add(myViewMenu, TOGGLE_SHOW_TEMPO_HELP, "Show tempo help");
