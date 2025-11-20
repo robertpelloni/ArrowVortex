@@ -21,8 +21,11 @@ struct Notefield
 	virtual void drawGhostNote(const Note& n) = 0;
 
 	virtual void toggleShowWaveform() = 0;
+	virtual void setShowWaveform(bool show) = 0;
 	virtual void toggleShowBeatLines() = 0;
+	virtual void setShowBeatLines(bool show) = 0;
 	virtual void toggleShowNotes() = 0;
+	virtual void setShowNotes(bool show) = 0;
 	virtual void toggleShowSongPreview() = 0;
 
 	virtual bool hasShowWaveform() = 0;

@@ -301,6 +301,13 @@ void Action::perform(Type action)
 	CASE(USE_ROW_BASED_VIEW)
 		gView->setTimeBased(false);
 
+	CASE(APPLY_SYNC_LAYOUT)
+		gView->setTimeBased(true);
+		gNotefield->setShowWaveform(true);
+		gNotefield->setShowBeatLines(true);
+		gNotefield->setShowNotes(false);
+		gTempoBoxes->setShowBoxes(true);
+
 	CASE(ZOOM_RESET)
 		gView->setZoomLevel(8);
 		gView->setScaleLevel(4);

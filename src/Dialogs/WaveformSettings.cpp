@@ -16,9 +16,11 @@ DialogWaveformSettings::DialogWaveformSettings()
 
 	settingsColorScheme_ = gWaveform->getColors();
 	luminanceValue_ = gWaveform->getLuminance();
+	colorMode_ = gWaveform->getColorMode();
 	waveShape_ = gWaveform->getWaveShape();
 	antiAliasingMode_ = gWaveform->getAntiAliasing();
 	isOverlayFilterActive_ = gWaveform->getOverlayFilter();
+	isShowingOnsets_ = gWaveform->hasShowOnsets();
 
 	filterType_ = Waveform::FT_HIGH_PASS;
 	filterStrength_ = 0.75f;
@@ -69,6 +71,17 @@ DialogWaveformSettings::DialogWaveformSettings()
 	lum->addItem("Uniform");
 	lum->addItem("Amplitude");
 	lum->setTooltip("Determines the lightness of the waveform peaks");
+
+	// Color Mode.
+	WgCycleButton* colMode = myLayout.add<WgCycleButton>("Color Mode");
+	colMode->value.bind(&colorMode_);
+	colMode->onChange.bind(this, &DialogWaveformSettings::myUpdateSettings);
+	colMode->addItem("Flat");
+	colMode->addItem("RGB (3-Band)");
+	colMode->addItem("Spectral (Centroid)");
+	colMode->addItem("Pitch (YIN)");
+	colMode->addItem("Spectrogram");
+	colMode->setTooltip("Selects the coloring method for the waveform");
 
 	// Wave shape.
 	WgCycleButton* shape = myLayout.add<WgCycleButton>("Wave shape");
@@ -124,6 +137,17 @@ DialogWaveformSettings::DialogWaveformSettings()
 	enable->text.set("Apply filter");
 	enable->onPress.bind(this, &DialogWaveformSettings::myEnableFilter);
 	enable->setTooltip("Shows the filtered waveform");
+
+	// Onsets.
+	myLayout.row().col(228);
+	myLayout.add<WgSeperator>();
+	myLayout.row().col(228);
+
+	WgCheckbox* showOnsets = myLayout.add<WgCheckbox>();
+	showOnsets->text.set("Show detected onsets");
+	showOnsets->value.bind(&isShowingOnsets_);
+	showOnsets->onChange.bind(this, &DialogWaveformSettings::myToggleShowOnsets);
+	showOnsets->setTooltip("Draws lines at detected onset positions");
 }
 
 void DialogWaveformSettings::myApplyPreset()
@@ -131,8 +155,10 @@ void DialogWaveformSettings::myApplyPreset()
 	gWaveform->setPreset((Waveform::Preset)presetIndex_);
 	settingsColorScheme_ = gWaveform->getColors();
 	luminanceValue_ = gWaveform->getLuminance();
+	colorMode_ = gWaveform->getColorMode();
 	waveShape_ = gWaveform->getWaveShape();
 	antiAliasingMode_ = gWaveform->getAntiAliasing();
+	isShowingOnsets_ = gWaveform->hasShowOnsets();
 }
 
 void DialogWaveformSettings::myUpdateSettings()
@@ -140,6 +166,7 @@ void DialogWaveformSettings::myUpdateSettings()
 	gWaveform->setColors(settingsColorScheme_);
 	gWaveform->setAntiAliasing(antiAliasingMode_);
 	gWaveform->setLuminance((Waveform::Luminance)luminanceValue_);
+	gWaveform->setColorMode((Waveform::ColorMode)colorMode_);
 	gWaveform->setWaveShape((Waveform::WaveShape)waveShape_);
 }
 
@@ -157,5 +184,10 @@ void DialogWaveformSettings::myDisableFilter()
 {
 	gWaveform->disableFilter();
 }	
+
+void DialogWaveformSettings::myToggleShowOnsets()
+{
+	gWaveform->setShowOnsets(isShowingOnsets_);
+}
 
 }; // namespace Vortex
