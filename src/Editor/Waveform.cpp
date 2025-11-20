@@ -1039,6 +1039,142 @@ void renderWaveform(Texture* textures, WaveEdge* edgeBuf, int w, int h, int bloc
 }
 
 template <typename FilterType>
+void renderWaveformSpectrogram(Texture* textures, WaveEdge* edgeBuf, int w, int h, int blockId)
+{
+	uchar* texBuf = waveformTextureBuffer_.begin();
+
+	auto& music = gMusic->getSamples();
+	double samplesPerSec = (double)music.getFrequency();
+	double samplesPerPixel = samplesPerSec / fabs(gView->getPixPerSec());
+	double samplesPerBlock = (double)TEX_H * samplesPerPixel;
+	int64_t samplePos = max((int64_t)0, (int64_t)(samplesPerBlock * (double)blockId));
+
+	// We use Gist for each column (line) of the texture
+	const int frameSize = 1024;
+	Gist<float> gist(frameSize, music.getFrequency());
+	std::vector<float> audioFrame(frameSize);
+
+	int texW = w / 2; // Texture width is half of total width (stereo split) but actually w is width of block texture?
+	// The texture is TEX_W x TEX_H. w passed in is width including antialiasing multiplier.
+	// But wait, w is for texture buffer size.
+	// renderBlock calculates w = waveformBlockWidth_ * (AA + 1).
+	// And the texture is modified with that size?
+	// renderWaveform uses w for sampleEdges loop.
+
+	// For spectrogram, Y axis of texture is Frequency. X axis is Time.
+	// We need to fill texBuf (size w * h * 4).
+	// w is typically 256 * (AA+1). h is 128 * (AA+1).
+
+	// To keep it simple and fast, let's ignore AA for spectrogram content (or do simple linear interpolation).
+	// Actually, we should just calculate one FFT per output column.
+
+	double advance = samplesPerPixel * TEX_H / h; // Samples per vertical pixel in the final texture?
+	// Wait, the texture is oriented vertically in the game view?
+	// The waveform is drawn vertically. Texture X is Time?
+	// In standard render:
+	// for(int y = 0; y < h; ++y) ... determines the line.
+	// Texture coordinate u (0..1) maps to width of block. v (0..1) maps to height (Time).
+	// So H is Time dimension. W is Amplitude dimension.
+	// For Spectrogram, we want H (Time) x W (Frequency).
+
+	// So for each row y (Time), we compute FFT.
+	// Then we map Frequency bins to columns x.
+
+	memset(texBuf, 0, w * h * 4);
+
+	for(int channel = 0; channel < 2; ++channel)
+	{
+		const short* samples = (channel == 0) ? music.samplesL() : music.samplesR();
+		int64_t totalFrames = music.getNumFrames();
+
+		for(int y = 0; y < h; ++y)
+		{
+			int64_t currentSample = samplePos + (int64_t)(y * advance);
+			if (currentSample >= totalFrames) break;
+
+			// Extract frame centered at currentSample
+			int start = currentSample - frameSize / 2;
+			for(int k=0; k<frameSize; ++k) {
+				if (start + k >= 0 && start + k < totalFrames) {
+					audioFrame[k] = samples[start+k] / 32768.0f;
+				} else {
+					audioFrame[k] = 0.0f;
+				}
+			}
+
+			gist.processAudioFrame(audioFrame);
+			const auto& magSpec = gist.getMelFrequencySpectrum();
+			// Mel spectrum is better for visualization. Gist default mel bank size is usually 40?
+			// Let's check Gist.h... getMelFrequencySpectrum returns vector.
+			// If it's small, we upscale. If we use getMagnitudeSpectrum(), it's frameSize/2 (512).
+			// w is around 256 or 512.
+
+			const auto& spectrum = gist.getMagnitudeSpectrum();
+			int numBins = spectrum.size();
+
+			// We map bins to x (0..w).
+			// Standard waveform is centered at w/2.
+			// Spectrogram usually goes low->high freq.
+			// Let's draw: Center = Low Freq (Bass). Edges = High Freq.
+			// This mimics the waveform shape (amplitude highest in center).
+			// Or: Left = Low, Right = High? No, w is the width of the notefield lane basically.
+			// If we duplicate (mirror) it looks like a waveform.
+			// Center (x=w/2) = 0Hz. x=0 and x=w = Nyquist.
+
+			int cx = w / 2;
+			for(int x = 0; x < cx; ++x)
+			{
+				// Map x to frequency bin (logarithmic looks better but linear is easier first)
+				// Linear mapping: bin = x * numBins / cx;
+				// Log mapping:
+				float t = (float)x / cx; // 0..1 (Low..High)
+				// We want more resolution at low freqs.
+				// bin = numBins * (pow(100, t) - 1) / 99?
+				// Let's stick to linear for now or simple log.
+
+				int bin = (int)(t * t * numBins); // Quadratic
+				bin = clamp(bin, 0, numBins-1);
+
+				float val = spectrum[bin];
+				val = log10(1 + val * 1000.0f) * 2.0f; // Scale for visibility
+				val = clamp(val, 0.0f, 1.0f);
+
+				uchar intensity = (uchar)(val * 255);
+
+				// Magma-like colormap (Black -> Red -> Yellow -> White)
+				uchar r = intensity;
+				uchar g = (intensity > 128) ? (intensity - 128) * 2 : 0;
+				uchar b = (intensity > 192) ? (intensity - 192) * 4 : 0;
+
+				// Mirror
+				int l = cx - 1 - x;
+				int r_pos = cx + x;
+
+				if(l >= 0) {
+					texBuf[(y * w + l) * 4 + 0] = r;
+					texBuf[(y * w + l) * 4 + 1] = g;
+					texBuf[(y * w + l) * 4 + 2] = b;
+					texBuf[(y * w + l) * 4 + 3] = intensity; // Use intensity as alpha? Or full opaque?
+					// Standard waveform uses alpha for shape.
+					// If we use full opaque, we fill the box.
+					// Let's use intensity as alpha to blend with background.
+				}
+				if(r_pos < w) {
+					texBuf[(y * w + r_pos) * 4 + 0] = r;
+					texBuf[(y * w + r_pos) * 4 + 1] = g;
+					texBuf[(y * w + r_pos) * 4 + 2] = b;
+					texBuf[(y * w + r_pos) * 4 + 3] = intensity;
+				}
+			}
+		}
+
+		if (!textures[channel].handle() || textures[channel].format() != Texture::RGBA) {
+			textures[channel] = Texture(TEX_W, TEX_H, Texture::RGBA);
+		}
+		textures[channel].modify(0, 0, waveformBlockWidth_, TEX_H, texBuf);
+	}
+}
+
 void renderWaveformColored(Texture* textures, WaveEdge* edgeBuf, int w, int h, int blockId, FilterType* filter)
 {
 	// Similar to standard render, but we pass a color buffer to the shape function
@@ -1169,6 +1305,11 @@ void renderBlock(WaveBlock* block)
 	{
 		waveformFilterSpectral_->update();
 		renderWaveformColored(block->tex, edges.begin(), w, h, block->id, waveformFilterSpectral_);
+	}
+	else if(waveformColorMode_ == CM_SPECTROGRAM)
+	{
+		waveformFilterSpectral_->update();
+		renderWaveformSpectrogram(block->tex, edges.begin(), w, h, block->id);
 	}
 	else if(waveformColorMode_ == CM_PITCH)
 	{
@@ -1301,7 +1442,7 @@ void drawPeaks()
 		TextureHandle texL = block->tex[0].handle();
 		TextureHandle texR = block->tex[1].handle();
 
-		if(waveformColorMode_ == CM_RGB || waveformColorMode_ == CM_SPECTRAL || waveformColorMode_ == CM_PITCH)
+		if(waveformColorMode_ == CM_RGB || waveformColorMode_ == CM_SPECTRAL || waveformColorMode_ == CM_PITCH || waveformColorMode_ == CM_SPECTROGRAM)
 		{
 			// Draw white rect with RGBA texture
 			Draw::fill({xl - pw, y, pw * 2, TEX_H}, Colors::white, texL, uvs, Texture::RGBA);
