@@ -54,6 +54,14 @@ public:
 	virtual void setShowOnsets(bool show) = 0;
 	virtual bool hasShowOnsets() = 0;
 
+	virtual void setOnsetThreshold(float threshold) = 0;
+	virtual float getOnsetThreshold() = 0;
+
+	virtual void setSpectrogramGain(float gain) = 0;
+	virtual float getSpectrogramGain() = 0;
+
+	virtual void updateOnsets() = 0;
+
 	virtual int getWidth() = 0;
 
 	virtual void toggleSpectrogram() = 0;

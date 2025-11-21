@@ -4,8 +4,6 @@
 
 #include <Gist.h>
 
-#include <Gist.h>
-
 #include <math.h>
 #include <stdint.h>
 #include <algorithm>
@@ -355,6 +353,8 @@ ColorMode waveformColorMode_;
 int waveformAntiAliasingMode_;
 bool waveformOverlayFilter_;
 bool waveformShowOnsets_;
+float waveformOnsetThreshold_;
+float waveformSpectrogramGain_;
 Vector<Onset> waveformOnsets_;
 Spectrogram* m_spectrogram;
 bool m_showSpectrogram;
@@ -381,6 +381,8 @@ WaveformImpl()
 	waveformFilterPitch_ = new WaveFilterPitch();
 	waveformOverlayFilter_ = true;
 	waveformShowOnsets_ = false;
+	waveformOnsetThreshold_ = 0.3f;
+	waveformSpectrogramGain_ = 1000.0f;
 
 	updateBlockW();
 	waveformTextureBuffer_.resize(TEX_W * TEX_H * 4); // RGBA size just in case
@@ -464,6 +466,8 @@ void loadSettings(XmrNode& settings)
 		setAntiAliasing(clamp(waveformAntiAliasingMode_, 0, 3));
 
 		waveform->get("showOnsets", &waveformShowOnsets_);
+		waveform->get("onsetThreshold", &waveformOnsetThreshold_);
+		waveform->get("spectrogramGain", &waveformSpectrogramGain_);
 	}
 }
 
@@ -481,6 +485,8 @@ void saveSettings(XmrNode& settings)
 	waveform->addAttrib("colorMode", ToString(waveformColorMode_));
 	waveform->addAttrib("antiAliasing", (long)waveformAntiAliasingMode_);
 	waveform->addAttrib("showOnsets", waveformShowOnsets_);
+	waveform->addAttrib("onsetThreshold", waveformOnsetThreshold_);
+	waveform->addAttrib("spectrogramGain", waveformSpectrogramGain_);
 }
 
 // ================================================================================================
@@ -540,21 +546,7 @@ void onChanges(int changes)
 		if(waveformColorMode_ == CM_PITCH) waveformFilterPitch_->update();
 
 		// Update onsets
-		waveformOnsets_.clear();
-		auto& music = gMusic->getSamples();
-		if(music.isCompleted() && music.getNumFrames() > 0)
-		{
-			// Convert to float buffer for FindOnsets
-			int numFrames = music.getNumFrames();
-			int samplerate = music.getFrequency();
-			std::vector<float> floatSamples(numFrames);
-			const short* src = music.samplesL(); // Use Left channel for onsets
-			for(int i=0; i<numFrames; ++i) {
-				floatSamples[i] = src[i] / 32768.0f;
-			}
-
-			FindOnsets(floatSamples.data(), samplerate, numFrames, 1, waveformOnsets_);
-		}
+		updateOnsets();
 	}
 }
 
@@ -661,6 +653,53 @@ void setShowOnsets(bool show)
 bool hasShowOnsets()
 {
 	return waveformShowOnsets_;
+}
+
+void setOnsetThreshold(float threshold)
+{
+	if (waveformOnsetThreshold_ != threshold)
+	{
+		waveformOnsetThreshold_ = threshold;
+		updateOnsets();
+	}
+}
+
+float getOnsetThreshold()
+{
+	return waveformOnsetThreshold_;
+}
+
+void setSpectrogramGain(float gain)
+{
+	if (waveformSpectrogramGain_ != gain)
+	{
+		waveformSpectrogramGain_ = gain;
+		clearBlocks();
+	}
+}
+
+float getSpectrogramGain()
+{
+	return waveformSpectrogramGain_;
+}
+
+void updateOnsets()
+{
+	waveformOnsets_.clear();
+	auto& music = gMusic->getSamples();
+	if(music.isCompleted() && music.getNumFrames() > 0)
+	{
+		// Convert to float buffer for FindOnsets
+		int numFrames = music.getNumFrames();
+		int samplerate = music.getFrequency();
+		std::vector<float> floatSamples(numFrames);
+		const short* src = music.samplesL(); // Use Left channel for onsets
+		for(int i=0; i<numFrames; ++i) {
+			floatSamples[i] = src[i] / 32768.0f;
+		}
+
+		FindOnsets(floatSamples.data(), samplerate, numFrames, 1, waveformOnsets_, waveformOnsetThreshold_);
+	}
 }
 
 // ================================================================================================
@@ -1174,7 +1213,7 @@ void renderWaveformSpectrogram(Texture* textures, WaveEdge* edgeBuf, int w, int 
 				bin = clamp(bin, 0, numBins-1);
 
 				float val = spectrum[bin];
-				val = log10(1 + val * 1000.0f) * 2.0f; // Scale for visibility
+				val = log10(1 + val * waveformSpectrogramGain_) * 2.0f; // Scale for visibility
 				val = clamp(val, 0.0f, 1.0f);
 
 				uchar intensity = (uchar)(val * 255);

@@ -21,6 +21,8 @@ DialogWaveformSettings::DialogWaveformSettings()
 	antiAliasingMode_ = gWaveform->getAntiAliasing();
 	isOverlayFilterActive_ = gWaveform->getOverlayFilter();
 	isShowingOnsets_ = gWaveform->hasShowOnsets();
+	onsetThreshold_ = gWaveform->getOnsetThreshold();
+	spectrogramGain_ = gWaveform->getSpectrogramGain() / 100.0f;
 
 	filterType_ = Waveform::FT_HIGH_PASS;
 	filterStrength_ = 0.75f;
@@ -148,6 +150,20 @@ DialogWaveformSettings::DialogWaveformSettings()
 	showOnsets->value.bind(&isShowingOnsets_);
 	showOnsets->onChange.bind(this, &DialogWaveformSettings::myToggleShowOnsets);
 	showOnsets->setTooltip("Draws lines at detected onset positions");
+
+	// Onset Threshold.
+	myLayout.row().col(228);
+	WgSlider* onsetThresh = myLayout.add<WgSlider>("Onset Threshold");
+	onsetThresh->value.bind(&onsetThreshold_);
+	onsetThresh->onChange.bind(this, &DialogWaveformSettings::myUpdateOnsets);
+	onsetThresh->setTooltip("Sensitivity of onset detection (lower = more onsets)");
+
+	// Spectrogram Gain.
+	myLayout.row().col(228);
+	WgSlider* specGain = myLayout.add<WgSlider>("Spectrogram Gain");
+	specGain->value.bind(&spectrogramGain_);
+	specGain->onChange.bind(this, &DialogWaveformSettings::myUpdateSpectrogram);
+	specGain->setTooltip("Contrast/Gain for spectrogram visualization");
 }
 
 void DialogWaveformSettings::myApplyPreset()
@@ -159,6 +175,8 @@ void DialogWaveformSettings::myApplyPreset()
 	waveShape_ = gWaveform->getWaveShape();
 	antiAliasingMode_ = gWaveform->getAntiAliasing();
 	isShowingOnsets_ = gWaveform->hasShowOnsets();
+	onsetThreshold_ = gWaveform->getOnsetThreshold();
+	spectrogramGain_ = gWaveform->getSpectrogramGain() / 100.0f;
 }
 
 void DialogWaveformSettings::myUpdateSettings()
@@ -188,6 +206,16 @@ void DialogWaveformSettings::myDisableFilter()
 void DialogWaveformSettings::myToggleShowOnsets()
 {
 	gWaveform->setShowOnsets(isShowingOnsets_);
+}
+
+void DialogWaveformSettings::myUpdateOnsets()
+{
+	gWaveform->setOnsetThreshold(onsetThreshold_);
+}
+
+void DialogWaveformSettings::myUpdateSpectrogram()
+{
+	gWaveform->setSpectrogramGain(spectrogramGain_ * 100.0f);
 }
 
 }; // namespace Vortex
