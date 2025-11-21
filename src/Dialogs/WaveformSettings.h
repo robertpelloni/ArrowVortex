@@ -21,16 +21,23 @@ private:
 	void myEnableFilter();
 	void myDisableFilter();
 	void myToggleOverlayFilter();
+	void myToggleShowOnsets();
+	void myUpdateOnsets();
+	void myUpdateSpectrogram();
 
 	Waveform::ColorScheme settingsColorScheme_;
 	int presetIndex_;
 	int luminanceValue_;
+	int colorMode_;
 	int waveShape_;
 	int antiAliasingMode_;
 
 	int filterType_;
 	float filterStrength_;
 	bool isOverlayFilterActive_;
+	bool isShowingOnsets_;
+	float onsetThreshold_;
+	float spectrogramGain_;
 };
 
 }; // namespace Vortex
