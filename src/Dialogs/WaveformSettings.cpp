@@ -83,6 +83,7 @@ DialogWaveformSettings::DialogWaveformSettings()
 	colMode->addItem("Spectral (Centroid)");
 	colMode->addItem("Pitch (YIN)");
 	colMode->addItem("Spectrogram");
+	colMode->addItem("CQT (Musical)");
 	colMode->setTooltip("Selects the coloring method for the waveform");
 
 	// Wave shape.

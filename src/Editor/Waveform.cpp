@@ -332,6 +332,29 @@ void update()
 }; // WaveFilterPitch.
 
 // ================================================================================================
+// WaveFilterCQT.
+
+// Uses Gist to calculate CQT-like spectrum (Log-Frequency spectrogram).
+struct WaveFilterCQT {
+
+struct ColorPoint { uchar r, g, b; };
+// We don't store colors, we re-compute them in render because layout depends on zoom?
+// No, rendering happens in blocks.
+// But CQT is expensive. We should cache the CQT data.
+// Or just use Gist efficiently.
+bool dirty = true;
+
+void update()
+{
+	// Nothing to pre-calculate, we do it on demand or just mark dirty.
+	if (!dirty) return;
+	auto& music = gMusic->getSamples();
+	if (music.isCompleted()) dirty = false;
+}
+
+}; // WaveFilterCQT.
+
+// ================================================================================================
 // WaveformImpl :: member data.
 
 struct WaveformImpl : public Waveform {
@@ -342,6 +365,7 @@ WaveFilter* waveformFilter_;
 WaveFilterRGB* waveformFilterRGB_;
 WaveFilterSpectral* waveformFilterSpectral_;
 WaveFilterPitch* waveformFilterPitch_;
+WaveFilterCQT* waveformFilterCQT_;
 Vector<uchar> waveformTextureBuffer_;
 
 int waveformBlockWidth_, waveformSpacing_;
@@ -369,6 +393,7 @@ bool m_showSpectrogram;
 	delete waveformFilterRGB_;
 	delete waveformFilterSpectral_;
 	delete waveformFilterPitch_;
+	delete waveformFilterCQT_;
 }
 
 WaveformImpl()
@@ -379,6 +404,7 @@ WaveformImpl()
 	waveformFilterRGB_ = new WaveFilterRGB();
 	waveformFilterSpectral_ = new WaveFilterSpectral();
 	waveformFilterPitch_ = new WaveFilterPitch();
+	waveformFilterCQT_ = new WaveFilterCQT();
 	waveformOverlayFilter_ = true;
 	waveformShowOnsets_ = false;
 	waveformOnsetThreshold_ = 0.3f;
@@ -421,6 +447,7 @@ static const char* ToString(ColorMode mode)
 	if(mode == CM_RGB) return "rgb";
 	if(mode == CM_SPECTRAL) return "spectral";
 	if(mode == CM_PITCH) return "pitch";
+	if(mode == CM_CQT) return "cqt";
 	return "flat";
 }
 
@@ -441,6 +468,7 @@ static ColorMode ToColorMode(StringRef str)
 	if(str == "rgb") return CM_RGB;
 	if(str == "spectral") return CM_SPECTRAL;
 	if(str == "pitch") return CM_PITCH;
+	if(str == "cqt") return CM_CQT;
 	return CM_FLAT;
 }
 
@@ -541,9 +569,11 @@ void onChanges(int changes)
 		waveformFilterRGB_->dirty = true;
 		waveformFilterSpectral_->dirty = true;
 		waveformFilterPitch_->dirty = true;
+		waveformFilterCQT_->dirty = true;
 		if(waveformColorMode_ == CM_RGB) waveformFilterRGB_->update();
 		if(waveformColorMode_ == CM_SPECTRAL) waveformFilterSpectral_->update();
 		if(waveformColorMode_ == CM_PITCH) waveformFilterPitch_->update();
+		if(waveformColorMode_ == CM_CQT) waveformFilterCQT_->update();
 
 		// Update onsets
 		updateOnsets();
@@ -614,6 +644,9 @@ void setColorMode(ColorMode mode)
 	}
 	else if (mode == CM_PITCH) {
 		waveformFilterPitch_->update();
+	}
+	else if (mode == CM_CQT) {
+		waveformFilterCQT_->update();
 	}
 	clearBlocks();
 }
@@ -1325,6 +1358,144 @@ void renderWaveformColored(Texture* textures, WaveEdge* edgeBuf, int w, int h, i
 	}
 }
 
+void renderWaveformCQT(Texture* textures, WaveEdge* edgeBuf, int w, int h, int blockId)
+{
+	uchar* texBuf = waveformTextureBuffer_.begin();
+
+	auto& music = gMusic->getSamples();
+	double samplesPerSec = (double)music.getFrequency();
+	double samplesPerPixel = samplesPerSec / fabs(gView->getPixPerSec());
+	double samplesPerBlock = (double)TEX_H * samplesPerPixel;
+	int64_t samplePos = max((int64_t)0, (int64_t)(samplesPerBlock * (double)blockId));
+
+	// Use a larger window for CQT to get bass resolution
+	const int frameSize = 4096;
+	Gist<float> gist(frameSize, music.getFrequency());
+	std::vector<float> audioFrame(frameSize);
+
+	double advance = samplesPerPixel * TEX_H / h;
+
+	memset(texBuf, 0, w * h * 4);
+
+	// Note range: A0 (21) to C8 (108) -> 88 keys
+	const int minNote = 21;
+	const int maxNote = 108;
+	const int numNotes = maxNote - minNote + 1;
+
+	for(int channel = 0; channel < 2; ++channel)
+	{
+		const short* samples = (channel == 0) ? music.samplesL() : music.samplesR();
+		int64_t totalFrames = music.getNumFrames();
+
+		// Optimization: Don't compute every single pixel line if zoom is high.
+		// But we need to fill every line.
+
+		for(int y = 0; y < h; ++y)
+		{
+			int64_t currentSample = samplePos + (int64_t)(y * advance);
+			if (currentSample >= totalFrames) break;
+
+			int start = currentSample - frameSize / 2;
+			for(int k=0; k<frameSize; ++k) {
+				if (start + k >= 0 && start + k < totalFrames) {
+					audioFrame[k] = samples[start+k] / 32768.0f;
+				} else {
+					audioFrame[k] = 0.0f;
+				}
+			}
+
+			gist.processAudioFrame(audioFrame);
+			const auto& spectrum = gist.getMagnitudeSpectrum();
+			int numBins = spectrum.size();
+
+			int cx = w / 2;
+
+			// Render notes from Left to Right (Low to High) for left channel?
+			// Or Standard CQT layout: Low at bottom, High at top?
+			// But our waveform is vertical. Y is Time. X is Frequency/Amplitude.
+			// So we map Notes to X axis.
+			// Center = Low Freq? Or Left Edge = Low?
+			// Let's do: Center = Low, Outer = High (like previous Spectrogram).
+			// This makes it symmetric.
+
+			for(int x = 0; x < cx; ++x)
+			{
+				// Map x to Note
+				float t = (float)x / cx; // 0..1
+				float noteFloat = minNote + t * (maxNote - minNote);
+				int note = (int)noteFloat;
+
+				// Frequency of note
+				float freq = 440.0f * pow(2.0f, (noteFloat - 69.0f) / 12.0f);
+
+				// Map freq to bin
+				int bin = (int)(freq * frameSize / music.getFrequency());
+				bin = clamp(bin, 0, numBins - 1);
+
+				float val = spectrum[bin];
+				val = log10(1 + val * waveformSpectrogramGain_) * 2.0f;
+				val = clamp(val, 0.0f, 1.0f);
+
+				uchar intensity = (uchar)(val * 255);
+
+				// ShowCQT color style: Rainbow/Chromatic based on Note Index
+				// 12 semitones per octave.
+				// Hue = (Note % 12) * 30
+				float chroma = fmod(noteFloat, 12.0f);
+				float hue = chroma * 30.0f;
+
+				float s = 0.8f;
+				float v = val; // Brightness depends on magnitude
+
+				float c = v * s;
+				float hh = hue / 60.0f;
+				float xx = c * (1 - fabs(fmod(hh, 2) - 1));
+				float r=0, g=0, b=0;
+
+				if (hh < 1) { r=c; g=xx; b=0; }
+				else if (hh < 2) { r=xx; g=c; b=0; }
+				else if (hh < 3) { r=0; g=c; b=xx; }
+				else if (hh < 4) { r=0; g=xx; b=c; }
+				else if (hh < 5) { r=xx; g=0; b=c; }
+				else { r=c; g=0; b=xx; }
+
+				uchar R = (uchar)(r * 255);
+				uchar G = (uchar)(g * 255);
+				uchar B = (uchar)(b * 255);
+
+				// Mirror
+				int l = cx - 1 - x;
+				int r_pos = cx + x;
+
+				if(l >= 0) {
+					texBuf[(y * w + l) * 4 + 0] = R;
+					texBuf[(y * w + l) * 4 + 1] = G;
+					texBuf[(y * w + l) * 4 + 2] = B;
+					texBuf[(y * w + l) * 4 + 3] = intensity;
+				}
+				if(r_pos < w) {
+					texBuf[(y * w + r_pos) * 4 + 0] = R;
+					texBuf[(y * w + r_pos) * 4 + 1] = G;
+					texBuf[(y * w + r_pos) * 4 + 2] = B;
+					texBuf[(y * w + r_pos) * 4 + 3] = intensity;
+				}
+			}
+		}
+
+		// Apply anti-aliasing
+		switch (waveformAntiAliasingMode_) {
+		case 1: antiAlias2xRGB(texBuf, w, h); break;
+		case 2: antiAlias3xRGB(texBuf, w, h); break;
+		case 3: antiAlias4xRGB(texBuf, w, h); break;
+		}
+
+		if (!textures[channel].handle() || textures[channel].format() != Texture::RGBA) {
+			textures[channel] = Texture(TEX_W, TEX_H, Texture::RGBA);
+		}
+		textures[channel].modify(0, 0, waveformBlockWidth_, TEX_H, texBuf);
+	}
+}
+
 void renderWaveformRGB(Texture* textures, WaveEdge* edgeBuf, int w, int h, int blockId)
 {
 	uchar* texBuf = waveformTextureBuffer_.begin();
@@ -1399,6 +1570,11 @@ void renderBlock(WaveBlock* block)
 	{
 		waveformFilterPitch_->update();
 		renderWaveformColored(block->tex, edges.begin(), w, h, block->id, waveformFilterPitch_);
+	}
+	else if(waveformColorMode_ == CM_CQT)
+	{
+		waveformFilterCQT_->update();
+		renderWaveformCQT(block->tex, edges.begin(), w, h, block->id);
 	}
 	else if(waveformFilter_)
 	{
@@ -1526,7 +1702,7 @@ void drawPeaks()
 		TextureHandle texL = block->tex[0].handle();
 		TextureHandle texR = block->tex[1].handle();
 
-		if(waveformColorMode_ == CM_RGB || waveformColorMode_ == CM_SPECTRAL || waveformColorMode_ == CM_PITCH || waveformColorMode_ == CM_SPECTROGRAM)
+		if(waveformColorMode_ == CM_RGB || waveformColorMode_ == CM_SPECTRAL || waveformColorMode_ == CM_PITCH || waveformColorMode_ == CM_SPECTROGRAM || waveformColorMode_ == CM_CQT)
 		{
 			// Draw white rect with RGBA texture
 			Draw::fill({xl - pw, y, pw * 2, TEX_H}, Colors::white, texL, uvs, Texture::RGBA);
