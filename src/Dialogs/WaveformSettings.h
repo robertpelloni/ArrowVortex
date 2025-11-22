@@ -24,6 +24,7 @@ private:
 	void myToggleShowOnsets();
 	void myUpdateOnsets();
 	void myUpdateSpectrogram();
+	void myUpdateRGB();
 
 	Waveform::ColorScheme settingsColorScheme_;
 	int presetIndex_;
@@ -38,6 +39,8 @@ private:
 	bool isShowingOnsets_;
 	float onsetThreshold_;
 	float spectrogramGain_;
+	float rgbLow_;
+	float rgbHigh_;
 };
 
 }; // namespace Vortex

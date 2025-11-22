@@ -165,6 +165,21 @@ DialogWaveformSettings::DialogWaveformSettings()
 	specGain->value.bind(&spectrogramGain_);
 	specGain->onChange.bind(this, &DialogWaveformSettings::myUpdateSpectrogram);
 	specGain->setTooltip("Contrast/Gain for spectrogram visualization");
+
+	// RGB Crossovers.
+	myLayout.row().col(228);
+	myLayout.add<WgSeperator>();
+	myLayout.row().col(228);
+
+	WgSlider* rgbLow = myLayout.add<WgSlider>("RGB Low Cutoff");
+	rgbLow->value.bind(&rgbLow_);
+	rgbLow->onChange.bind(this, &DialogWaveformSettings::myUpdateRGB);
+	rgbLow->setTooltip("Frequency cutoff for Low/Mid bands");
+
+	WgSlider* rgbHigh = myLayout.add<WgSlider>("RGB High Cutoff");
+	rgbHigh->value.bind(&rgbHigh_);
+	rgbHigh->onChange.bind(this, &DialogWaveformSettings::myUpdateRGB);
+	rgbHigh->setTooltip("Frequency cutoff for Mid/High bands");
 }
 
 void DialogWaveformSettings::myApplyPreset()
@@ -178,6 +193,8 @@ void DialogWaveformSettings::myApplyPreset()
 	isShowingOnsets_ = gWaveform->hasShowOnsets();
 	onsetThreshold_ = gWaveform->getOnsetThreshold();
 	spectrogramGain_ = gWaveform->getSpectrogramGain() / 100.0f;
+	rgbLow_ = gWaveform->getRGBLowHigh(false) / 1000.0f;
+	rgbHigh_ = gWaveform->getRGBLowHigh(true) / 10000.0f;
 }
 
 void DialogWaveformSettings::myUpdateSettings()
@@ -217,6 +234,11 @@ void DialogWaveformSettings::myUpdateOnsets()
 void DialogWaveformSettings::myUpdateSpectrogram()
 {
 	gWaveform->setSpectrogramGain(spectrogramGain_ * 100.0f);
+}
+
+void DialogWaveformSettings::myUpdateRGB()
+{
+	gWaveform->setRGBCrossovers(rgbLow_ * 1000.0f, rgbHigh_ * 10000.0f);
 }
 
 }; // namespace Vortex

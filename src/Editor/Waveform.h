@@ -60,6 +60,9 @@ public:
 	virtual void setSpectrogramGain(float gain) = 0;
 	virtual float getSpectrogramGain() = 0;
 
+	virtual void setRGBCrossovers(float low, float high) = 0;
+	virtual float getRGBLowHigh(bool high) = 0;
+
 	virtual void updateOnsets() = 0;
 
 	virtual int getWidth() = 0;

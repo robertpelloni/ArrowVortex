@@ -105,7 +105,7 @@ Vector<short> samplesL[3];
 Vector<short> samplesR[3]; // 0=Low, 1=Mid, 2=High
 bool dirty = true;
 
-void update()
+void update(float lowFreq, float highFreq)
 {
 	if (!dirty) return;
 	auto& music = gMusic->getSamples();
@@ -119,21 +119,24 @@ void update()
 		 samplesR[i].resize(numFrames);
 	}
 
-	// Low: LowPass 250Hz
-	LowPassFilter(samplesL[0].begin(), music.samplesL(), numFrames, 250.0 * 2.0 / samplerate);
-	LowPassFilter(samplesR[0].begin(), music.samplesR(), numFrames, 250.0 * 2.0 / samplerate);
+	double lowNorm = lowFreq * 2.0 / samplerate;
+	double highNorm = highFreq * 2.0 / samplerate;
 
-	// High: HighPass 2500Hz
-	HighPassFilter(samplesL[2].begin(), music.samplesL(), numFrames, 2500.0 * 2.0 / samplerate);
-	HighPassFilter(samplesR[2].begin(), music.samplesR(), numFrames, 2500.0 * 2.0 / samplerate);
+	// Low: LowPass lowFreq
+	LowPassFilter(samplesL[0].begin(), music.samplesL(), numFrames, lowNorm);
+	LowPassFilter(samplesR[0].begin(), music.samplesR(), numFrames, lowNorm);
 
-	// Mid: BandPass 250Hz-2500Hz (HighPass 250Hz, then LowPass 2500Hz)
+	// High: HighPass highFreq
+	HighPassFilter(samplesL[2].begin(), music.samplesL(), numFrames, highNorm);
+	HighPassFilter(samplesR[2].begin(), music.samplesR(), numFrames, highNorm);
+
+	// Mid: BandPass lowFreq-highFreq (HighPass lowFreq, then LowPass highFreq)
 	// Reuse Mid buffer for intermediate
-	LowPassFilter(samplesL[1].begin(), music.samplesL(), numFrames, 2500.0 * 2.0 / samplerate);
-	HighPassFilter(samplesL[1].begin(), samplesL[1].begin(), numFrames, 250.0 * 2.0 / samplerate);
+	LowPassFilter(samplesL[1].begin(), music.samplesL(), numFrames, highNorm);
+	HighPassFilter(samplesL[1].begin(), samplesL[1].begin(), numFrames, lowNorm);
 
-	LowPassFilter(samplesR[1].begin(), music.samplesR(), numFrames, 2500.0 * 2.0 / samplerate);
-	HighPassFilter(samplesR[1].begin(), samplesR[1].begin(), numFrames, 250.0 * 2.0 / samplerate);
+	LowPassFilter(samplesR[1].begin(), music.samplesR(), numFrames, highNorm);
+	HighPassFilter(samplesR[1].begin(), samplesR[1].begin(), numFrames, lowNorm);
 
 	dirty = false;
 }
@@ -338,18 +341,74 @@ void update()
 struct WaveFilterCQT {
 
 struct ColorPoint { uchar r, g, b; };
-// We don't store colors, we re-compute them in render because layout depends on zoom?
-// No, rendering happens in blocks.
-// But CQT is expensive. We should cache the CQT data.
-// Or just use Gist efficiently.
+Vector<Vector<uchar>> intensitiesL; // [note][time_block]
+Vector<Vector<uchar>> intensitiesR;
+int timeBlockSize;
+double samplesPerBlock;
 bool dirty = true;
 
-void update()
+void update(float gain)
 {
-	// Nothing to pre-calculate, we do it on demand or just mark dirty.
 	if (!dirty) return;
 	auto& music = gMusic->getSamples();
-	if (music.isCompleted()) dirty = false;
+	if (!music.isCompleted()) return;
+
+	int numFrames = music.getNumFrames();
+	int samplerate = music.getFrequency();
+
+	// CQT parameters
+	const int frameSize = 4096;
+	const int hopSize = 512; // Higher resolution in time
+	const int minNote = 21;
+	const int maxNote = 108;
+	const int numNotes = maxNote - minNote + 1;
+
+	timeBlockSize = hopSize;
+	samplesPerBlock = (double)hopSize;
+
+	int numBlocks = (numFrames - frameSize) / hopSize;
+	if (numBlocks < 0) numBlocks = 0;
+
+	intensitiesL.resize(numNotes);
+	intensitiesR.resize(numNotes);
+	for(int i=0; i<numNotes; ++i) {
+		intensitiesL[i].resize(numBlocks);
+		intensitiesR[i].resize(numBlocks);
+	}
+
+	Gist<float> gist(frameSize, samplerate);
+	std::vector<float> audioFrame(frameSize);
+
+	for(int channel=0; channel<2; ++channel) {
+		const short* samples = (channel == 0) ? music.samplesL() : music.samplesR();
+		auto& intensities = (channel == 0) ? intensitiesL : intensitiesR;
+
+		for(int i=0; i<numBlocks; ++i) {
+			int start = i * hopSize;
+			for(int k=0; k<frameSize; ++k) {
+				audioFrame[k] = samples[start+k] / 32768.0f;
+			}
+
+			gist.processAudioFrame(audioFrame);
+			const auto& spectrum = gist.getMagnitudeSpectrum();
+			int numBins = spectrum.size();
+
+			for(int n=0; n<numNotes; ++n) {
+				float noteFloat = (float)(minNote + n);
+				float freq = 440.0f * pow(2.0f, (noteFloat - 69.0f) / 12.0f);
+				int bin = (int)(freq * frameSize / samplerate);
+				bin = clamp(bin, 0, numBins - 1);
+
+				float val = spectrum[bin];
+				val = log10(1 + val * gain) * 2.0f;
+				val = clamp(val, 0.0f, 1.0f);
+
+				intensities[n][i] = (uchar)(val * 255);
+			}
+		}
+	}
+
+	dirty = false;
 }
 
 }; // WaveFilterCQT.
@@ -379,6 +438,8 @@ bool waveformOverlayFilter_;
 bool waveformShowOnsets_;
 float waveformOnsetThreshold_;
 float waveformSpectrogramGain_;
+float waveformRGBLow_;
+float waveformRGBHigh_;
 Vector<Onset> waveformOnsets_;
 Spectrogram* m_spectrogram;
 bool m_showSpectrogram;
@@ -409,6 +470,8 @@ WaveformImpl()
 	waveformShowOnsets_ = false;
 	waveformOnsetThreshold_ = 0.3f;
 	waveformSpectrogramGain_ = 1000.0f;
+	waveformRGBLow_ = 250.0f;
+	waveformRGBHigh_ = 2500.0f;
 
 	updateBlockW();
 	waveformTextureBuffer_.resize(TEX_W * TEX_H * 4); // RGBA size just in case
@@ -496,6 +559,8 @@ void loadSettings(XmrNode& settings)
 		waveform->get("showOnsets", &waveformShowOnsets_);
 		waveform->get("onsetThreshold", &waveformOnsetThreshold_);
 		waveform->get("spectrogramGain", &waveformSpectrogramGain_);
+		waveform->get("rgbLow", &waveformRGBLow_);
+		waveform->get("rgbHigh", &waveformRGBHigh_);
 	}
 }
 
@@ -515,6 +580,8 @@ void saveSettings(XmrNode& settings)
 	waveform->addAttrib("showOnsets", waveformShowOnsets_);
 	waveform->addAttrib("onsetThreshold", waveformOnsetThreshold_);
 	waveform->addAttrib("spectrogramGain", waveformSpectrogramGain_);
+	waveform->addAttrib("rgbLow", waveformRGBLow_);
+	waveform->addAttrib("rgbHigh", waveformRGBHigh_);
 }
 
 // ================================================================================================
@@ -570,10 +637,10 @@ void onChanges(int changes)
 		waveformFilterSpectral_->dirty = true;
 		waveformFilterPitch_->dirty = true;
 		waveformFilterCQT_->dirty = true;
-		if(waveformColorMode_ == CM_RGB) waveformFilterRGB_->update();
+		if(waveformColorMode_ == CM_RGB) waveformFilterRGB_->update(waveformRGBLow_, waveformRGBHigh_);
 		if(waveformColorMode_ == CM_SPECTRAL) waveformFilterSpectral_->update();
 		if(waveformColorMode_ == CM_PITCH) waveformFilterPitch_->update();
-		if(waveformColorMode_ == CM_CQT) waveformFilterCQT_->update();
+		if(waveformColorMode_ == CM_CQT) waveformFilterCQT_->update(waveformSpectrogramGain_);
 
 		// Update onsets
 		updateOnsets();
@@ -637,7 +704,7 @@ void setColorMode(ColorMode mode)
 {
 	waveformColorMode_ = mode;
 	if(mode == CM_RGB) {
-		waveformFilterRGB_->update();
+		waveformFilterRGB_->update(waveformRGBLow_, waveformRGBHigh_);
 	}
 	else if (mode == CM_SPECTRAL) {
 		waveformFilterSpectral_->update();
@@ -646,7 +713,7 @@ void setColorMode(ColorMode mode)
 		waveformFilterPitch_->update();
 	}
 	else if (mode == CM_CQT) {
-		waveformFilterCQT_->update();
+		waveformFilterCQT_->update(waveformSpectrogramGain_);
 	}
 	clearBlocks();
 }
@@ -714,6 +781,26 @@ void setSpectrogramGain(float gain)
 float getSpectrogramGain()
 {
 	return waveformSpectrogramGain_;
+}
+
+void setRGBCrossovers(float low, float high)
+{
+	if (waveformRGBLow_ != low || waveformRGBHigh_ != high)
+	{
+		waveformRGBLow_ = low;
+		waveformRGBHigh_ = high;
+		if (waveformColorMode_ == CM_RGB)
+		{
+			waveformFilterRGB_->dirty = true;
+			waveformFilterRGB_->update(waveformRGBLow_, waveformRGBHigh_);
+			clearBlocks();
+		}
+	}
+}
+
+float getRGBLowHigh(bool high)
+{
+	return high ? waveformRGBHigh_ : waveformRGBLow_;
 }
 
 void updateOnsets()
@@ -1148,7 +1235,6 @@ void renderWaveform(Texture* textures, WaveEdge* edgeBuf, int w, int h, int bloc
 	}
 }
 
-template <typename FilterType>
 void renderWaveformSpectrogram(Texture* textures, WaveEdge* edgeBuf, int w, int h, int blockId)
 {
 	uchar* texBuf = waveformTextureBuffer_.begin();
@@ -1368,84 +1454,45 @@ void renderWaveformCQT(Texture* textures, WaveEdge* edgeBuf, int w, int h, int b
 	double samplesPerBlock = (double)TEX_H * samplesPerPixel;
 	int64_t samplePos = max((int64_t)0, (int64_t)(samplesPerBlock * (double)blockId));
 
-	// Use a larger window for CQT to get bass resolution
-	const int frameSize = 4096;
-	Gist<float> gist(frameSize, music.getFrequency());
-	std::vector<float> audioFrame(frameSize);
-
 	double advance = samplesPerPixel * TEX_H / h;
 
 	memset(texBuf, 0, w * h * 4);
 
-	// Note range: A0 (21) to C8 (108) -> 88 keys
 	const int minNote = 21;
 	const int maxNote = 108;
 	const int numNotes = maxNote - minNote + 1;
 
 	for(int channel = 0; channel < 2; ++channel)
 	{
-		const short* samples = (channel == 0) ? music.samplesL() : music.samplesR();
-		int64_t totalFrames = music.getNumFrames();
-
-		// Optimization: Don't compute every single pixel line if zoom is high.
-		// But we need to fill every line.
+		const auto& intensities = (channel == 0) ? waveformFilterCQT_->intensitiesL : waveformFilterCQT_->intensitiesR;
+		int numBlocks = intensities.empty() ? 0 : intensities[0].size();
 
 		for(int y = 0; y < h; ++y)
 		{
 			int64_t currentSample = samplePos + (int64_t)(y * advance);
-			if (currentSample >= totalFrames) break;
+			int blockIndex = (int)(currentSample / waveformFilterCQT_->samplesPerBlock);
 
-			int start = currentSample - frameSize / 2;
-			for(int k=0; k<frameSize; ++k) {
-				if (start + k >= 0 && start + k < totalFrames) {
-					audioFrame[k] = samples[start+k] / 32768.0f;
-				} else {
-					audioFrame[k] = 0.0f;
-				}
-			}
-
-			gist.processAudioFrame(audioFrame);
-			const auto& spectrum = gist.getMagnitudeSpectrum();
-			int numBins = spectrum.size();
+			if (blockIndex < 0 || blockIndex >= numBlocks) continue;
 
 			int cx = w / 2;
 
-			// Render notes from Left to Right (Low to High) for left channel?
-			// Or Standard CQT layout: Low at bottom, High at top?
-			// But our waveform is vertical. Y is Time. X is Frequency/Amplitude.
-			// So we map Notes to X axis.
-			// Center = Low Freq? Or Left Edge = Low?
-			// Let's do: Center = Low, Outer = High (like previous Spectrogram).
-			// This makes it symmetric.
-
 			for(int x = 0; x < cx; ++x)
 			{
-				// Map x to Note
 				float t = (float)x / cx; // 0..1
 				float noteFloat = minNote + t * (maxNote - minNote);
 				int note = (int)noteFloat;
 
-				// Frequency of note
-				float freq = 440.0f * pow(2.0f, (noteFloat - 69.0f) / 12.0f);
+				if (note < minNote || note > maxNote) continue;
+				int noteIdx = note - minNote;
+				if (noteIdx >= numNotes) continue;
 
-				// Map freq to bin
-				int bin = (int)(freq * frameSize / music.getFrequency());
-				bin = clamp(bin, 0, numBins - 1);
+				uchar intensity = intensities[noteIdx][blockIndex];
 
-				float val = spectrum[bin];
-				val = log10(1 + val * waveformSpectrogramGain_) * 2.0f;
-				val = clamp(val, 0.0f, 1.0f);
-
-				uchar intensity = (uchar)(val * 255);
-
-				// ShowCQT color style: Rainbow/Chromatic based on Note Index
-				// 12 semitones per octave.
-				// Hue = (Note % 12) * 30
 				float chroma = fmod(noteFloat, 12.0f);
 				float hue = chroma * 30.0f;
 
 				float s = 0.8f;
-				float v = val; // Brightness depends on magnitude
+				float v = intensity / 255.0f;
 
 				float c = v * s;
 				float hh = hue / 60.0f;
@@ -1553,7 +1600,7 @@ void renderBlock(WaveBlock* block)
 	if(waveformColorMode_ == CM_RGB)
 	{
 		// Update RGB filter if needed (might have been lazy loaded)
-		waveformFilterRGB_->update();
+		waveformFilterRGB_->update(waveformRGBLow_, waveformRGBHigh_);
 		renderWaveformRGB(block->tex, edges.begin(), w, h, block->id);
 	}
 	else if(waveformColorMode_ == CM_SPECTRAL)
@@ -1573,7 +1620,7 @@ void renderBlock(WaveBlock* block)
 	}
 	else if(waveformColorMode_ == CM_CQT)
 	{
-		waveformFilterCQT_->update();
+		waveformFilterCQT_->update(waveformSpectrogramGain_);
 		renderWaveformCQT(block->tex, edges.begin(), w, h, block->id);
 	}
 	else if(waveformFilter_)
