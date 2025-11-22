@@ -166,6 +166,7 @@ namespace Action {
 
 	USE_TIME_BASED_VIEW,
 	USE_ROW_BASED_VIEW,
+	APPLY_SYNC_LAYOUT,
 	
 	ZOOM_RESET,
 	ZOOM_IN,
@@ -206,6 +207,9 @@ namespace Action {
 	SHOW_MESSAGE_LOG,
 	SHOW_DEBUG_LOG,
 	SHOW_ABOUT,
+
+	DETECT_SONG_SECTIONS,
+	ESTIMATE_BPM_FROM_SELECTION,
 	};
 
 	// Performs the action associated with the action type.

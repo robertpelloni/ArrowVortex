@@ -264,6 +264,11 @@ void init(Item* menu)
 	add(hTempo, SWITCH_TO_SYNC_MODE, "Sync mode");
 	add(hTempo, OPEN_DIALOG_TEMPO_BREAKDOWN, "Breakdown...");
 	sub(hTempo, myVisualSyncMenu, "Visual sync anchor");
+	sep(hTempo);
+	add(hTempo, APPLY_SYNC_LAYOUT, "Apply Sync Layout");
+	sep(hTempo);
+	add(hTempo, DETECT_SONG_SECTIONS, "Detect song sections");
+	add(hTempo, ESTIMATE_BPM_FROM_SELECTION, "Estimate BPM from selection");
 
 	// Audio > Volume menu.
 	Item* hAudioVol = newMenu();

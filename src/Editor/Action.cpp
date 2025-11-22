@@ -15,6 +15,8 @@
 #include <Editor/Music.h>
 #include <Editor/Minimap.h>
 #include <Editor/TempoBoxes.h>
+#include <Editor/StructureAnalyzer.h>
+#include <Editor/FindTempo.h>
 
 #include <Managers/MetadataMan.h>
 #include <Managers/NoteskinMan.h>
@@ -301,6 +303,13 @@ void Action::perform(Type action)
 	CASE(USE_ROW_BASED_VIEW)
 		gView->setTimeBased(false);
 
+	CASE(APPLY_SYNC_LAYOUT)
+		gView->setTimeBased(true);
+		gNotefield->setShowWaveform(true);
+		gNotefield->setShowBeatLines(true);
+		gNotefield->setShowNotes(false);
+		gTempoBoxes->setShowBoxes(true);
+
 	CASE(ZOOM_RESET)
 		gView->setZoomLevel(8);
 		gView->setScaleLevel(4);
@@ -370,6 +379,69 @@ void Action::perform(Type action)
 		gTextOverlay->show(TextOverlay::DEBUG_LOG);
 	CASE(SHOW_ABOUT)
 		gTextOverlay->show(TextOverlay::ABOUT);
+
+	CASE(DETECT_SONG_SECTIONS)
+		{
+			auto& music = gMusic->getSamples();
+			if(music.isCompleted() && music.getNumFrames() > 0) {
+				int numFrames = music.getNumFrames();
+				int samplerate = music.getFrequency();
+				std::vector<float> floatSamples(numFrames);
+				const short* src = music.samplesL(); // Mono analysis
+				for(int i=0; i<numFrames; ++i) floatSamples[i] = src[i] / 32768.0f;
+
+				Vector<Section> sections;
+				FindSections(floatSamples.data(), samplerate, numFrames, sections);
+
+				for(const auto& s : sections) {
+					int row = gTempo->timeToRow(s.time);
+					gTempo->addSegment(Label(row, "Section"));
+				}
+				HudNote("Detected %d sections", sections.size());
+			}
+		}
+
+	CASE(ESTIMATE_BPM_FROM_SELECTION)
+		{
+			auto region = gSelection->getSelectedRegion();
+			if(region.beginRow == region.endRow) {
+				HudError("No selection for BPM estimation.");
+			} else {
+				double start = gTempo->rowToTime(region.beginRow);
+				double end = gTempo->rowToTime(region.endRow);
+				auto detector = TempoDetector::New(start, end - start);
+				if(detector) {
+					// This is async, usually. But we need result.
+					// FindTempo.cpp logic runs thread.
+					// We can wait or poll. For simple action, let's spin wait (bad) or check if we can hook callback?
+					// TempoDetectorImp is BackgroundThread.
+					// Let's just notify user to use Adjust Tempo dialog if they want full UI, or wait here.
+					// Actually, Adjust Tempo dialog HAS this logic.
+					// I'll just open Adjust Tempo dialog pre-filled?
+					// But the user wants "automatically detecting".
+					// Let's spin wait for a bit (it's fast for small selections).
+					int timeout = 100;
+					while(!detector->hasResult() && timeout > 0) {
+						System::sleep(0.01);
+						timeout--;
+					}
+					if(detector->hasResult()) {
+						auto results = detector->getResult();
+						if(!results.empty()) {
+							double bpm = results[0].bpm;
+							HudNote("Estimated BPM: %.2f", bpm);
+							// Optional: Apply it?
+							// gTempo->addSegment(BpmChange(region.beginRow, bpm));
+						} else {
+							HudError("Could not estimate BPM.");
+						}
+					} else {
+						HudError("BPM estimation timed out.");
+					}
+					delete detector;
+				}
+			}
+		}
 	}};
 
 	if(action >= FILE_OPEN_RECENT_BEGIN && action < FILE_OPEN_RECENT_END)
