@@ -546,6 +546,95 @@ void Action::perform(Type action)
 				}
 			}
 		}
+
+	CASE(QUANTIZE_TO_AUDIO)
+		{
+			auto& music = gMusic->getSamples();
+			if(music.isCompleted() && music.getNumFrames() > 0) {
+				auto region = gSelection->getSelectedRegion();
+				int startRow = region.beginRow;
+				int endRow = region.endRow;
+				if (startRow == endRow) {
+					startRow = 0;
+					endRow = gSimfile->getEndRow();
+				}
+
+				String msg;
+				Str::fmt(msg, "Quantize beats in range [%d, %d] to audio?");
+				msg.arg(startRow).arg(endRow);
+				int res = gSystem->showMessageDlg("Quantize to Audio", msg, System::T_YES_NO, System::I_QUESTION);
+				if (res != System::R_YES) break;
+
+				int numFrames = music.getNumFrames();
+				int samplerate = music.getFrequency();
+				std::vector<float> floatSamples(numFrames);
+				const short* src = music.samplesL();
+				for(int i=0; i<numFrames; ++i) floatSamples[i] = src[i] / 32768.0f;
+
+				Vector<Onset> onsets;
+				FindOnsets(floatSamples.data(), samplerate, numFrames, 1, onsets);
+
+				if (onsets.empty()) {
+					HudError("No onsets detected.");
+					break;
+				}
+
+				// Iterate beats
+				int count = 0;
+				// Use a threshold window (e.g. 100ms)
+				double window = 0.1;
+
+				// Note: moveBeat(ripple=true) changes the timing of subsequent rows.
+				// So we must recalculate row time in each iteration.
+				// Also, we should probably iterate from Left to Right.
+
+				gHistory->startChain();
+
+				for (int row = startRow; row <= endRow; row += ROWS_PER_BEAT) {
+					double currentTime = gTempo->rowToTime(row);
+
+					// Find closest onset
+					double minDiff = window;
+					double bestTime = -1.0;
+
+					// Binary search or linear scan (linear is fine for onsets vector)
+					// Optimization: maintain index
+					for(const auto& onset : onsets) {
+						double t = (double)onset.pos / samplerate;
+						double diff = abs(t - currentTime);
+						if (diff < minDiff) {
+							minDiff = diff;
+							bestTime = t;
+						}
+						if (t > currentTime + window) break;
+					}
+
+					if (bestTime > 0.0) {
+						// Found match.
+						// Apply ripple move.
+						// But wait, if we ripple move beat N, beat N+1 moves too.
+						// If beat N+1 was already aligned, it might move out of alignment?
+						// No, if we process left to right:
+						// 1. Align beat 1 -> shifts beats 2,3,4...
+						// 2. Beat 2 is now at new position. Check its alignment.
+						// 3. Align beat 2 -> shifts beats 3,4...
+						// This is correct. It propagates the "drift correction".
+
+						gTempo->moveBeat(row, bestTime, true);
+
+						// IMPORTANT: Insert a BPM anchor at this row.
+						// Otherwise, when we adjust the NEXT beat, we will be modifying
+						// the SAME BPM segment (starting from previous anchor), which
+						// will undo the alignment we just did for THIS beat.
+						gTempo->injectBoundingBpmChange(row);
+
+						count++;
+					}
+				}
+				gHistory->finishChain("Quantize to Audio");
+				HudNote("Quantized %d beats.", count);
+			}
+		}
 	}};
 
 	if(action >= FILE_OPEN_RECENT_BEGIN && action < FILE_OPEN_RECENT_END)

@@ -212,6 +212,7 @@ namespace Action {
 	ESTIMATE_BPM_FROM_SELECTION,
 	AUTO_SYNC_SONG,
 	SNAP_OFFSET_TO_FIRST_BEAT,
+	QUANTIZE_TO_AUDIO,
 	};
 
 	// Performs the action associated with the action type.
