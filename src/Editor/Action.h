@@ -210,6 +210,8 @@ namespace Action {
 
 	DETECT_SONG_SECTIONS,
 	ESTIMATE_BPM_FROM_SELECTION,
+	AUTO_SYNC_SONG,
+	SNAP_OFFSET_TO_FIRST_BEAT,
 	};
 
 	// Performs the action associated with the action type.

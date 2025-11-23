@@ -269,6 +269,8 @@ void init(Item* menu)
 	sep(hTempo);
 	add(hTempo, DETECT_SONG_SECTIONS, "Detect song sections");
 	add(hTempo, ESTIMATE_BPM_FROM_SELECTION, "Estimate BPM from selection");
+	add(hTempo, AUTO_SYNC_SONG, "Auto-sync song (Global)");
+	add(hTempo, SNAP_OFFSET_TO_FIRST_BEAT, "Snap offset to first beat");
 
 	// Audio > Volume menu.
 	Item* hAudioVol = newMenu();
