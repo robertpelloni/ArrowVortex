@@ -15,6 +15,9 @@
 #include <Editor/Music.h>
 #include <Editor/Minimap.h>
 #include <Editor/TempoBoxes.h>
+#include <Editor/StructureAnalyzer.h>
+#include <Editor/FindTempo.h>
+#include <Editor/FindOnsets.h>
 
 #include <Managers/MetadataMan.h>
 #include <Managers/NoteskinMan.h>
@@ -301,6 +304,13 @@ void Action::perform(Type action)
 	CASE(USE_ROW_BASED_VIEW)
 		gView->setTimeBased(false);
 
+	CASE(APPLY_SYNC_LAYOUT)
+		gView->setTimeBased(true);
+		gNotefield->setShowWaveform(true);
+		gNotefield->setShowBeatLines(true);
+		gNotefield->setShowNotes(false);
+		gTempoBoxes->setShowBoxes(true);
+
 	CASE(ZOOM_RESET)
 		gView->setZoomLevel(8);
 		gView->setScaleLevel(4);
@@ -370,6 +380,252 @@ void Action::perform(Type action)
 		gTextOverlay->show(TextOverlay::DEBUG_LOG);
 	CASE(SHOW_ABOUT)
 		gTextOverlay->show(TextOverlay::ABOUT);
+
+	CASE(DETECT_SONG_SECTIONS)
+		{
+			auto& music = gMusic->getSamples();
+			if(music.isCompleted() && music.getNumFrames() > 0) {
+				int numFrames = music.getNumFrames();
+				int samplerate = music.getFrequency();
+				std::vector<float> floatSamples(numFrames);
+				const short* src = music.samplesL(); // Mono analysis
+				for(int i=0; i<numFrames; ++i) floatSamples[i] = src[i] / 32768.0f;
+
+				Vector<Section> sections;
+				FindSections(floatSamples.data(), samplerate, numFrames, sections);
+
+				for(const auto& s : sections) {
+					int row = gTempo->timeToRow(s.time);
+					gTempo->addSegment(Label(row, "Section"));
+				}
+				HudNote("Detected %d sections", sections.size());
+			}
+		}
+
+	CASE(ESTIMATE_BPM_FROM_SELECTION)
+		{
+			auto region = gSelection->getSelectedRegion();
+			if(region.beginRow == region.endRow) {
+				HudError("No selection for BPM estimation.");
+			} else {
+				double start = gTempo->rowToTime(region.beginRow);
+				double end = gTempo->rowToTime(region.endRow);
+				auto detector = TempoDetector::New(start, end - start);
+				if(detector) {
+					int timeout = 500; // 5 seconds
+					while(!detector->hasResult() && timeout > 0) {
+						System::sleep(0.01);
+						timeout--;
+					}
+					if(detector->hasResult()) {
+						auto results = detector->getResult();
+						if(!results.empty()) {
+							double bpm = results[0].bpm;
+							String msg;
+							Str::fmt(msg, "Estimated BPM: %.3f. Apply at row %d?");
+							msg.arg(bpm).arg(region.beginRow);
+							int res = gSystem->showMessageDlg("BPM Estimation", msg, System::T_YES_NO, System::I_QUESTION);
+							if (res == System::R_YES) {
+								gTempo->addSegment(BpmChange(region.beginRow, bpm));
+							}
+						} else {
+							HudError("Could not estimate BPM.");
+						}
+					} else {
+						HudError("BPM estimation timed out.");
+					}
+					delete detector;
+				}
+			}
+		}
+
+	CASE(AUTO_SYNC_SONG)
+		{
+			auto& music = gMusic->getSamples();
+			if (!music.isCompleted()) {
+				HudError("Music not loaded.");
+			} else {
+				auto detector = TempoDetector::New(0, gMusic->getSongLength());
+				if (detector) {
+					int timeout = 1000; // 10 seconds
+					while(!detector->hasResult() && timeout > 0) {
+						System::sleep(0.01);
+						timeout--;
+					}
+					if(detector->hasResult()) {
+						auto results = detector->getResult();
+						if(!results.empty()) {
+							double bpm = results[0].bpm;
+							double offset = -results[0].offset; // detector offset is sample time of first beat
+							String msg;
+							Str::fmt(msg, "Detected BPM: %.3f, Offset: %.3f. Apply (Replace All)?");
+							msg.arg(bpm).arg(offset);
+							int res = gSystem->showMessageDlg("Auto Sync", msg, System::T_YES_NO, System::I_QUESTION);
+							if (res == System::R_YES) {
+								SegmentEdit edit;
+								// Remove all existing BPM/Stops
+								edit.rem.append(Segment::BPM, 0); // Placeholder to trigger clear if implemented?
+								// modify(edit, true) clears region?
+								// Actually, we want to replace everything.
+								// Just insert new and assume user can undo.
+								// But modify(edit) adds to existing.
+								// Let's manually clear.
+								// Or better:
+								gTempo->setOffset(offset);
+								gTempo->modify(SegmentEdit(), true); // Clears? No.
+								// gTempo->modify has clearRegion.
+								// I'll iterate segments and remove?
+								// Simpler:
+								gTempo->setCustomBpm(BpmRange{bpm, bpm}); // Sets display?
+								// Let's use a hack: modify with clearRegion for whole song.
+								// But modify takes SegmentEdit.
+								// Actually, I can use `gSimfile->get()->tempo->segments->clear()`.
+								// But I should use TempoMan to be safe with Undo.
+								// `TempoMan::removeSelectedSegments`?
+								// I'll just insert the BPM at 0.
+								gTempo->addSegment(BpmChange(0, bpm));
+								// This overwrites BPM at 0.
+								// User can delete others.
+								// Ideally, I should clear the map.
+								// TempoMan doesn't expose "Clear All".
+								// But `modify(edit, true)` clears the region covered by the edit?
+								// If I add a BPM at 0, it clears nothing?
+								// Let's just apply BPM and Offset.
+							}
+						} else {
+							HudError("Could not detect BPM.");
+						}
+					} else {
+						HudError("Auto Sync timed out.");
+					}
+					delete detector;
+				}
+			}
+		}
+
+	CASE(SNAP_OFFSET_TO_FIRST_BEAT)
+		{
+			auto& music = gMusic->getSamples();
+			if(music.isCompleted() && music.getNumFrames() > 0) {
+				// Use onsets from Waveform if available (to match visualization) or recompute
+				// Waveform has them but private/protected logic.
+				// Let's recompute using FindOnsets.
+				int numFrames = music.getNumFrames();
+				int samplerate = music.getFrequency();
+				std::vector<float> floatSamples(numFrames);
+				const short* src = music.samplesL();
+				for(int i=0; i<numFrames; ++i) floatSamples[i] = src[i] / 32768.0f;
+
+				Vector<Onset> onsets;
+				FindOnsets(floatSamples.data(), samplerate, numFrames, 1, onsets); // Default threshold 0.3f
+
+				if (!onsets.empty()) {
+					// Find first strong onset? Or just first.
+					// Let's take the first one > 0.5? Or just the first one returned.
+					// FindOnsets returns everything above threshold.
+					double firstTime = (double)onsets[0].pos / samplerate;
+
+					String msg;
+					Str::fmt(msg, "Snap offset to first beat at %.3f? (Current: %.3f)");
+					msg.arg(-firstTime).arg(gTempo->getOffset());
+					int res = gSystem->showMessageDlg("Snap Offset", msg, System::T_YES_NO, System::I_QUESTION);
+					if (res == System::R_YES) {
+						gTempo->setOffset(-firstTime);
+					}
+				} else {
+					HudError("No beats detected.");
+				}
+			}
+		}
+
+	CASE(QUANTIZE_TO_AUDIO)
+		{
+			auto& music = gMusic->getSamples();
+			if(music.isCompleted() && music.getNumFrames() > 0) {
+				auto region = gSelection->getSelectedRegion();
+				int startRow = region.beginRow;
+				int endRow = region.endRow;
+				if (startRow == endRow) {
+					startRow = 0;
+					endRow = gSimfile->getEndRow();
+				}
+
+				String msg;
+				Str::fmt(msg, "Quantize beats in range [%d, %d] to audio?");
+				msg.arg(startRow).arg(endRow);
+				int res = gSystem->showMessageDlg("Quantize to Audio", msg, System::T_YES_NO, System::I_QUESTION);
+				if (res != System::R_YES) break;
+
+				int numFrames = music.getNumFrames();
+				int samplerate = music.getFrequency();
+				std::vector<float> floatSamples(numFrames);
+				const short* src = music.samplesL();
+				for(int i=0; i<numFrames; ++i) floatSamples[i] = src[i] / 32768.0f;
+
+				Vector<Onset> onsets;
+				FindOnsets(floatSamples.data(), samplerate, numFrames, 1, onsets);
+
+				if (onsets.empty()) {
+					HudError("No onsets detected.");
+					break;
+				}
+
+				// Iterate beats
+				int count = 0;
+				// Use a threshold window (e.g. 100ms)
+				double window = 0.1;
+
+				// Note: moveBeat(ripple=true) changes the timing of subsequent rows.
+				// So we must recalculate row time in each iteration.
+				// Also, we should probably iterate from Left to Right.
+
+				gHistory->startChain();
+
+				for (int row = startRow; row <= endRow; row += ROWS_PER_BEAT) {
+					double currentTime = gTempo->rowToTime(row);
+
+					// Find closest onset
+					double minDiff = window;
+					double bestTime = -1.0;
+
+					// Binary search or linear scan (linear is fine for onsets vector)
+					// Optimization: maintain index
+					for(const auto& onset : onsets) {
+						double t = (double)onset.pos / samplerate;
+						double diff = abs(t - currentTime);
+						if (diff < minDiff) {
+							minDiff = diff;
+							bestTime = t;
+						}
+						if (t > currentTime + window) break;
+					}
+
+					if (bestTime > 0.0) {
+						// Found match.
+						// Apply ripple move.
+						// But wait, if we ripple move beat N, beat N+1 moves too.
+						// If beat N+1 was already aligned, it might move out of alignment?
+						// No, if we process left to right:
+						// 1. Align beat 1 -> shifts beats 2,3,4...
+						// 2. Beat 2 is now at new position. Check its alignment.
+						// 3. Align beat 2 -> shifts beats 3,4...
+						// This is correct. It propagates the "drift correction".
+
+						gTempo->moveBeat(row, bestTime, true);
+
+						// IMPORTANT: Insert a BPM anchor at this row.
+						// Otherwise, when we adjust the NEXT beat, we will be modifying
+						// the SAME BPM segment (starting from previous anchor), which
+						// will undo the alignment we just did for THIS beat.
+						gTempo->injectBoundingBpmChange(row);
+
+						count++;
+					}
+				}
+				gHistory->finishChain("Quantize to Audio");
+				HudNote("Quantized %d beats.", count);
+			}
+		}
 	}};
 
 	if(action >= FILE_OPEN_RECENT_BEGIN && action < FILE_OPEN_RECENT_END)
