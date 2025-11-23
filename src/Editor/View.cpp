@@ -372,7 +372,8 @@ void tick()
 	if (myIsDraggingBeat)
 	{
 		const double time = offsetToTime(yToOffset(gSystem->getMousePos().y));
-		gTempo->moveBeat(myDraggedBeatRow, time);
+		bool ripple = (gSystem->getKeyboardState() & Keyflag::SHIFT) != 0;
+		gTempo->moveBeat(myDraggedBeatRow, time, ripple);
 	}
 
 	// Set cursor to arrows when hovering over/dragging the receptors.
