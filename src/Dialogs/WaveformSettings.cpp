@@ -84,6 +84,8 @@ DialogWaveformSettings::DialogWaveformSettings()
 	colMode->addItem("Pitch (YIN)");
 	colMode->addItem("Spectrogram");
 	colMode->addItem("CQT (Musical)");
+	colMode->addItem("Percussion (HPSS)");
+	colMode->addItem("Harmonic (HPSS)");
 	colMode->setTooltip("Selects the coloring method for the waveform");
 
 	// Wave shape.

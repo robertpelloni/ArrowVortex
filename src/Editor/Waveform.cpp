@@ -414,6 +414,138 @@ void update(float gain)
 }; // WaveFilterCQT.
 
 // ================================================================================================
+// WaveFilterHPSS.
+
+// Harmonic-Percussive Source Separation
+struct WaveFilterHPSS {
+
+// Stores spectrogram magnitude [time][freq]
+// We store compressed uint8 to save space: 0-255 maps to 0.0-1.0 magnitude
+struct SpectrogramData {
+	int width; // numFrames (time)
+	int height; // numBins (freq)
+	Vector<uchar> data; // row-major: data[time * height + freq]
+
+	uchar get(int t, int f) const { return data[t * height + f]; }
+	void set(int t, int f, uchar v) { data[t * height + f] = v; }
+	void resize(int w, int h) { width = w; height = h; data.resize(w * h); }
+};
+
+SpectrogramData specP[2]; // Percussive (Left/Right)
+SpectrogramData specH[2]; // Harmonic (Left/Right)
+double samplesPerBlock;
+bool dirty = true;
+
+// Median filter helper
+static uchar Median(std::vector<uchar>& v) {
+	if (v.empty()) return 0;
+	size_t n = v.size() / 2;
+	std::nth_element(v.begin(), v.begin() + n, v.end());
+	return v[n];
+}
+
+void update(float gain)
+{
+	if (!dirty) return;
+	auto& music = gMusic->getSamples();
+	if (!music.isCompleted()) return;
+
+	int numFrames = music.getNumFrames();
+	int samplerate = music.getFrequency();
+
+	const int frameSize = 1024;
+	const int hopSize = 512;
+	samplesPerBlock = (double)hopSize;
+
+	int numBlocks = (numFrames - frameSize) / hopSize;
+	if (numBlocks <= 0) return;
+
+	Gist<float> gist(frameSize, samplerate);
+	std::vector<float> audioFrame(frameSize);
+
+	// Temporary full float spectrogram for processing
+	// [time][freq]
+	int numBins = frameSize / 2;
+	std::vector<std::vector<float>> S(numBlocks, std::vector<float>(numBins));
+
+	for(int channel=0; channel<2; ++channel) {
+		const short* samples = (channel == 0) ? music.samplesL() : music.samplesR();
+
+		// 1. Compute Spectrogram
+		for(int i=0; i<numBlocks; ++i) {
+			int start = i * hopSize;
+			for(int k=0; k<frameSize; ++k) audioFrame[k] = samples[start+k] / 32768.0f;
+			gist.processAudioFrame(audioFrame);
+			const auto& spectrum = gist.getMagnitudeSpectrum();
+			for(int f=0; f<numBins; ++f) {
+				S[i][f] = spectrum[f];
+			}
+		}
+
+		// 2. Harmonic: Horizontal Median (Time)
+		// Window size: ~0.2s. Hop 512 @ 44100 = 11ms. 0.2s = ~18 frames. Use 17.
+		int wH = 17;
+		int wP = 17; // Vertical Median (Freq). 17 bins * 43Hz = ~700Hz window.
+
+		specP[channel].resize(numBlocks, numBins);
+		specH[channel].resize(numBlocks, numBins);
+
+		std::vector<uchar> buf;
+		buf.reserve(32);
+
+		for(int t=0; t<numBlocks; ++t) {
+			for(int f=0; f<numBins; ++f) {
+				float val = S[t][f];
+
+				// Horizontal Median
+				std::vector<float> winH;
+				winH.reserve(wH);
+				for(int k = -wH/2; k <= wH/2; ++k) {
+					int tt = clamp(t+k, 0, numBlocks-1);
+					winH.push_back(S[tt][f]);
+				}
+				size_t nH = winH.size()/2;
+				std::nth_element(winH.begin(), winH.begin()+nH, winH.end());
+				float H = winH[nH];
+
+				// Vertical Median
+				std::vector<float> winP;
+				winP.reserve(wP);
+				for(int k = -wP/2; k <= wP/2; ++k) {
+					int ff = clamp(f+k, 0, numBins-1);
+					winP.push_back(S[t][ff]);
+				}
+				size_t nP = winP.size()/2;
+				std::nth_element(winP.begin(), winP.begin()+nP, winP.end());
+				float P = winP[nP];
+
+				// Masking (Soft or Binary)
+				// Soft mask: M_p = P^2 / (P^2 + H^2)
+				// Let's use simple Wiener-like masking
+				// P_component = S * (P / (P + H + epsilon))
+				float epsilon = 1e-6f;
+				float maskP = P / (P + H + epsilon);
+				float maskH = H / (P + H + epsilon);
+
+				float valP = val * maskP;
+				float valH = val * maskH;
+
+				// Log scale for display
+				valP = log10(1 + valP * gain) * 2.0f;
+				valH = log10(1 + valH * gain) * 2.0f;
+
+				specP[channel].set(t, f, (uchar)clamp(valP * 255.0f, 0.0f, 255.0f));
+				specH[channel].set(t, f, (uchar)clamp(valH * 255.0f, 0.0f, 255.0f));
+			}
+		}
+	}
+
+	dirty = false;
+}
+
+}; // WaveFilterHPSS.
+
+// ================================================================================================
 // WaveformImpl :: member data.
 
 struct WaveformImpl : public Waveform {
@@ -425,6 +557,7 @@ WaveFilterRGB* waveformFilterRGB_;
 WaveFilterSpectral* waveformFilterSpectral_;
 WaveFilterPitch* waveformFilterPitch_;
 WaveFilterCQT* waveformFilterCQT_;
+WaveFilterHPSS* waveformFilterHPSS_;
 Vector<uchar> waveformTextureBuffer_;
 
 int waveformBlockWidth_, waveformSpacing_;
@@ -455,6 +588,7 @@ bool m_showSpectrogram;
 	delete waveformFilterSpectral_;
 	delete waveformFilterPitch_;
 	delete waveformFilterCQT_;
+	delete waveformFilterHPSS_;
 }
 
 WaveformImpl()
@@ -466,6 +600,7 @@ WaveformImpl()
 	waveformFilterSpectral_ = new WaveFilterSpectral();
 	waveformFilterPitch_ = new WaveFilterPitch();
 	waveformFilterCQT_ = new WaveFilterCQT();
+	waveformFilterHPSS_ = new WaveFilterHPSS();
 	waveformOverlayFilter_ = true;
 	waveformShowOnsets_ = false;
 	waveformOnsetThreshold_ = 0.3f;
@@ -532,6 +667,8 @@ static ColorMode ToColorMode(StringRef str)
 	if(str == "spectral") return CM_SPECTRAL;
 	if(str == "pitch") return CM_PITCH;
 	if(str == "cqt") return CM_CQT;
+	if(str == "percussion") return CM_PERCUSSION;
+	if(str == "harmonic") return CM_HARMONIC;
 	return CM_FLAT;
 }
 
@@ -641,6 +778,7 @@ void onChanges(int changes)
 		if(waveformColorMode_ == CM_SPECTRAL) waveformFilterSpectral_->update();
 		if(waveformColorMode_ == CM_PITCH) waveformFilterPitch_->update();
 		if(waveformColorMode_ == CM_CQT) waveformFilterCQT_->update(waveformSpectrogramGain_);
+		if(waveformColorMode_ == CM_PERCUSSION || waveformColorMode_ == CM_HARMONIC) waveformFilterHPSS_->update(waveformSpectrogramGain_);
 
 		// Update onsets
 		updateOnsets();
@@ -714,6 +852,9 @@ void setColorMode(ColorMode mode)
 	}
 	else if (mode == CM_CQT) {
 		waveformFilterCQT_->update(waveformSpectrogramGain_);
+	}
+	else if (mode == CM_PERCUSSION || mode == CM_HARMONIC) {
+		waveformFilterHPSS_->update(waveformSpectrogramGain_);
 	}
 	clearBlocks();
 }
@@ -1588,6 +1729,92 @@ void renderWaveformRGB(Texture* textures, WaveEdge* edgeBuf, int w, int h, int b
 	}
 }
 
+void renderWaveformHPSS(Texture* textures, WaveEdge* edgeBuf, int w, int h, int blockId, bool harmonic)
+{
+	uchar* texBuf = waveformTextureBuffer_.begin();
+
+	auto& music = gMusic->getSamples();
+	double samplesPerSec = (double)music.getFrequency();
+	double samplesPerPixel = samplesPerSec / fabs(gView->getPixPerSec());
+	double samplesPerBlock = (double)TEX_H * samplesPerPixel;
+	int64_t samplePos = max((int64_t)0, (int64_t)(samplesPerBlock * (double)blockId));
+
+	double advance = samplesPerPixel * TEX_H / h;
+
+	memset(texBuf, 0, w * h * 4);
+
+	for(int channel = 0; channel < 2; ++channel)
+	{
+		const auto& spec = harmonic ? waveformFilterHPSS_->specH[channel] : waveformFilterHPSS_->specP[channel];
+		if (spec.width == 0) continue;
+
+		for(int y = 0; y < h; ++y)
+		{
+			int64_t currentSample = samplePos + (int64_t)(y * advance);
+			// Calculate time index in spectrogram
+			int t = (int)(currentSample / waveformFilterHPSS_->samplesPerBlock);
+			if (t < 0 || t >= spec.width) continue;
+
+			int cx = w / 2;
+			int numBins = spec.height;
+
+			for(int x = 0; x < cx; ++x)
+			{
+				float u = (float)x / cx;
+				// Linear mapping for now to match spectrogram
+				int bin = (int)(u * u * numBins);
+				bin = clamp(bin, 0, numBins-1);
+
+				uchar intensity = spec.get(t, bin);
+
+				// Color map
+				// Harmonic: Blue/Greenish? Percussive: Red/Orange?
+				uchar r, g, b;
+				if (harmonic) {
+					// Cyan/Blue
+					r = 0;
+					g = intensity;
+					b = (intensity > 128) ? 255 : intensity * 2;
+				} else {
+					// Red/Orange
+					r = intensity;
+					g = (intensity > 128) ? (intensity - 128) * 2 : 0;
+					b = 0;
+				}
+
+				// Mirror
+				int l = cx - 1 - x;
+				int r_pos = cx + x;
+
+				if(l >= 0) {
+					texBuf[(y * w + l) * 4 + 0] = r;
+					texBuf[(y * w + l) * 4 + 1] = g;
+					texBuf[(y * w + l) * 4 + 2] = b;
+					texBuf[(y * w + l) * 4 + 3] = intensity;
+				}
+				if(r_pos < w) {
+					texBuf[(y * w + r_pos) * 4 + 0] = r;
+					texBuf[(y * w + r_pos) * 4 + 1] = g;
+					texBuf[(y * w + r_pos) * 4 + 2] = b;
+					texBuf[(y * w + r_pos) * 4 + 3] = intensity;
+				}
+			}
+		}
+
+		// Apply anti-aliasing
+		switch (waveformAntiAliasingMode_) {
+		case 1: antiAlias2xRGB(texBuf, w, h); break;
+		case 2: antiAlias3xRGB(texBuf, w, h); break;
+		case 3: antiAlias4xRGB(texBuf, w, h); break;
+		}
+
+		if (!textures[channel].handle() || textures[channel].format() != Texture::RGBA) {
+			textures[channel] = Texture(TEX_W, TEX_H, Texture::RGBA);
+		}
+		textures[channel].modify(0, 0, waveformBlockWidth_, TEX_H, texBuf);
+	}
+}
+
 void renderBlock(WaveBlock* block)
 {
 	int w = waveformBlockWidth_ * (waveformAntiAliasingMode_ + 1);
@@ -1622,6 +1849,16 @@ void renderBlock(WaveBlock* block)
 	{
 		waveformFilterCQT_->update(waveformSpectrogramGain_);
 		renderWaveformCQT(block->tex, edges.begin(), w, h, block->id);
+	}
+	else if(waveformColorMode_ == CM_PERCUSSION)
+	{
+		waveformFilterHPSS_->update(waveformSpectrogramGain_);
+		renderWaveformHPSS(block->tex, edges.begin(), w, h, block->id, false);
+	}
+	else if(waveformColorMode_ == CM_HARMONIC)
+	{
+		waveformFilterHPSS_->update(waveformSpectrogramGain_);
+		renderWaveformHPSS(block->tex, edges.begin(), w, h, block->id, true);
 	}
 	else if(waveformFilter_)
 	{
@@ -1749,7 +1986,7 @@ void drawPeaks()
 		TextureHandle texL = block->tex[0].handle();
 		TextureHandle texR = block->tex[1].handle();
 
-		if(waveformColorMode_ == CM_RGB || waveformColorMode_ == CM_SPECTRAL || waveformColorMode_ == CM_PITCH || waveformColorMode_ == CM_SPECTROGRAM || waveformColorMode_ == CM_CQT)
+		if(waveformColorMode_ == CM_RGB || waveformColorMode_ == CM_SPECTRAL || waveformColorMode_ == CM_PITCH || waveformColorMode_ == CM_SPECTROGRAM || waveformColorMode_ == CM_CQT || waveformColorMode_ == CM_PERCUSSION || waveformColorMode_ == CM_HARMONIC)
 		{
 			// Draw white rect with RGBA texture
 			Draw::fill({xl - pw, y, pw * 2, TEX_H}, Colors::white, texL, uvs, Texture::RGBA);
