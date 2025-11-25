@@ -85,6 +85,7 @@ DialogWaveformSettings::DialogWaveformSettings()
 	colMode->addItem("Spectrogram");
 	colMode->addItem("CQT (Musical)");
 	colMode->addItem("Percussion (HPSS)");
+	colMode->addItem("Harmonic (Vocals/Melody)");
 	colMode->addItem("Harmonic (HPSS)");
 	colMode->setTooltip("Selects the coloring method for the waveform");
 

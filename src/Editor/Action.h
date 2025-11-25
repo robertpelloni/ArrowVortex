@@ -215,6 +215,7 @@ namespace Action {
 	QUANTIZE_TO_AUDIO,
 	CURSOR_NEXT_TRANSIENT,
 	CURSOR_PREV_TRANSIENT,
+	PLACE_BEAT_AT_PLAYHEAD,
 	};
 
 	// Performs the action associated with the action type.

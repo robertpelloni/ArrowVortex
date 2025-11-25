@@ -243,6 +243,10 @@ namespace {
 		// Find the beat the mouse is closest to
 		const double time = gView->offsetToTime(gView->yToOffset(y));
 		int closestRow = gTempo->timeToRow(time);
+
+		// We want to snap to ANY visible grid line, not just 4ths?
+		// snapRow uses the current snap setting (View::SNAP_CLOSEST).
+		// If snap is set to 16ths, closestRow will be a 16th.
 		closestRow = gView->snapRow(closestRow, View::SNAP_CLOSEST);
 
 		// Check if the mouse is close enough to the beat

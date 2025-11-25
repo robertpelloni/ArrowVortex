@@ -649,13 +649,17 @@ void Action::perform(Type action)
 				// Use a threshold window (e.g. 100ms)
 				double window = 0.1;
 
+				// Use current snap settings
+				int step = gView->getSnapQuant();
+				if (step <= 0) step = ROWS_PER_BEAT;
+
 				// Note: moveBeat(ripple=true) changes the timing of subsequent rows.
 				// So we must recalculate row time in each iteration.
 				// Also, we should probably iterate from Left to Right.
 
 				gHistory->startChain();
 
-				for (int row = startRow; row <= endRow; row += ROWS_PER_BEAT) {
+				for (int row = startRow; row <= endRow; row += step) {
 					double currentTime = gTempo->rowToTime(row);
 
 					// Find closest onset
@@ -699,6 +703,41 @@ void Action::perform(Type action)
 				gHistory->finishChain("Quantize to Audio");
 				HudNote("Quantized %d beats.", count);
 			}
+		}
+
+	CASE(PLACE_BEAT_AT_PLAYHEAD)
+		{
+			// This matches DDream's "Lock Beat" or typical sync workflow.
+			// User listens, pauses at a beat, and hits a key to bring the nearest grid line to that time.
+
+			// 1. Get current time (playhead or cursor)
+			// If playing, use play time. If paused, use cursor time.
+			double targetTime = gMusic->isPaused() ? gView->getCursorTime() : gMusic->getPlayTime();
+
+			// 2. Find nearest beat/grid line
+			int snap = gView->getSnapQuant();
+			// We want to find the row closest to targetTime in the CURRENT timing.
+			int row = gTempo->timeToRow(targetTime);
+
+			// Snap row to grid
+			int snappedRow = row;
+			if (snap > 0) {
+				int remainder = row % snap;
+				if (remainder < snap / 2) snappedRow -= remainder;
+				else snappedRow += (snap - remainder);
+			}
+
+			// 3. Move it
+			// Constructive or Destructive?
+			// Usually destructive (ripple) is what you want when building the tempo map linearly.
+			// But let's ask or default?
+			// Let's default to Ripple (Shift) behavior if Shift is held?
+			// No, this action is usually bound to a key.
+			// Let's make it always Ripple for now as that's the "DDream" way.
+
+			gTempo->moveBeat(snappedRow, targetTime, true);
+			gTempo->injectBoundingBpmChange(snappedRow); // Anchor it
+			HudNote("Aligned row %d to %.3fs", snappedRow, targetTime);
 		}
 	}};
 
