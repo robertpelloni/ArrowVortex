@@ -52,7 +52,9 @@ struct TempoMan
 	virtual double beatToTime(double beat) const = 0;
 
 	/// Moves the beat at the given row to the given time.
-	virtual void moveBeat(int row, double time) = 0;
+	/// If ripple is true, subsequent beats are shifted (destructive).
+	/// If ripple is false, surrounding segments are warped (non-destructive).
+	virtual void moveBeat(int row, double time, bool ripple) = 0;
 
 	/// Converts a beat offset to a measure offset.
 	virtual double beatToMeasure(double beat) const = 0;
