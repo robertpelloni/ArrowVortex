@@ -355,6 +355,61 @@ void Action::perform(Type action)
 	CASE(CURSOR_CHART_END)
 		gView->setCursorRow(gSimfile->getEndRow());
 
+	CASE(CURSOR_NEXT_TRANSIENT)
+		{
+			auto& music = gMusic->getSamples();
+			if(music.isCompleted() && music.getNumFrames() > 0) {
+				gWaveform->updateOnsets();
+				const auto& onsets = gWaveform->getOnsets();
+				if (onsets.empty()) break;
+
+				double curTime = gView->getCursorTime();
+				int samplerate = music.getFrequency();
+				double bestTime = -1.0;
+
+				// Find first onset > curTime
+				// Onsets are sorted by position (sample index)
+				for(const auto& onset : onsets) {
+					double t = (double)onset.pos / samplerate;
+					if (t > curTime + 0.001) { // Small epsilon
+						bestTime = t;
+						break;
+					}
+				}
+
+				if (bestTime >= 0.0) {
+					gView->setCursorTime(bestTime);
+				}
+			}
+		}
+
+	CASE(CURSOR_PREV_TRANSIENT)
+		{
+			auto& music = gMusic->getSamples();
+			if(music.isCompleted() && music.getNumFrames() > 0) {
+				gWaveform->updateOnsets();
+				const auto& onsets = gWaveform->getOnsets();
+				if (onsets.empty()) break;
+
+				double curTime = gView->getCursorTime();
+				int samplerate = music.getFrequency();
+				double bestTime = -1.0;
+
+				// Find last onset < curTime
+				for(int i = onsets.size() - 1; i >= 0; --i) {
+					double t = (double)onsets[i].pos / samplerate;
+					if (t < curTime - 0.001) {
+						bestTime = t;
+						break;
+					}
+				}
+
+				if (bestTime >= 0.0) {
+					gView->setCursorTime(bestTime);
+				}
+			}
+		}
+
 	CASE(TOGGLE_STATUS_CHART)
 		gStatusbar->toggleChart();
 	CASE(TOGGLE_STATUS_SNAP)
@@ -559,12 +614,22 @@ void Action::perform(Type action)
 					endRow = gSimfile->getEndRow();
 				}
 
+				// Ensure onsets are up to date
+				gWaveform->updateOnsets();
+				const auto& onsets = gWaveform->getOnsets();
+
+				if (onsets.empty()) {
+					HudError("No onsets detected (try adjusting threshold in Waveform settings).");
+					break;
+				}
+
 				String msg;
 				Str::fmt(msg, "Quantize beats in range [%d, %d] to audio?");
 				msg.arg(startRow).arg(endRow);
 				int res = gSystem->showMessageDlg("Quantize to Audio", msg, System::T_YES_NO, System::I_QUESTION);
 				if (res != System::R_YES) break;
 
+				int samplerate = music.getFrequency();
 				int numFrames = music.getNumFrames();
 				int samplerate = music.getFrequency();
 				std::vector<float> floatSamples(numFrames);

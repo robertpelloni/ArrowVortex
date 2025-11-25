@@ -213,6 +213,8 @@ namespace Action {
 	AUTO_SYNC_SONG,
 	SNAP_OFFSET_TO_FIRST_BEAT,
 	QUANTIZE_TO_AUDIO,
+	CURSOR_NEXT_TRANSIENT,
+	CURSOR_PREV_TRANSIENT,
 	};
 
 	// Performs the action associated with the action type.

@@ -64,6 +64,7 @@ public:
 	virtual float getRGBLowHigh(bool high) = 0;
 
 	virtual void updateOnsets() = 0;
+	virtual const Vector<Onset>& getOnsets() = 0;
 
 	virtual int getWidth() = 0;
 

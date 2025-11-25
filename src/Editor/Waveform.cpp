@@ -2055,6 +2055,12 @@ void toggleSpectrogram()
 {
 	m_showSpectrogram = !m_showSpectrogram;
 }
+
+const Vector<Onset>& getOnsets()
+{
+	return waveformOnsets_;
+}
+
 }; // WaveformImpl.
 
 // ================================================================================================

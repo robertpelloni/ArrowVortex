@@ -352,6 +352,9 @@ void init(Item* menu)
 	sep(hViewCursor);
 	add(hViewCursor, CURSOR_CHART_START, "First beat");
 	add(hViewCursor, CURSOR_CHART_END, "Last beat");
+	sep(hViewCursor);
+	add(hViewCursor, CURSOR_NEXT_TRANSIENT, "Next transient (Audio)");
+	add(hViewCursor, CURSOR_PREV_TRANSIENT, "Previous transient (Audio)");
 
 	// View > Statusbar menu.
 	myStatusMenu = newMenu();
