@@ -467,6 +467,15 @@ void Action::perform(Type action)
 				double end = gTempo->rowToTime(region.endRow);
 				auto detector = TempoDetector::New(start, end - start);
 				if(detector) {
+          // This is async, usually. But we need result.
+					// FindTempo.cpp logic runs thread.
+					// We can wait or poll. For simple action, let's spin wait (bad) or check if we can hook callback?
+					// TempoDetectorImp is BackgroundThread.
+					// Let's just notify user to use Adjust Tempo dialog if they want full UI, or wait here.
+					// Actually, Adjust Tempo dialog HAS this logic.
+					// I'll just open Adjust Tempo dialog pre-filled?
+					// But the user wants "automatically detecting".
+					// Let's spin wait for a bit (it's fast for small selections).
 					int timeout = 500; // 5 seconds
 					while(!detector->hasResult() && timeout > 0) {
 						System::sleep(0.01);
@@ -621,6 +630,19 @@ void Action::perform(Type action)
 				if (res != System::R_YES) break;
 
 				int samplerate = music.getFrequency();
+				int numFrames = music.getNumFrames();
+				int samplerate = music.getFrequency();
+				std::vector<float> floatSamples(numFrames);
+				const short* src = music.samplesL();
+				for(int i=0; i<numFrames; ++i) floatSamples[i] = src[i] / 32768.0f;
+
+				Vector<Onset> onsets;
+				FindOnsets(floatSamples.data(), samplerate, numFrames, 1, onsets);
+
+				if (onsets.empty()) {
+					HudError("No onsets detected.");
+					break;
+				}
 
 				// Iterate beats
 				int count = 0;
