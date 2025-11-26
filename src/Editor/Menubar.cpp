@@ -264,6 +264,16 @@ void init(Item* menu)
 	add(hTempo, SWITCH_TO_SYNC_MODE, "Sync mode");
 	add(hTempo, OPEN_DIALOG_TEMPO_BREAKDOWN, "Breakdown...");
 	sub(hTempo, myVisualSyncMenu, "Visual sync anchor");
+	sep(hTempo);
+	add(hTempo, APPLY_SYNC_LAYOUT, "Apply Sync Layout");
+	sep(hTempo);
+	add(hTempo, DETECT_SONG_SECTIONS, "Detect song sections");
+	add(hTempo, ESTIMATE_BPM_FROM_SELECTION, "Estimate BPM from selection");
+	add(hTempo, AUTO_SYNC_SONG, "Auto-sync song (Global)");
+	add(hTempo, SNAP_OFFSET_TO_FIRST_BEAT, "Snap offset to first beat");
+	add(hTempo, QUANTIZE_TO_AUDIO, "Quantize to audio (Selection)");
+	add(hTempo, WARP_GRID_TO_AUDIO, "Warp grid to audio (Selection)");
+	add(hTempo, PLACE_BEAT_AT_PLAYHEAD, "Place beat at playhead (Tap Sync)");
 
 	// Audio > Volume menu.
 	Item* hAudioVol = newMenu();
@@ -344,6 +354,9 @@ void init(Item* menu)
 	sep(hViewCursor);
 	add(hViewCursor, CURSOR_CHART_START, "First beat");
 	add(hViewCursor, CURSOR_CHART_END, "Last beat");
+	sep(hViewCursor);
+	add(hViewCursor, CURSOR_NEXT_TRANSIENT, "Next transient (Audio)");
+	add(hViewCursor, CURSOR_PREV_TRANSIENT, "Previous transient (Audio)");
 
 	// View > Statusbar menu.
 	myStatusMenu = newMenu();
