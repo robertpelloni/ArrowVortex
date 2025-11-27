@@ -217,6 +217,7 @@ namespace Action {
 	CURSOR_PREV_TRANSIENT,
 	PLACE_BEAT_AT_PLAYHEAD,
 	WARP_GRID_TO_AUDIO,
+	AUTO_SYNC_SECTIONS,
 	};
 
 	// Performs the action associated with the action type.

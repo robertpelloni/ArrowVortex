@@ -1374,154 +1374,6 @@ void edgeShapeSignedSpectral(uchar* dst, const WaveEdge* edge, int w, int h, con
 
 void antiAlias2x(uchar* dst, int w, int h)
 {
-	int cx = w / 2;
-	for(int y = 0; y < h; ++y, dst += w * 4, ++edge)
-	{
-		int mag = max(abs(edge->l), abs(edge->r));
-		int l = cx - mag;
-		int r = cx + mag;
-		for(int x = l; x < r; ++x) {
-			// Additive blending
-			int val = (int)dst[x * 4 + channelOffset] + edge->lum;
-			dst[x * 4 + channelOffset] = (uchar)min(val, 255);
-
-			int a = max((int)dst[x*4+3], (int)dst[x*4+channelOffset]);
-			dst[x*4+3] = (uchar)a;
-		}
-	}
-}
-
-void edgeShapeSignedRGB(uchar* dst, const WaveEdge* edge, int w, int h, int channelOffset)
-{
-	int cx = w / 2;
-	for(int y = 0; y < h; ++y, dst += w * 4, ++edge)
-	{
-		int l = cx + min(edge->l, 0);
-		int r = cx + max(edge->r, 0);
-		for(int x = l; x < r; ++x) {
-			int val = (int)dst[x * 4 + channelOffset] + edge->lum;
-			dst[x * 4 + channelOffset] = (uchar)min(val, 255);
-			int a = max((int)dst[x*4+3], (int)dst[x*4+channelOffset]);
-			dst[x*4+3] = (uchar)a;
-		}
-	}
-}
-
-void edgeShapeRectifiedSpectral(uchar* dst, const WaveEdge* edge, int w, int h, const WaveFilterSpectral::ColorPoint* colors)
-{
-	int cx = w / 2;
-	for(int y = 0; y < h; ++y, dst += w * 4, ++edge)
-	{
-		int mag = max(abs(edge->l), abs(edge->r));
-		int l = cx - mag;
-		int r = cx + mag;
-		const auto& cp = colors[y];
-		for(int x = l; x < r; ++x) {
-			// Use the spectral color, but modulated by edge luminance
-			dst[x*4+0] = (cp.r * edge->lum) >> 8;
-			dst[x*4+1] = (cp.g * edge->lum) >> 8;
-			dst[x*4+2] = (cp.b * edge->lum) >> 8;
-			dst[x*4+3] = 255;
-		}
-	}
-}
-
-void edgeShapeSignedSpectral(uchar* dst, const WaveEdge* edge, int w, int h, const WaveFilterSpectral::ColorPoint* colors)
-{
-	int cx = w / 2;
-	for(int y = 0; y < h; ++y, dst += w * 4, ++edge)
-	{
-		int l = cx + min(edge->l, 0);
-		int r = cx + max(edge->r, 0);
-		const auto& cp = colors[y];
-		for(int x = l; x < r; ++x) {
-			dst[x*4+0] = (cp.r * edge->lum) >> 8;
-			dst[x*4+1] = (cp.g * edge->lum) >> 8;
-			dst[x*4+2] = (cp.b * edge->lum) >> 8;
-			dst[x*4+3] = 255;
-		}
-	}
-}
-
-// ================================================================================================
-// Waveform :: anti-aliasing functions.
-
-void antiAlias2x(uchar* dst, int w, int h)
-{
-	int cx = w / 2;
-	for(int y = 0; y < h; ++y, dst += w * 4, ++edge)
-	{
-		int mag = max(abs(edge->l), abs(edge->r));
-		int l = cx - mag;
-		int r = cx + mag;
-		for(int x = l; x < r; ++x) {
-			// Additive blending
-			int val = (int)dst[x * 4 + channelOffset] + edge->lum;
-			dst[x * 4 + channelOffset] = (uchar)min(val, 255);
-
-			int a = max((int)dst[x*4+3], (int)dst[x*4+channelOffset]);
-			dst[x*4+3] = (uchar)a;
-		}
-	}
-}
-
-void edgeShapeSignedRGB(uchar* dst, const WaveEdge* edge, int w, int h, int channelOffset)
-{
-	int cx = w / 2;
-	for(int y = 0; y < h; ++y, dst += w * 4, ++edge)
-	{
-		int l = cx + min(edge->l, 0);
-		int r = cx + max(edge->r, 0);
-		for(int x = l; x < r; ++x) {
-			int val = (int)dst[x * 4 + channelOffset] + edge->lum;
-			dst[x * 4 + channelOffset] = (uchar)min(val, 255);
-			int a = max((int)dst[x*4+3], (int)dst[x*4+channelOffset]);
-			dst[x*4+3] = (uchar)a;
-		}
-	}
-}
-
-void edgeShapeRectifiedSpectral(uchar* dst, const WaveEdge* edge, int w, int h, const WaveFilterSpectral::ColorPoint* colors)
-{
-	int cx = w / 2;
-	for(int y = 0; y < h; ++y, dst += w * 4, ++edge)
-	{
-		int mag = max(abs(edge->l), abs(edge->r));
-		int l = cx - mag;
-		int r = cx + mag;
-		const auto& cp = colors[y];
-		for(int x = l; x < r; ++x) {
-			// Use the spectral color, but modulated by edge luminance
-			dst[x*4+0] = (cp.r * edge->lum) >> 8;
-			dst[x*4+1] = (cp.g * edge->lum) >> 8;
-			dst[x*4+2] = (cp.b * edge->lum) >> 8;
-			dst[x*4+3] = 255;
-		}
-	}
-}
-
-void edgeShapeSignedSpectral(uchar* dst, const WaveEdge* edge, int w, int h, const WaveFilterSpectral::ColorPoint* colors)
-{
-	int cx = w / 2;
-	for(int y = 0; y < h; ++y, dst += w * 4, ++edge)
-	{
-		int l = cx + min(edge->l, 0);
-		int r = cx + max(edge->r, 0);
-		const auto& cp = colors[y];
-		for(int x = l; x < r; ++x) {
-			dst[x*4+0] = (cp.r * edge->lum) >> 8;
-			dst[x*4+1] = (cp.g * edge->lum) >> 8;
-			dst[x*4+2] = (cp.b * edge->lum) >> 8;
-			dst[x*4+3] = 255;
-		}
-	}
-}
-
-// ================================================================================================
-// Waveform :: anti-aliasing functions.
-
-void antiAlias2x(uchar* dst, int w, int h)
-{
 	int newW = w / 2, newH = h / 2;
 	for(int y = 0; y < newH; ++y)
 	{
@@ -2591,8 +2443,11 @@ void renderBlock(WaveBlock* block)
 	int h = TEX_H * (waveformAntiAliasingMode_ + 1);
 	waveformTextureBuffer_.resize(w * h * 4); // Resize for RGBA
 
-	Vector<WaveEdge> edges;
-	edges.resize(h);
+	auto& music = gMusic->getSamples();
+	double samplesPerSec = (double)music.getFrequency();
+	double samplesPerPixel = samplesPerSec / fabs(gView->getPixPerSec());
+	double samplesPerBlock = (double)TEX_H * samplesPerPixel;
+	int64_t samplePos = max((int64_t)0, (int64_t)(samplesPerBlock * (double)blockId));
 
 	if(waveformColorMode_ == CM_RGB)
 	{
@@ -2783,39 +2638,76 @@ void drawPeaks()
 	// Draw onset lines
 	if (waveformShowOnsets_)
 	{
-		// Determine visible time range
-		// We can reuse visibilityStartY/EndY but they are in pixels.
-		// We need sample range or time range.
-		// visibilityStartY corresponds to timeToY(0) - height (if reversed)
-
-		// Let's iterate through onsets and check if they are visible.
-		// Onsets are stored as sample indices (int pos).
 		auto& music = gMusic->getSamples();
 		double samplesPerSec = (double)music.getFrequency();
-
-		// Optimization: binary search for first visible onset?
-		// For now, linear scan is fast enough for typical song (few hundred beats).
-
 		int viewH = gView->getHeight();
-		int viewTop = 0; // Relative to screen
 
 		for(const auto& onset : waveformOnsets_)
 		{
 			double time = (double)onset.pos / samplesPerSec;
 			int y = gView->timeToY(time);
 
-			// Check visibility (y is in screen coordinates)
-			// gView->timeToY returns screen Y relative to current scroll.
-			// Wait, gView->timeToY includes scroll offset.
-			// So if y is between 0 and viewH, it's visible.
-
 			if (y >= -2 && y <= viewH + 2)
 			{
-				// Draw line
-				// Width is full width of waveform?
-				// xl and xr are left and right edges of waveform channels.
-				// Let's draw across the whole width.
 				Draw::fill({xl - pw, y, pw * 2 + border * 2 + pw * 2, 1}, RGBAtoColor32(255, 50, 50, 200));
+			}
+		}
+	}
+
+	// Draw BPM and Section markers
+	if (gTempo)
+	{
+		const SegmentGroup* segs = gTempo->getSegments();
+		if (segs)
+		{
+			int viewH = gView->getHeight();
+
+			// Draw BPM changes (Cyan)
+			const auto& bpms = segs->get<BpmChange>();
+			for(const auto& bpm : bpms)
+			{
+				double time = gTempo->rowToTime(bpm.row);
+				int y = gView->timeToY(time);
+				if (y >= -2 && y <= viewH + 2)
+				{
+					// Draw a distinct line for BPM change
+					Draw::fill({xl - pw, y, pw * 2 + border * 2 + pw * 2, 2}, RGBAtoColor32(0, 255, 255, 200));
+				}
+			}
+
+			// Draw Stops (Red zone)
+			const auto& stops = segs->get<Stop>();
+			for(const auto& stop : stops)
+			{
+				double time = gTempo->rowToTime(stop.row);
+				int y1 = gView->timeToY(time);
+				// Stop freezes the time, so on the waveform (time-based) it corresponds to a duration?
+				// Actually, in ArrowVortex time-based view, stops are gaps?
+				// Or does the waveform skip the stop duration?
+				// Usually waveform is strictly linear with audio time.
+				// Stops pause the chart scrolling relative to audio.
+				// So a stop happens at a specific audio time.
+				// But visually in the chart, it takes up 0 space?
+				// Wait, if I'm drawing on the waveform texture, the texture is Time vs Amplitude.
+				// A Stop doesn't affect the audio file itself.
+				// But we want to see WHERE the stop is.
+				// So just a line is fine.
+				if (y1 >= -2 && y1 <= viewH + 2)
+				{
+					Draw::fill({xl - pw, y1, pw * 2 + border * 2 + pw * 2, 2}, RGBAtoColor32(255, 0, 0, 200));
+				}
+			}
+
+			// Draw Labels/Sections (Yellow)
+			const auto& labels = segs->get<Label>();
+			for(const auto& label : labels)
+			{
+				double time = gTempo->rowToTime(label.row);
+				int y = gView->timeToY(time);
+				if (y >= -2 && y <= viewH + 2)
+				{
+					Draw::fill({xl - pw, y, pw * 2 + border * 2 + pw * 2, 2}, RGBAtoColor32(255, 255, 0, 200));
+				}
 			}
 		}
 	}

@@ -794,6 +794,76 @@ void Action::perform(Type action)
 				HudNote("Warped %d grid points.", count);
 			}
 		}
+
+	CASE(AUTO_SYNC_SECTIONS)
+		{
+			// 1. Detect Sections if needed (or rely on existing)
+			// Let's assume user has run DETECT_SONG_SECTIONS or manually labeled them.
+			// Or we can detect on the fly.
+
+			auto& music = gMusic->getSamples();
+			if (!music.isCompleted()) break;
+
+			gHistory->startChain();
+
+			// Iterate through Label segments
+			const SegmentGroup* segs = gTempo->getSegments();
+			const auto& labels = segs->get<Label>();
+
+			// We need a sorted list of section start rows.
+			std::vector<int> sectionRows;
+			sectionRows.push_back(0); // Always start at 0
+			for(const auto& l : labels) {
+				if (l.row > 0) sectionRows.push_back(l.row);
+			}
+			// Sort and unique
+			std::sort(sectionRows.begin(), sectionRows.end());
+			sectionRows.erase(std::unique(sectionRows.begin(), sectionRows.end()), sectionRows.end());
+
+			int endRow = gSimfile->getEndRow();
+
+			int count = 0;
+
+			for(size_t i = 0; i < sectionRows.size(); ++i) {
+				int r1 = sectionRows[i];
+				int r2 = (i + 1 < sectionRows.size()) ? sectionRows[i+1] : endRow;
+
+				// Limit check
+				if (r1 >= r2) continue;
+
+				double t1 = gTempo->rowToTime(r1);
+				double t2 = gTempo->rowToTime(r2);
+				double dur = t2 - t1;
+
+				if (dur < 2.0) continue; // Skip tiny sections
+
+				// Detect BPM in this range
+				auto detector = TempoDetector::New(t1, dur);
+				if (detector) {
+					// Wait for result (blocking for simplicity in this Action)
+					int timeout = 200; // 2 seconds
+					while(!detector->hasResult() && timeout > 0) {
+						System::sleep(0.01);
+						timeout--;
+					}
+
+					if (detector->hasResult()) {
+						auto results = detector->getResult();
+						if (!results.empty()) {
+							double bpm = results[0].bpm;
+							// Insert BPM change
+							// If i==0, we also might want to set offset?
+							// AUTO_SYNC_SONG sets offset. This just handles BPM changes.
+							gTempo->addSegment(BpmChange(r1, bpm));
+							count++;
+						}
+					}
+					delete detector;
+				}
+			}
+			gHistory->finishChain("Auto-Sync Sections");
+			HudNote("Applied %d BPM changes based on sections.", count);
+		}
 	}};
 
 	if(action >= FILE_OPEN_RECENT_BEGIN && action < FILE_OPEN_RECENT_END)
