@@ -88,6 +88,7 @@ DialogWaveformSettings::DialogWaveformSettings()
 	colMode->addItem("Harmonic (Vocals/Melody)");
 	colMode->addItem("Chromagram (Key)");
 	colMode->addItem("Novelty (Flux)");
+	colMode->addItem("Harmonic (HPSS)");
 	colMode->setTooltip("Selects the coloring method for the waveform");
 
 	// Wave shape.

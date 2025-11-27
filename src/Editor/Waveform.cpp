@@ -1374,6 +1374,154 @@ void edgeShapeSignedSpectral(uchar* dst, const WaveEdge* edge, int w, int h, con
 
 void antiAlias2x(uchar* dst, int w, int h)
 {
+	int cx = w / 2;
+	for(int y = 0; y < h; ++y, dst += w * 4, ++edge)
+	{
+		int mag = max(abs(edge->l), abs(edge->r));
+		int l = cx - mag;
+		int r = cx + mag;
+		for(int x = l; x < r; ++x) {
+			// Additive blending
+			int val = (int)dst[x * 4 + channelOffset] + edge->lum;
+			dst[x * 4 + channelOffset] = (uchar)min(val, 255);
+
+			int a = max((int)dst[x*4+3], (int)dst[x*4+channelOffset]);
+			dst[x*4+3] = (uchar)a;
+		}
+	}
+}
+
+void edgeShapeSignedRGB(uchar* dst, const WaveEdge* edge, int w, int h, int channelOffset)
+{
+	int cx = w / 2;
+	for(int y = 0; y < h; ++y, dst += w * 4, ++edge)
+	{
+		int l = cx + min(edge->l, 0);
+		int r = cx + max(edge->r, 0);
+		for(int x = l; x < r; ++x) {
+			int val = (int)dst[x * 4 + channelOffset] + edge->lum;
+			dst[x * 4 + channelOffset] = (uchar)min(val, 255);
+			int a = max((int)dst[x*4+3], (int)dst[x*4+channelOffset]);
+			dst[x*4+3] = (uchar)a;
+		}
+	}
+}
+
+void edgeShapeRectifiedSpectral(uchar* dst, const WaveEdge* edge, int w, int h, const WaveFilterSpectral::ColorPoint* colors)
+{
+	int cx = w / 2;
+	for(int y = 0; y < h; ++y, dst += w * 4, ++edge)
+	{
+		int mag = max(abs(edge->l), abs(edge->r));
+		int l = cx - mag;
+		int r = cx + mag;
+		const auto& cp = colors[y];
+		for(int x = l; x < r; ++x) {
+			// Use the spectral color, but modulated by edge luminance
+			dst[x*4+0] = (cp.r * edge->lum) >> 8;
+			dst[x*4+1] = (cp.g * edge->lum) >> 8;
+			dst[x*4+2] = (cp.b * edge->lum) >> 8;
+			dst[x*4+3] = 255;
+		}
+	}
+}
+
+void edgeShapeSignedSpectral(uchar* dst, const WaveEdge* edge, int w, int h, const WaveFilterSpectral::ColorPoint* colors)
+{
+	int cx = w / 2;
+	for(int y = 0; y < h; ++y, dst += w * 4, ++edge)
+	{
+		int l = cx + min(edge->l, 0);
+		int r = cx + max(edge->r, 0);
+		const auto& cp = colors[y];
+		for(int x = l; x < r; ++x) {
+			dst[x*4+0] = (cp.r * edge->lum) >> 8;
+			dst[x*4+1] = (cp.g * edge->lum) >> 8;
+			dst[x*4+2] = (cp.b * edge->lum) >> 8;
+			dst[x*4+3] = 255;
+		}
+	}
+}
+
+// ================================================================================================
+// Waveform :: anti-aliasing functions.
+
+void antiAlias2x(uchar* dst, int w, int h)
+{
+	int cx = w / 2;
+	for(int y = 0; y < h; ++y, dst += w * 4, ++edge)
+	{
+		int mag = max(abs(edge->l), abs(edge->r));
+		int l = cx - mag;
+		int r = cx + mag;
+		for(int x = l; x < r; ++x) {
+			// Additive blending
+			int val = (int)dst[x * 4 + channelOffset] + edge->lum;
+			dst[x * 4 + channelOffset] = (uchar)min(val, 255);
+
+			int a = max((int)dst[x*4+3], (int)dst[x*4+channelOffset]);
+			dst[x*4+3] = (uchar)a;
+		}
+	}
+}
+
+void edgeShapeSignedRGB(uchar* dst, const WaveEdge* edge, int w, int h, int channelOffset)
+{
+	int cx = w / 2;
+	for(int y = 0; y < h; ++y, dst += w * 4, ++edge)
+	{
+		int l = cx + min(edge->l, 0);
+		int r = cx + max(edge->r, 0);
+		for(int x = l; x < r; ++x) {
+			int val = (int)dst[x * 4 + channelOffset] + edge->lum;
+			dst[x * 4 + channelOffset] = (uchar)min(val, 255);
+			int a = max((int)dst[x*4+3], (int)dst[x*4+channelOffset]);
+			dst[x*4+3] = (uchar)a;
+		}
+	}
+}
+
+void edgeShapeRectifiedSpectral(uchar* dst, const WaveEdge* edge, int w, int h, const WaveFilterSpectral::ColorPoint* colors)
+{
+	int cx = w / 2;
+	for(int y = 0; y < h; ++y, dst += w * 4, ++edge)
+	{
+		int mag = max(abs(edge->l), abs(edge->r));
+		int l = cx - mag;
+		int r = cx + mag;
+		const auto& cp = colors[y];
+		for(int x = l; x < r; ++x) {
+			// Use the spectral color, but modulated by edge luminance
+			dst[x*4+0] = (cp.r * edge->lum) >> 8;
+			dst[x*4+1] = (cp.g * edge->lum) >> 8;
+			dst[x*4+2] = (cp.b * edge->lum) >> 8;
+			dst[x*4+3] = 255;
+		}
+	}
+}
+
+void edgeShapeSignedSpectral(uchar* dst, const WaveEdge* edge, int w, int h, const WaveFilterSpectral::ColorPoint* colors)
+{
+	int cx = w / 2;
+	for(int y = 0; y < h; ++y, dst += w * 4, ++edge)
+	{
+		int l = cx + min(edge->l, 0);
+		int r = cx + max(edge->r, 0);
+		const auto& cp = colors[y];
+		for(int x = l; x < r; ++x) {
+			dst[x*4+0] = (cp.r * edge->lum) >> 8;
+			dst[x*4+1] = (cp.g * edge->lum) >> 8;
+			dst[x*4+2] = (cp.b * edge->lum) >> 8;
+			dst[x*4+3] = 255;
+		}
+	}
+}
+
+// ================================================================================================
+// Waveform :: anti-aliasing functions.
+
+void antiAlias2x(uchar* dst, int w, int h)
+{
 	int newW = w / 2, newH = h / 2;
 	for(int y = 0; y < newH; ++y)
 	{
