@@ -272,6 +272,7 @@ void init(Item* menu)
 	add(hTempo, AUTO_SYNC_SONG, "Auto-sync song (Global)");
 	add(hTempo, SNAP_OFFSET_TO_FIRST_BEAT, "Snap offset to first beat");
 	add(hTempo, QUANTIZE_TO_AUDIO, "Quantize to audio (Selection)");
+	add(hTempo, WARP_GRID_TO_AUDIO, "Warp grid to audio (Selection)");
 	add(hTempo, PLACE_BEAT_AT_PLAYHEAD, "Place beat at playhead (Tap Sync)");
 
 	// Audio > Volume menu.

@@ -467,15 +467,6 @@ void Action::perform(Type action)
 				double end = gTempo->rowToTime(region.endRow);
 				auto detector = TempoDetector::New(start, end - start);
 				if(detector) {
-          // This is async, usually. But we need result.
-					// FindTempo.cpp logic runs thread.
-					// We can wait or poll. For simple action, let's spin wait (bad) or check if we can hook callback?
-					// TempoDetectorImp is BackgroundThread.
-					// Let's just notify user to use Adjust Tempo dialog if they want full UI, or wait here.
-					// Actually, Adjust Tempo dialog HAS this logic.
-					// I'll just open Adjust Tempo dialog pre-filled?
-					// But the user wants "automatically detecting".
-					// Let's spin wait for a bit (it's fast for small selections).
 					int timeout = 500; // 5 seconds
 					while(!detector->hasResult() && timeout > 0) {
 						System::sleep(0.01);
@@ -630,19 +621,6 @@ void Action::perform(Type action)
 				if (res != System::R_YES) break;
 
 				int samplerate = music.getFrequency();
-				int numFrames = music.getNumFrames();
-				int samplerate = music.getFrequency();
-				std::vector<float> floatSamples(numFrames);
-				const short* src = music.samplesL();
-				for(int i=0; i<numFrames; ++i) floatSamples[i] = src[i] / 32768.0f;
-
-				Vector<Onset> onsets;
-				FindOnsets(floatSamples.data(), samplerate, numFrames, 1, onsets);
-
-				if (onsets.empty()) {
-					HudError("No onsets detected.");
-					break;
-				}
 
 				// Iterate beats
 				int count = 0;
@@ -738,6 +716,83 @@ void Action::perform(Type action)
 			gTempo->moveBeat(snappedRow, targetTime, true);
 			gTempo->injectBoundingBpmChange(snappedRow); // Anchor it
 			HudNote("Aligned row %d to %.3fs", snappedRow, targetTime);
+		}
+
+	CASE(WARP_GRID_TO_AUDIO)
+		{
+			auto& music = gMusic->getSamples();
+			if(music.isCompleted() && music.getNumFrames() > 0) {
+				auto region = gSelection->getSelectedRegion();
+				int startRow = region.beginRow;
+				int endRow = region.endRow;
+				if (startRow == endRow) {
+					HudError("No selection range for warping.");
+					break;
+				}
+
+				gWaveform->updateOnsets();
+				const auto& onsets = gWaveform->getOnsets();
+				if (onsets.empty()) {
+					HudError("No onsets detected.");
+					break;
+				}
+
+				int step = gView->getSnapQuant();
+				if (step <= 0) step = ROWS_PER_BEAT; // Default to beat if no snap
+
+				String msg;
+				Str::fmt(msg, "Warp grid in range [%d, %d] to audio (Step: %d)?");
+				msg.arg(startRow).arg(endRow).arg(step);
+				int res = gSystem->showMessageDlg("Warp Grid", msg, System::T_YES_NO, System::I_QUESTION);
+				if (res != System::R_YES) break;
+
+				int samplerate = music.getFrequency();
+				int count = 0;
+				double window = 0.1; // 100ms search window
+
+				gHistory->startChain();
+
+				// For "Warping", we want to adjust the grid to match the audio.
+				// This is different from Quantize (which moves notes).
+				// We iterate through grid points (startRow, startRow+step...)
+				// We find the nearest onset.
+				// We use destructiveShiftRowToTime to align the grid line to the onset.
+				// AND we must anchor it with injectBoundingBpmChange.
+
+				// Note: destructiveShiftRowToTime alters the time of SUBSEQUENT rows.
+				// But since we are iterating forward (left to right), the next grid point we process
+				// will be at its NEW position (because we call rowToTime inside the loop).
+				// This is exactly what we want: we are "zippering" the grid to the audio.
+
+				for (int row = startRow; row <= endRow; row += step) {
+					double currentTime = gTempo->rowToTime(row);
+
+					// Find closest onset to this grid line
+					double minDiff = window;
+					double bestTime = -1.0;
+
+					for(const auto& onset : onsets) {
+						double t = (double)onset.pos / samplerate;
+						double diff = abs(t - currentTime);
+						if (diff < minDiff) {
+							minDiff = diff;
+							bestTime = t;
+						}
+						// Optimization: onsets are sorted.
+						if (t > currentTime + window) break;
+					}
+
+					if (bestTime > 0.0) {
+						// Apply destructive shift (changes previous BPM)
+						gTempo->moveBeat(row, bestTime, true);
+						// Anchor this point so next shifts don't mess it up
+						gTempo->injectBoundingBpmChange(row);
+						count++;
+					}
+				}
+				gHistory->finishChain("Warp Grid to Audio");
+				HudNote("Warped %d grid points.", count);
+			}
 		}
 	}};
 
