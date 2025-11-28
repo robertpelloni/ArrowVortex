@@ -2443,8 +2443,11 @@ void renderBlock(WaveBlock* block)
 	int h = TEX_H * (waveformAntiAliasingMode_ + 1);
 	waveformTextureBuffer_.resize(w * h * 4); // Resize for RGBA
 
-	Vector<WaveEdge> edges;
-	edges.resize(h);
+	auto& music = gMusic->getSamples();
+	double samplesPerSec = (double)music.getFrequency();
+	double samplesPerPixel = samplesPerSec / fabs(gView->getPixPerSec());
+	double samplesPerBlock = (double)TEX_H * samplesPerPixel;
+	int64_t samplePos = max((int64_t)0, (int64_t)(samplesPerBlock * (double)blockId));
 
 	if(waveformColorMode_ == CM_RGB)
 	{
