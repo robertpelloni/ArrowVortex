@@ -863,12 +863,15 @@ const SegmentGroup* getSegments() const
 	return nullptr;
 }
 
-void moveBeat(int row, double time)
+void moveBeat(int row, double time, bool ripple)
 {
 	if (!myTempo)
 		return;
 
-	nonDestructiveShiftRowToTime(row, time);
+	if (ripple)
+		destructiveShiftRowToTime(row, time);
+	else
+		nonDestructiveShiftRowToTime(row, time);
 }
 
 // ================================================================================================
