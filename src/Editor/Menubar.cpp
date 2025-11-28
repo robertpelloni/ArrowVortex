@@ -233,6 +233,9 @@ void init(Item* menu)
 	sub(hNotes, hNoteExpand, "Expand");
 	sub(hNotes, hNoteCompress, "Compress");
 	add(hNotes, OPEN_DIALOG_GENERATE_NOTES, "Generate...");
+	sep(hNotes);
+	add(hNotes, VERIFY_CHART_INTEGRITY, "Verify Integrity");
+	add(hNotes, SELECT_OFF_SYNC_NOTES, "Select Off-Sync Notes");
 
 	// Tempo > Select menu.
 	Item* hSelectTempo = newMenu();

@@ -218,6 +218,8 @@ namespace Action {
 	PLACE_BEAT_AT_PLAYHEAD,
 	WARP_GRID_TO_AUDIO,
 	AUTO_SYNC_SECTIONS,
+	VERIFY_CHART_INTEGRITY,
+	SELECT_OFF_SYNC_NOTES,
 	};
 
 	// Performs the action associated with the action type.

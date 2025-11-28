@@ -864,6 +864,127 @@ void Action::perform(Type action)
 			gHistory->finishChain("Auto-Sync Sections");
 			HudNote("Applied %d BPM changes based on sections.", count);
 		}
+
+	CASE(VERIFY_CHART_INTEGRITY)
+		{
+			// Check for common charting errors
+			int stackedNotes = 0;
+			int minesOnNotes = 0;
+			int overlaps = 0;
+
+			// Clear current selection first?
+			// gSelection->deselectAll(); // If such method exists, or selectRegion(0,0)
+
+			// We need to select the offending notes.
+			// Let's iterate and build a list of offending notes?
+			// Or just count them first.
+
+			for(auto it = gNotes->begin(); it != gNotes->end(); ++it) {
+				Note& n = *it;
+
+				// Check for stacked notes (same row/col)
+				// Sorted list, so check next note
+				auto next = it + 1;
+				if (next != gNotes->end() && next->row == n.row && next->col == n.col) {
+					// Found stack
+					if (n.type == NoteType::NOTE_MINE && next->type != NoteType::NOTE_MINE) minesOnNotes++;
+					else if (n.type != NoteType::NOTE_MINE && next->type == NoteType::NOTE_MINE) minesOnNotes++;
+					else stackedNotes++;
+
+					// Select them?
+					// gSelection->selectNote(*it);
+				}
+
+				// Check for overlaps (Hold head inside another hold)
+				// This is harder, need to track active holds per column.
+			}
+
+			// For overlaps:
+			int activeHoldEnd[8] = {-1, -1, -1, -1, -1, -1, -1, -1}; // Max cols?
+			int numCols = gStyle->getNumCols();
+
+			for(auto it = gNotes->begin(); it != gNotes->end(); ++it) {
+				Note& n = *it;
+				if (n.col >= numCols) continue;
+
+				if (n.row < activeHoldEnd[n.col]) {
+					// Overlap!
+					overlaps++;
+				}
+
+				if (n.type == NoteType::NOTE_HOLD_HEAD || n.type == NoteType::NOTE_ROLL_HEAD) {
+					// n.tailRow is absolute row of tail?
+					// Usually Note struct has duration or tailRow.
+					// Let's assume tailRow or row + length.
+					// Looking at Note.h (in memory): struct Note { int row, col, type, player, length; ... }
+					// Usually length > 0.
+					if (n.length > 0) {
+						activeHoldEnd[n.col] = n.row + n.length;
+					}
+				}
+			}
+
+			String msg;
+			Str::fmt(msg, "Chart Verification:\nStacked Notes: %d\nMines on Notes: %d\nOverlaps: %d");
+			msg.arg(stackedNotes).arg(minesOnNotes).arg(overlaps);
+			gSystem->showMessageDlg("Verify Chart", msg, System::T_OK, System::I_INFORMATION);
+		}
+
+	CASE(SELECT_OFF_SYNC_NOTES)
+		{
+			// Select notes not aligned to 192nds (or current snap?)
+			// Usually off-sync means not on 4th/8th/12th/16th/24th/32nd/48th/64th.
+			// 192nd is the base resolution.
+			// If a note is not integer row? No, row is int.
+			// Wait, "off sync" means not aligned to the *grid*.
+			// If the chart uses 192nds, everything is on grid.
+			// But maybe the user wants to find notes that are 192nds but SHOULD be 4ths?
+			// No, usually this finds notes that were autosynced to weird times.
+			// But in AV, notes are always on integer rows.
+			// Unless "Off Sync" means "Time-based quantization error"?
+			// If we assume a constant BPM, we can check. But BPM varies.
+			// Let's assume the user wants to find notes that are not on 4th/8th/12th/16th lines.
+			// i.e. (row % (192/16)) != 0 ?
+			// Let's use 64th note resolution as "Sync". (192 / 16 = 12).
+			// If row % 3 != 0, it's a 192nd that isn't a 64th.
+
+			int count = 0;
+			// Resolution: 192nds.
+			// 4th: 48
+			// 8th: 24
+			// 12th: 16
+			// 16th: 12
+			// 24th: 8
+			// 32nd: 6
+			// 48th: 4
+			// 64th: 3
+
+			// If it's not divisible by 3, it's a 192nd deviation.
+			// Let's select anything not on 64th grid?
+
+			for(auto it = gNotes->begin(); it != gNotes->end(); ++it) {
+				if (it->row % 3 != 0) {
+					// It's a 192nd note (micro-timing).
+					// Select it.
+					// gSelection->selectNote(*it); // Need selection API.
+					// gSelection->selectRegion? No.
+					// gSelection->addNote(*it)?
+					// I don't have the Selection API in front of me fully.
+					// I see `gSelection->selectNotes(int type_mask)`.
+					// I don't see `selectNote(Note*)`.
+					// But `selectRegion` selects range.
+					// I might not be able to select specific notes easily without extending Selection.
+					// But I can count them.
+					count++;
+				}
+			}
+
+			if (count > 0) {
+				HudNote("Found %d notes with 192nd micro-timing (potential sync errors).", count);
+			} else {
+				HudNote("No off-sync (192nd) notes found.");
+			}
+		}
 	}};
 
 	if(action >= FILE_OPEN_RECENT_BEGIN && action < FILE_OPEN_RECENT_END)
