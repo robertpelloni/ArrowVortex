@@ -558,100 +558,18 @@ void update(float gain)
 
 // ================================================================================================
 // WaveFilterChromagram.
-
-// Chromagram: Folds CQT into 12 pitch classes.
-struct WaveFilterChromagram {
-
-Vector<Vector<uchar>> chromaL; // [chroma_idx][time_block]
-Vector<Vector<uchar>> chromaR;
-double samplesPerBlock;
-bool dirty = true;
-
-void update(float gain)
-{
-	if (!dirty) return;
-	auto& music = gMusic->getSamples();
-	if (!music.isCompleted()) return;
-
-	int numFrames = music.getNumFrames();
-	int samplerate = music.getFrequency();
-
-	// Use same parameters as CQT for consistency, or use Gist's chromagram if available (Gist typically calculates it from Magnitude Spectrum)
-	const int frameSize = 4096;
-	const int hopSize = 512;
-	samplesPerBlock = (double)hopSize;
-
-	int numBlocks = (numFrames - frameSize) / hopSize;
-	if (numBlocks < 0) numBlocks = 0;
-
-	chromaL.resize(12);
-	chromaR.resize(12);
-	for(int i=0; i<12; ++i) {
-		chromaL[i].resize(numBlocks);
-		chromaR[i].resize(numBlocks);
-	}
-
-	Gist<float> gist(frameSize, samplerate);
-	std::vector<float> audioFrame(frameSize);
-
-	for(int channel=0; channel<2; ++channel) {
-		const short* samples = (channel == 0) ? music.samplesL() : music.samplesR();
-		auto& chroma = (channel == 0) ? chromaL : chromaR;
-
-		for(int i=0; i<numBlocks; ++i) {
-			int start = i * hopSize;
-			for(int k=0; k<frameSize; ++k) {
-				audioFrame[k] = samples[start+k] / 32768.0f;
-			}
-
-			gist.processAudioFrame(audioFrame);
-			// Gist doesn't have built-in getChromagram(). We must calculate it from Spectrum.
-			// Simple mapping: map each bin frequency to midi note, take modulo 12.
-			const auto& spectrum = gist.getMagnitudeSpectrum();
-			int numBins = spectrum.size();
-
-			std::vector<float> chromaEnergy(12, 0.0f);
-
-			for(int b=0; b<numBins; ++b) {
-				float freq = b * samplerate / (float)frameSize;
-				if (freq < 27.5f) continue; // Skip sub-A0
-
-				float midiNote = 69.0f + 12.0f * log2(freq / 440.0f);
-				int noteIndex = (int)round(midiNote);
-				int chromaIdx = noteIndex % 12;
-				if (chromaIdx < 0) chromaIdx += 12;
-
-				chromaEnergy[chromaIdx] += spectrum[b];
-			}
-
-			// Normalize and scale
-			float maxE = 0.0f;
-			for(float e : chromaEnergy) maxE = max(maxE, e);
-
-			for(int c=0; c<12; ++c) {
-				float val = (maxE > 0) ? chromaEnergy[c] / maxE : 0.0f;
-				val = log10(1 + val * gain) * 2.0f;
-				val = clamp(val, 0.0f, 1.0f);
-				chroma[c][i] = (uchar)(val * 255);
-			}
-		}
-	}
-
-	dirty = false;
-}
-
-}; // WaveFilterChromagram.
-
 // ================================================================================================
-// WaveFilterNovelty.
+// WaveFilterTempogram.
 
-// Novelty/Flux Curve.
-struct WaveFilterNovelty {
+// Tempogram: Visualizes BPM probability over time using Autocorrelation of Flux.
+struct WaveFilterTempogram {
 
-Vector<uchar> fluxL; // [time_block]
-Vector<uchar> fluxR;
+Vector<Vector<uchar>> tempogramL; // [bpm_bin][time_block]
+Vector<Vector<uchar>> tempogramR;
 double samplesPerBlock;
 bool dirty = true;
+int minBPM = 60;
+int maxBPM = 240;
 
 void update(float gain)
 {
@@ -662,42 +580,113 @@ void update(float gain)
 	int numFrames = music.getNumFrames();
 	int samplerate = music.getFrequency();
 
+	// Parameters for Flux calculation
 	const int frameSize = 1024;
-	const int hopSize = 256; // Higher resolution for timing
-	samplesPerBlock = (double)hopSize;
+	const int hopSize = 256;
+	double fluxRate = (double)samplerate / hopSize; // ~172 Hz
 
 	int numBlocks = (numFrames - frameSize) / hopSize;
 	if (numBlocks < 0) numBlocks = 0;
+	samplesPerBlock = (double)hopSize;
 
-	fluxL.resize(numBlocks);
-	fluxR.resize(numBlocks);
-
+	// Compute Flux first (reuse logic from Novelty but keep local to be safe/independent)
+	std::vector<float> flux(numBlocks);
 	Gist<float> gist(frameSize, samplerate);
 	std::vector<float> audioFrame(frameSize);
 
-	for(int channel=0; channel<2; ++channel) {
-		const short* samples = (channel == 0) ? music.samplesL() : music.samplesR();
-		auto& flux = (channel == 0) ? fluxL : fluxR;
+	// Compute flux for Left channel only for simplicity/speed (Tempo is usually mono)
+	// Or average L+R
+	const short* samplesL = music.samplesL();
+	const short* samplesR = music.samplesR();
 
-		for(int i=0; i<numBlocks; ++i) {
-			int start = i * hopSize;
-			for(int k=0; k<frameSize; ++k) {
-				audioFrame[k] = samples[start+k] / 32768.0f;
+	for(int i=0; i<numBlocks; ++i) {
+		int start = i * hopSize;
+		for(int k=0; k<frameSize; ++k) {
+			float s = (samplesL[start+k] + samplesR[start+k]) / 65536.0f;
+			audioFrame[k] = s;
+		}
+		gist.processAudioFrame(audioFrame);
+		flux[i] = gist.complexSpectralDifference();
+	}
+
+	// Tempogram parameters
+	// Window size for autocorrelation: ~6 seconds?
+	// 6 seconds * 172 Hz = ~1032 samples.
+	int winSize = 1024;
+
+	int numBins = maxBPM - minBPM; // 1 bin per BPM
+	tempogramL.resize(numBins);
+	tempogramR.resize(numBins); // Duplicate for display
+	for(int i=0; i<numBins; ++i) {
+		tempogramL[i].resize(numBlocks); // Store same resolution as flux
+		tempogramR[i].resize(numBlocks);
+	}
+
+	std::vector<float> window(winSize);
+
+	// Pre-calculate lags for BPMs
+	std::vector<int> bpmLags(numBins);
+	for(int b=0; b<numBins; ++b) {
+		float bpm = (float)(minBPM + b);
+		float bps = bpm / 60.0f;
+		// lag in samples = fluxRate / bps
+		bpmLags[b] = (int)(fluxRate / bps);
+	}
+
+	// Heavy loop warning!
+	// Optimizing: only update every N blocks? No, we need full resolution.
+	// But for 3 min song @ 172Hz = 30k blocks. 30k * 180 bins * window...
+	// That's slow.
+	// Let's optimize: only check lags that are within window.
+	// Let's sub-sample the calculation. Calculate every 10th block, interpolate.
+
+	int step = 10;
+
+	for(int i=0; i<numBlocks; i+=step) {
+		// Sliding window centered at i
+		int start = i - winSize / 2;
+		// Fill window, zero pad
+		for(int k=0; k<winSize; ++k) {
+			int idx = start + k;
+			if (idx >= 0 && idx < numBlocks) window[k] = flux[idx];
+			else window[k] = 0.0f;
+		}
+
+		float maxVal = 0.0f;
+		std::vector<float> bpmEnergies(numBins);
+
+		for(int b=0; b<numBins; ++b) {
+			int lag = bpmLags[b];
+			if (lag >= winSize) continue;
+
+			float sum = 0.0f;
+			// Only compute dot product where overlap exists
+			// window[k] * window[k+lag]
+			for(int k=0; k < winSize - lag; k+=4) { // Skip some samples for speed?
+				sum += window[k] * window[k+lag];
 			}
+			bpmEnergies[b] = sum;
+			if (sum > maxVal) maxVal = sum;
+		}
 
-			gist.processAudioFrame(audioFrame);
-			float val = gist.complexSpectralDifference(); // ODF
-
-			val = log10(1 + val * gain) * 2.0f;
+		// Store and fill neighbors
+		for(int b=0; b<numBins; ++b) {
+			float val = (maxVal > 0) ? bpmEnergies[b] / maxVal : 0.0f;
+			val *= gain / 50.0f; // Scale
 			val = clamp(val, 0.0f, 1.0f);
-			flux[i] = (uchar)(val * 255);
+			uchar u = (uchar)(val * 255);
+
+			for(int s=0; s<step && (i+s) < numBlocks; ++s) {
+				tempogramL[b][i+s] = u;
+				tempogramR[b][i+s] = u;
+			}
 		}
 	}
 
 	dirty = false;
 }
 
-}; // WaveFilterNovelty.
+}; // WaveFilterTempogram.
 
 // ================================================================================================
 // WaveFilterHPSS.
@@ -844,6 +833,9 @@ WaveFilterSpectral* waveformFilterSpectral_;
 WaveFilterPitch* waveformFilterPitch_;
 WaveFilterCQT* waveformFilterCQT_;
 WaveFilterHPSS* waveformFilterHPSS_;
+WaveFilterChromagram* waveformFilterChromagram_;
+WaveFilterNovelty* waveformFilterNovelty_;
+WaveFilterTempogram* waveformFilterTempogram_;
 Vector<uchar> waveformTextureBuffer_;
 
 int waveformBlockWidth_, waveformSpacing_;
@@ -875,6 +867,9 @@ bool m_showSpectrogram;
 	delete waveformFilterPitch_;
 	delete waveformFilterCQT_;
 	delete waveformFilterHPSS_;
+	delete waveformFilterChromagram_;
+	delete waveformFilterNovelty_;
+	delete waveformFilterTempogram_;
 }
 
 WaveformImpl()
@@ -887,6 +882,9 @@ WaveformImpl()
 	waveformFilterPitch_ = new WaveFilterPitch();
 	waveformFilterCQT_ = new WaveFilterCQT();
 	waveformFilterHPSS_ = new WaveFilterHPSS();
+	waveformFilterChromagram_ = new WaveFilterChromagram();
+	waveformFilterNovelty_ = new WaveFilterNovelty();
+	waveformFilterTempogram_ = new WaveFilterTempogram();
 	waveformOverlayFilter_ = true;
 	waveformShowOnsets_ = false;
 	waveformOnsetThreshold_ = 0.3f;
@@ -932,6 +930,11 @@ static const char* ToString(ColorMode mode)
 	if(mode == CM_SPECTRAL) return "spectral";
 	if(mode == CM_PITCH) return "pitch";
 	if(mode == CM_CQT) return "cqt";
+	if(mode == CM_PERCUSSION) return "percussion";
+	if(mode == CM_HARMONIC) return "harmonic";
+	if(mode == CM_CHROMAGRAM) return "chromagram";
+	if(mode == CM_NOVELTY) return "novelty";
+	if(mode == CM_TEMPOGRAM) return "tempogram";
 	return "flat";
 }
 
@@ -955,6 +958,9 @@ static ColorMode ToColorMode(StringRef str)
 	if(str == "cqt") return CM_CQT;
 	if(str == "percussion") return CM_PERCUSSION;
 	if(str == "harmonic") return CM_HARMONIC;
+	if(str == "chromagram") return CM_CHROMAGRAM;
+	if(str == "novelty") return CM_NOVELTY;
+	if(str == "tempogram") return CM_TEMPOGRAM;
 	return CM_FLAT;
 }
 
@@ -1064,6 +1070,9 @@ void onChanges(int changes)
 		if(waveformColorMode_ == CM_SPECTRAL) waveformFilterSpectral_->update();
 		if(waveformColorMode_ == CM_PITCH) waveformFilterPitch_->update();
 		if(waveformColorMode_ == CM_CQT) waveformFilterCQT_->update(waveformSpectrogramGain_);
+		if(waveformColorMode_ == CM_CHROMAGRAM) waveformFilterChromagram_->update(waveformSpectrogramGain_);
+		if(waveformColorMode_ == CM_NOVELTY) waveformFilterNovelty_->update(waveformSpectrogramGain_);
+		if(waveformColorMode_ == CM_TEMPOGRAM) waveformFilterTempogram_->update(waveformSpectrogramGain_);
 		if(waveformColorMode_ == CM_PERCUSSION || waveformColorMode_ == CM_HARMONIC) waveformFilterHPSS_->update(waveformSpectrogramGain_);
 
 		// Update onsets
@@ -1138,6 +1147,15 @@ void setColorMode(ColorMode mode)
 	}
 	else if (mode == CM_CQT) {
 		waveformFilterCQT_->update(waveformSpectrogramGain_);
+	}
+	else if (mode == CM_CHROMAGRAM) {
+		waveformFilterChromagram_->update(waveformSpectrogramGain_);
+	}
+	else if (mode == CM_NOVELTY) {
+		waveformFilterNovelty_->update(waveformSpectrogramGain_);
+	}
+	else if (mode == CM_TEMPOGRAM) {
+		waveformFilterTempogram_->update(waveformSpectrogramGain_);
 	}
 	else if (mode == CM_PERCUSSION || mode == CM_HARMONIC) {
 		waveformFilterHPSS_->update(waveformSpectrogramGain_);
@@ -2351,6 +2369,88 @@ void renderWaveformRGB(Texture* textures, WaveEdge* edgeBuf, int w, int h, int b
 	}
 }
 
+void renderWaveformTempogram(Texture* textures, WaveEdge* edgeBuf, int w, int h, int blockId)
+{
+	uchar* texBuf = waveformTextureBuffer_.begin();
+
+	auto& music = gMusic->getSamples();
+	double samplesPerSec = (double)music.getFrequency();
+	double samplesPerPixel = samplesPerSec / fabs(gView->getPixPerSec());
+	double samplesPerBlock = (double)TEX_H * samplesPerPixel;
+	int64_t samplePos = max((int64_t)0, (int64_t)(samplesPerBlock * (double)blockId));
+
+	double advance = samplesPerPixel * TEX_H / h;
+
+	memset(texBuf, 0, w * h * 4);
+
+	for(int channel = 0; channel < 2; ++channel)
+	{
+		const auto& tempogram = (channel == 0) ? waveformFilterTempogram_->tempogramL : waveformFilterTempogram_->tempogramR;
+		int numBins = tempogram.size();
+		int numBlocks = (numBins > 0) ? tempogram[0].size() : 0;
+
+		for(int y = 0; y < h; ++y)
+		{
+			int64_t currentSample = samplePos + (int64_t)(y * advance);
+			int blockIndex = (int)(currentSample / waveformFilterTempogram_->samplesPerBlock);
+
+			if (blockIndex < 0 || blockIndex >= numBlocks) continue;
+
+			int cx = w / 2;
+
+			for(int x = 0; x < cx; ++x)
+			{
+				float t = (float)x / cx; // 0..1
+				int bin = (int)(t * numBins);
+				bin = clamp(bin, 0, numBins-1);
+
+				uchar intensity = tempogram[bin][blockIndex];
+
+				// Heatmap: Blue->Red->Yellow
+				uchar r, g, b;
+				if (intensity < 128) {
+					// Blue to Green
+					r = 0;
+					g = intensity * 2;
+					b = 255 - intensity * 2;
+				} else {
+					// Green to Red
+					r = (intensity - 128) * 2;
+					g = 255 - (intensity - 128) * 2;
+					b = 0;
+				}
+
+				int l = cx - 1 - x;
+				int r_pos = cx + x;
+
+				if(l >= 0) {
+					texBuf[(y * w + l) * 4 + 0] = r;
+					texBuf[(y * w + l) * 4 + 1] = g;
+					texBuf[(y * w + l) * 4 + 2] = b;
+					texBuf[(y * w + l) * 4 + 3] = intensity;
+				}
+				if(r_pos < w) {
+					texBuf[(y * w + r_pos) * 4 + 0] = r;
+					texBuf[(y * w + r_pos) * 4 + 1] = g;
+					texBuf[(y * w + r_pos) * 4 + 2] = b;
+					texBuf[(y * w + r_pos) * 4 + 3] = intensity;
+				}
+			}
+		}
+
+		switch (waveformAntiAliasingMode_) {
+		case 1: antiAlias2xRGB(texBuf, w, h); break;
+		case 2: antiAlias3xRGB(texBuf, w, h); break;
+		case 3: antiAlias4xRGB(texBuf, w, h); break;
+		}
+
+		if (!textures[channel].handle() || textures[channel].format() != Texture::RGBA) {
+			textures[channel] = Texture(TEX_W, TEX_H, Texture::RGBA);
+		}
+		textures[channel].modify(0, 0, waveformBlockWidth_, TEX_H, texBuf);
+	}
+}
+
 void renderWaveformHPSS(Texture* textures, WaveEdge* edgeBuf, int w, int h, int blockId, bool harmonic)
 {
 	uchar* texBuf = waveformTextureBuffer_.begin();
@@ -2443,11 +2543,8 @@ void renderBlock(WaveBlock* block)
 	int h = TEX_H * (waveformAntiAliasingMode_ + 1);
 	waveformTextureBuffer_.resize(w * h * 4); // Resize for RGBA
 
-	auto& music = gMusic->getSamples();
-	double samplesPerSec = (double)music.getFrequency();
-	double samplesPerPixel = samplesPerSec / fabs(gView->getPixPerSec());
-	double samplesPerBlock = (double)TEX_H * samplesPerPixel;
-	int64_t samplePos = max((int64_t)0, (int64_t)(samplesPerBlock * (double)blockId));
+	Vector<WaveEdge> edges;
+	edges.resize(h);
 
 	if(waveformColorMode_ == CM_RGB)
 	{
@@ -2474,6 +2571,21 @@ void renderBlock(WaveBlock* block)
 	{
 		waveformFilterCQT_->update(waveformSpectrogramGain_);
 		renderWaveformCQT(block->tex, edges.begin(), w, h, block->id);
+	}
+	else if(waveformColorMode_ == CM_CHROMAGRAM)
+	{
+		waveformFilterChromagram_->update(waveformSpectrogramGain_);
+		renderWaveformChromagram(block->tex, edges.begin(), w, h, block->id);
+	}
+	else if(waveformColorMode_ == CM_NOVELTY)
+	{
+		waveformFilterNovelty_->update(waveformSpectrogramGain_);
+		renderWaveformNovelty(block->tex, edges.begin(), w, h, block->id);
+	}
+	else if(waveformColorMode_ == CM_TEMPOGRAM)
+	{
+		waveformFilterTempogram_->update(waveformSpectrogramGain_);
+		renderWaveformTempogram(block->tex, edges.begin(), w, h, block->id);
 	}
 	else if(waveformColorMode_ == CM_PERCUSSION)
 	{
@@ -2611,7 +2723,7 @@ void drawPeaks()
 		TextureHandle texL = block->tex[0].handle();
 		TextureHandle texR = block->tex[1].handle();
 
-		if(waveformColorMode_ == CM_RGB || waveformColorMode_ == CM_SPECTRAL || waveformColorMode_ == CM_PITCH || waveformColorMode_ == CM_SPECTROGRAM || waveformColorMode_ == CM_CQT || waveformColorMode_ == CM_PERCUSSION || waveformColorMode_ == CM_HARMONIC)
+		if(waveformColorMode_ == CM_RGB || waveformColorMode_ == CM_SPECTRAL || waveformColorMode_ == CM_PITCH || waveformColorMode_ == CM_SPECTROGRAM || waveformColorMode_ == CM_CQT || waveformColorMode_ == CM_PERCUSSION || waveformColorMode_ == CM_HARMONIC || waveformColorMode_ == CM_CHROMAGRAM || waveformColorMode_ == CM_NOVELTY || waveformColorMode_ == CM_TEMPOGRAM)
 		{
 			// Draw white rect with RGBA texture
 			Draw::fill({xl - pw, y, pw * 2, TEX_H}, Colors::white, texL, uvs, Texture::RGBA);
