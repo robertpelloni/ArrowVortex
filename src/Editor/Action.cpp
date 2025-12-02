@@ -69,6 +69,8 @@ void Action::perform(Type action)
 		gEditor->openDialog(DIALOG_DANCING_BOT);
 	CASE(OPEN_DIALOG_GENERATE_NOTES)
 		gEditor->openDialog(DIALOG_GENERATE_NOTES);
+	CASE(OPEN_DIALOG_CHART_STATISTICS)
+		gEditor->openDialog(DIALOG_CHART_STATISTICS);
 	CASE(OPEN_DIALOG_TEMPO_BREAKDOWN)
 		gEditor->openDialog(DIALOG_TEMPO_BREAKDOWN);
 	CASE(OPEN_DIALOG_WAVEFORM_SETTINGS)
@@ -273,6 +275,24 @@ void Action::perform(Type action)
 		gMusic->setSpeed(gMusic->getSpeed() + 10);
 	CASE(SPEED_DECREASE)
 		gMusic->setSpeed(gMusic->getSpeed() - 10);
+
+	CASE(TOGGLE_LOOP_SELECTION)
+		{
+			if (gMusic->isLooping()) {
+				gMusic->toggleLoop();
+			} else {
+				auto region = gSelection->getSelectedRegion();
+				if (region.beginRow != region.endRow) {
+					double start = gTempo->rowToTime(region.beginRow);
+					double end = gTempo->rowToTime(region.endRow);
+					gMusic->setLoopRegion(start, end);
+					gMusic->seek(start);
+					if (gMusic->isPaused()) gMusic->play();
+				} else {
+					HudError("Select a region to loop.");
+				}
+			}
+		}
 
 	CASE(TOGGLE_BEAT_TICK)
 		gMusic->toggleBeatTick();

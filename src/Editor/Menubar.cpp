@@ -43,6 +43,7 @@ Item* myMinimapMenu;
 Item* myBgStyleMenu;
 Item* myStatusMenu;
 Item* myEditMenu;
+Item* myAudioMenu;
 
 UpdateFunction myUpdateFunctions[NUM_PROPERTIES];
 
@@ -155,6 +156,7 @@ void init(Item* menu)
 	Item* hChart = newMenu();
 	add(hChart, OPEN_DIALOG_CHART_LIST, "Chart list...");
 	add(hChart, OPEN_DIALOG_CHART_PROPERTIES, "Properties...");
+	add(hChart, OPEN_DIALOG_CHART_STATISTICS, "Statistics...");
 	add(hChart, OPEN_DIALOG_DANCING_BOT, "Dancing bot...");
 	sep(hChart);
 	add(hChart, OPEN_DIALOG_NEW_CHART, "New chart...");
@@ -308,10 +310,11 @@ void init(Item* menu)
 	add(hAudioSpeed, SPEED_DECREASE, "Slower");
 
 	// Audio menu.
-	Item* hAudio = newMenu();
+	Item* hAudio = myAudioMenu = newMenu();
 	sub(hAudio, hAudioVol, "Volume");
 	sub(hAudio, hAudioSpeed, "Speed");
 	sep(hAudio);
+	add(hAudio, TOGGLE_LOOP_SELECTION, "Loop selection");
 	add(hAudio, TOGGLE_BEAT_TICK, "Beat tick");
 	add(hAudio, TOGGLE_NOTE_TICK, "Note tick");
 	sep(hAudio);
@@ -524,6 +527,10 @@ void registerUpdateFunctions()
 		MENU->myBgStyleMenu->setChecked(BACKGROUND_SET_STRETCH, bg == BG_STYLE_STRETCH);
 		MENU->myBgStyleMenu->setChecked(BACKGROUND_SET_LETTERBOX, bg == BG_STYLE_LETTERBOX);
 		MENU->myBgStyleMenu->setChecked(BACKGROUND_SET_CROP, bg == BG_STYLE_CROP);
+	};
+	myUpdateFunctions[AUDIO_LOOP] = []
+	{
+		MENU->myAudioMenu->setChecked(TOGGLE_LOOP_SELECTION, gMusic->isLooping());
 	};
 	myUpdateFunctions[VIEW_NOTESKIN] = []
 	{

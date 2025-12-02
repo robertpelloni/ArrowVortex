@@ -46,6 +46,7 @@
 #include <Dialogs/AdjustSync.h>
 #include <Dialogs/DancingBot.h>
 #include <Dialogs/TempoBreakdown.h>
+#include <Dialogs/ChartStatistics.h>
 #include <Dialogs/GenerateNotes.h>
 #include <Dialogs/WaveformSettings.h>
 #include <Dialogs/Zoom.h>
@@ -741,6 +742,8 @@ void handleDialogOpening(DialogId id, recti rect)
 		dlg = new DialogNewChart; break;
 	case DIALOG_SONG_PROPERTIES:
 		dlg = new DialogSongProperties; break;
+	case DIALOG_CHART_STATISTICS:
+		dlg = new DialogChartStatistics; break;
 	case DIALOG_TEMPO_BREAKDOWN:
 		dlg = new DialogTempoBreakdown; break;
 	case DIALOG_WAVEFORM_SETTINGS:
