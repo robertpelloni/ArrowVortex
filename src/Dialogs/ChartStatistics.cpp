@@ -3,15 +3,68 @@
 #include <Managers/ChartMan.h>
 #include <Managers/NoteMan.h>
 #include <Core/StringUtils.h>
+#include <Core/Draw.h>
+#include <algorithm>
 
 namespace Vortex {
+
+struct GraphWidget : public GuiWidget
+{
+	GraphWidget(GuiContext* gui) : GuiWidget(gui) { setHeight(100); }
+
+	Vector<int> counts;
+	int maxCount = 0;
+
+	void analyze(const Chart* chart) {
+		counts.clear();
+		maxCount = 0;
+		if (!chart) return;
+
+		int maxRow = 0;
+		if (!chart->notes.empty()) maxRow = chart->notes.back().row;
+		int numMeasures = (maxRow / 192) + 1;
+		if (numMeasures < 1) numMeasures = 1;
+		counts.resize(numMeasures, 0);
+
+		for (const auto& n : chart->notes) {
+			if (n.type != NOTE_MINE && n.type != NOTE_FAKE) {
+				int m = n.row / 192;
+				if (m < numMeasures) counts[m]++;
+			}
+		}
+
+		for(int c : counts) maxCount = std::max(maxCount, c);
+	}
+
+	void onDraw() override {
+		Draw::fill(rect_, RGBAtoColor32(30, 30, 30, 255));
+
+		if (counts.empty()) return;
+
+		float barW = (float)rect_.w / counts.size();
+		float scale = (maxCount > 0) ? ((float)rect_.h / maxCount) : 0;
+
+		for (int i = 0; i < counts.size(); ++i) {
+			int h = (int)(counts[i] * scale);
+			recti r = {
+				rect_.x + (int)(i * barW),
+				rect_.y + rect_.h - h,
+				(int)barW,
+				h
+			};
+			if (r.w < 1) r.w = 1;
+			if (r.w > 1) r.w -= 1; // Gap
+			Draw::fill(r, RGBAtoColor32(100, 200, 100, 200));
+		}
+	}
+};
 
 DialogChartStatistics::~DialogChartStatistics() {}
 
 DialogChartStatistics::DialogChartStatistics()
 {
 	setTitle("Chart Statistics");
-	setSize(400, 300);
+	setSize(400, 400);
 
 	myLayout.row().col(380);
 
@@ -22,6 +75,17 @@ DialogChartStatistics::DialogChartStatistics()
 		return;
 	}
 
+	// Graph
+	auto graphLbl = myLayout.add<WgLabel>();
+	graphLbl->text.set("Note Density (Notes per Measure):");
+	myLayout.row().col(380);
+	auto graph = myLayout.add<GraphWidget>();
+	graph->analyze(chart);
+	myLayout.row().col(380);
+	myLayout.add<WgSeperator>();
+	myLayout.row().col(380);
+
+	// Stats
 	int steps = 0;
 	int jumps = 0;
 	int hands = 0;
