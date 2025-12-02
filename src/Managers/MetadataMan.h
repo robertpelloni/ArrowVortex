@@ -63,6 +63,12 @@ struct MetadataMan
 
 	/// Sets the music preview time to the given start time and duration in seconds.
 	virtual void setMusicPreview(double start, double len) = 0;
+
+	/// Sets the background changes for the given layer (0 or 1).
+	virtual void setBgChanges(const Vector<BgChange>& changes, int layer) = 0;
+
+	/// Sets the foreground changes.
+	virtual void setFgChanges(const Vector<BgChange>& changes) = 0;
 };
 
 extern MetadataMan* gMetadata;
