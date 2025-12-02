@@ -22,6 +22,7 @@
 #include <Editor/Common.h>
 #include <Editor/Editor.h>
 #include <Editor/Menubar.h>
+#include <Dialogs/Dialog.h>
 
 #include <Managers/MetadataMan.h>
 #include <Managers/StyleMan.h>
@@ -300,6 +301,12 @@ void onMousePress(MousePress& evt) override
 	if((evt.button == Mouse::LMB || evt.button == Mouse::RMB) && mode && evt.unhandled())
 	{
 		gTempo->stopTweaking(evt.button == Mouse::LMB);
+		evt.setHandled();
+	}
+
+	if (evt.button == Mouse::RMB && evt.unhandled())
+	{
+		gEditor->openDialog(DIALOG_CONTEXT_MENU);
 		evt.setHandled();
 	}
 }

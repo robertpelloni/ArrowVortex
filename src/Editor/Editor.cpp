@@ -47,6 +47,7 @@
 #include <Dialogs/DancingBot.h>
 #include <Dialogs/TempoBreakdown.h>
 #include <Dialogs/ChartStatistics.h>
+#include <Dialogs/DialogContextMenu.h>
 #include <Dialogs/GenerateNotes.h>
 #include <Dialogs/WaveformSettings.h>
 #include <Dialogs/Zoom.h>
@@ -137,6 +138,7 @@ String myFontPath;
 
 bool myUseMultithreading;
 bool myUseVerticalSync;
+double myLastAutosaveTime;
 
 BackgroundStyle myBackgroundStyle;
 SimFormat myDefaultSaveFormat;
@@ -163,6 +165,7 @@ EditorImpl()
 
 	myUseMultithreading = true;
 	myUseVerticalSync = true;
+	myLastAutosaveTime = 0.0;
 
 	myBackgroundStyle = BG_STYLE_STRETCH;
 	myDefaultSaveFormat = SIM_SM;
@@ -744,6 +747,8 @@ void handleDialogOpening(DialogId id, recti rect)
 		dlg = new DialogSongProperties; break;
 	case DIALOG_CHART_STATISTICS:
 		dlg = new DialogChartStatistics; break;
+	case DIALOG_CONTEXT_MENU:
+		dlg = new DialogContextMenu; break;
 	case DIALOG_TEMPO_BREAKDOWN:
 		dlg = new DialogTempoBreakdown; break;
 	case DIALOG_WAVEFORM_SETTINGS:
@@ -762,6 +767,11 @@ void handleDialogOpening(DialogId id, recti rect)
 		dlg->setWidth(rect.w);
 		dlg->setHeight(rect.h);
 		dlg->requestPin();
+	}
+	else if (id == DIALOG_CONTEXT_MENU)
+	{
+		vec2i mouse = gSystem->getMousePos();
+		dlg->setPosition(mouse.x, mouse.y);
 	}
 	else
 	{
@@ -937,6 +947,18 @@ void tick()
 	}
 
 	gTextOverlay->tick();
+
+	if (gSystem->getElapsedTime() - myLastAutosaveTime > 300.0) {
+		myLastAutosaveTime = gSystem->getElapsedTime();
+		if (gSimfile->isOpen() && gHistory->hasUnsavedChanges()) {
+			String dir = gSimfile->getDir();
+			if (!dir.empty()) {
+				gSimfile->save(dir, "autosave.ssc", SIM_SSC);
+				HudNote("Autosaved to autosave.ssc");
+			}
+		}
+	}
+
 	gHistory->handleInputs(events);
 	gMinimap->handleInputs(events);
 	gEditing->handleInputs(events);
