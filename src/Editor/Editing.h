@@ -44,6 +44,8 @@ struct Editing : public InputHandler
 	virtual void changePlayerNumber() = 0;
 
 	virtual void mirrorNotes(MirrorType type) = 0;
+	virtual void shuffleNotes(bool perRow) = 0;
+	virtual void turnNotes(bool right) = 0;
 	virtual void scaleNotes(int numerator, int denominator) = 0;
 
 	virtual void insertRows(int row, int numRows, bool curChartOnly) = 0;
@@ -61,6 +63,9 @@ struct Editing : public InputHandler
 
 	virtual void toggleTimeBasedCopy() = 0;
 	virtual bool hasTimeBasedCopy() = 0;
+
+	virtual void toggleRecordMode() = 0;
+	virtual bool isRecordMode() = 0;
 
 	virtual void setVisualSyncAnchor(VisualSyncAnchor anchor) = 0;
 	virtual VisualSyncAnchor getVisualSyncMode() = 0;
