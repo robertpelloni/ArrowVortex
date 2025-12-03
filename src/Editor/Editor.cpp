@@ -36,6 +36,7 @@
 #include <Managers/ChartMan.h>
 #include <Managers/NoteMan.h>
 #include <Managers/NoteskinMan.h>
+#include <Managers/LyricsMan.h>
 
 #include <Dialogs/SongProperties.h>
 #include <Dialogs/ChartList.h>
@@ -217,6 +218,7 @@ void init()
 	TempoMan::create();
 	ChartMan::create();
 	NotesMan::create();
+	LyricsMan::create();
 
 	// Create the editor components.
 	Shortcuts::create();
@@ -280,6 +282,7 @@ void shutdown()
 	TextOverlay::destroy();
 
 	// Destroy the simfile components.
+	LyricsMan::destroy();
 	NotesMan::destroy();
 	ChartMan::destroy();
 	TempoMan::destroy();
