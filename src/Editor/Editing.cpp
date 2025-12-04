@@ -2,6 +2,8 @@
 
 #include <algorithm>
 #include <set>
+#include <random>
+#include <math.h>
 
 #include <Core/Utils.h>
 #include <Core/StringUtils.h>
@@ -20,6 +22,7 @@
 #include <Editor/Common.h>
 #include <Editor/Editor.h>
 #include <Editor/Menubar.h>
+#include <Dialogs/Dialog.h>
 
 #include <Managers/MetadataMan.h>
 #include <Managers/StyleMan.h>
@@ -71,6 +74,7 @@ PlacingNote myPlacingNotes[SIM_MAX_COLUMNS];
 bool myUseJumpToNextNote;
 bool myUseUndoRedoJump;
 bool myUseTimeBasedCopy;
+bool myIsRecordMode;
 VisualSyncAnchor myVisualSyncAnchor;
 
 // ================================================================================================
@@ -91,6 +95,7 @@ EditingImpl()
 	myUseJumpToNextNote = false;
 	myUseUndoRedoJump = true;
 	myUseTimeBasedCopy = false;
+	myIsRecordMode = false;
 	myVisualSyncAnchor = VisualSyncAnchor::CURSOR;
 }
 
@@ -105,6 +110,7 @@ void loadSettings(XmrNode& settings)
 		editing->get("useJumpToNextNote", &myUseJumpToNextNote);
 		editing->get("useUndoRedoJumps", &myUseUndoRedoJump);
 		editing->get("useTimeBasedCopy", &myUseTimeBasedCopy);
+		editing->get("isRecordMode", &myIsRecordMode);
 	}
 }
 
@@ -115,6 +121,7 @@ void saveSettings(XmrNode& settings)
 	editing->addAttrib("useJumpToNextNote", myUseJumpToNextNote);
 	editing->addAttrib("useUndoRedoJumps", myUseUndoRedoJump);
 	editing->addAttrib("useTimeBasedCopy", myUseTimeBasedCopy);
+	editing->addAttrib("isRecordMode", myIsRecordMode);
 }
 
 // ================================================================================================
@@ -166,6 +173,12 @@ void onKeyPress(KeyPress& evt) override
 			{
 				gView->setCursorRow(row);
 			}
+			else if (!myIsRecordMode)
+			{
+				evt.handled = true;
+				return;
+			}
+
 			NoteEdit edit;
 			auto note = gNotes->getNoteAt(row, col);
 			uint quant = gView->getSnapQuant();
@@ -288,6 +301,12 @@ void onMousePress(MousePress& evt) override
 	if((evt.button == Mouse::LMB || evt.button == Mouse::RMB) && mode && evt.unhandled())
 	{
 		gTempo->stopTweaking(evt.button == Mouse::LMB);
+		evt.setHandled();
+	}
+
+	if (evt.button == Mouse::RMB && evt.unhandled())
+	{
+		gEditor->openDialog(DIALOG_CONTEXT_MENU);
 		evt.setHandled();
 	}
 }
@@ -1154,6 +1173,114 @@ void setVisualSyncAnchor(VisualSyncAnchor anchor) {
 
 VisualSyncAnchor getVisualSyncMode() {
 	return myVisualSyncAnchor;
+}
+
+void shuffleNotes(bool perRow)
+{
+	NoteEdit edit;
+	gSelection->getSelectedNotes(edit.add);
+	if (edit.add.empty()) {
+		HudNote("No notes selected.");
+		return;
+	}
+	edit.rem = edit.add;
+
+	int numCols = gStyle->getNumCols();
+	Vector<int> perm;
+	perm.resize(numCols);
+	for(int i=0; i<numCols; ++i) perm[i] = i;
+
+	std::random_device rd;
+	std::mt19937 g(rd());
+
+	if (!perRow) {
+		std::shuffle(perm.begin(), perm.end(), g);
+		for(auto& n : edit.add) {
+			if (n.col < numCols) n.col = perm[n.col];
+		}
+	} else {
+		std::sort(edit.add.begin(), edit.add.end(), [](const Note& a, const Note& b) { return a.row < b.row; });
+		auto it = edit.add.begin();
+		while(it != edit.add.end()) {
+			int row = it->row;
+			auto start = it;
+			while(it != edit.add.end() && it->row == row) ++it;
+			std::shuffle(perm.begin(), perm.end(), g);
+			for(auto n = start; n != it; ++n) {
+				if (n->col < numCols) n->col = perm[n->col];
+			}
+		}
+	}
+
+	static const NotesMan::EditDescription desc = {"Shuffled %1 note.", "Shuffled %1 notes."};
+	gNotes->modify(edit, false, &desc);
+	if(gSelection->getType() == Selection::NOTES) gNotes->select(SELECT_SET, edit.add.begin(), edit.add.size());
+}
+
+void turnNotes(bool right)
+{
+	NoteEdit edit;
+	gSelection->getSelectedNotes(edit.add);
+	if (edit.add.empty()) {
+		HudNote("No notes selected.");
+		return;
+	}
+	edit.rem = edit.add;
+
+	int numCols = gStyle->getNumCols();
+	auto style = gStyle->get();
+	if (!style || !style->padColPositions) return;
+
+	float cx = style->padWidth / 2.0f;
+	float cy = style->padHeight / 2.0f;
+
+	Vector<int> mapping;
+	mapping.resize(numCols);
+	for(int i=0; i<numCols; ++i) {
+		vec2i p = style->padColPositions[i];
+		float dx = p.x - cx;
+		float dy = p.y - cy;
+		float dx_new, dy_new;
+		if (right) {
+			dx_new = -dy;
+			dy_new = dx;
+		} else {
+			dx_new = dy;
+			dy_new = -dx;
+		}
+
+		float bestDist = 1e9f;
+		int bestCol = i;
+		for(int j=0; j<numCols; ++j) {
+			vec2i p2 = style->padColPositions[j];
+			float dist = sqrt(pow(p2.x - (cx + dx_new), 2) + pow(p2.y - (cy + dy_new), 2));
+			if (dist < bestDist) {
+				bestDist = dist;
+				bestCol = j;
+			}
+		}
+		mapping[i] = bestCol;
+	}
+
+	for(auto& n : edit.add) {
+		if (n.col < numCols) n.col = mapping[n.col];
+	}
+
+	static const NotesMan::EditDescription desc = {"Turned %1 note.", "Turned %1 notes."};
+	gNotes->modify(edit, false, &desc);
+	if(gSelection->getType() == Selection::NOTES) gNotes->select(SELECT_SET, edit.add.begin(), edit.add.size());
+}
+
+void toggleRecordMode()
+{
+	myIsRecordMode = !myIsRecordMode;
+	HudInfo("Record Mode: %s", myIsRecordMode ? "ON" : "OFF");
+	gMenubar->update(Menubar::USE_RECORD_MODE);
+}
+
+bool isRecordMode()
+{
+	return myIsRecordMode;
 }
 
 }; // EditingImpl

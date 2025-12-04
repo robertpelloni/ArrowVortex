@@ -69,6 +69,8 @@ void Action::perform(Type action)
 		gEditor->openDialog(DIALOG_DANCING_BOT);
 	CASE(OPEN_DIALOG_GENERATE_NOTES)
 		gEditor->openDialog(DIALOG_GENERATE_NOTES);
+	CASE(OPEN_DIALOG_CHART_STATISTICS)
+		gEditor->openDialog(DIALOG_CHART_STATISTICS);
 	CASE(OPEN_DIALOG_TEMPO_BREAKDOWN)
 		gEditor->openDialog(DIALOG_TEMPO_BREAKDOWN);
 	CASE(OPEN_DIALOG_WAVEFORM_SETTINGS)
@@ -90,6 +92,10 @@ void Action::perform(Type action)
 		gSystem->getEvents().addKeyPress(Key::V, Keyflag::CTRL, false);
 	CASE(EDIT_DELETE)
 		gSystem->getEvents().addKeyPress(Key::DELETE, 0, false);
+	CASE(INSERT_MEASURE)
+		gEditing->insertRows(gView->getCursorRow(), 192, false);
+	CASE(DELETE_MEASURE)
+		gEditing->insertRows(gView->getCursorRow(), -192, false);
 	CASE(SELECT_ALL)
 		gSystem->getEvents().addKeyPress(Key::A, Keyflag::CTRL, false);
 
@@ -99,6 +105,8 @@ void Action::perform(Type action)
 		gEditing->toggleUndoRedoJump();
 	CASE(TOGGLE_TIME_BASED_COPY)
 		gEditing->toggleTimeBasedCopy();
+	CASE(TOGGLE_RECORD_MODE)
+		gEditing->toggleRecordMode();
 
 	CASE(SET_VISUAL_SYNC_CURSOR_ANCHOR)
 		gEditing->setVisualSyncAnchor(Editing::VisualSyncAnchor::CURSOR);
@@ -221,6 +229,15 @@ void Action::perform(Type action)
 	CASE(MIRROR_NOTES_FULL)
 		gEditing->mirrorNotes(Editing::MIRROR_HV);
 
+	CASE(SHUFFLE_NOTES)
+		gEditing->shuffleNotes(false);
+	CASE(SUPER_SHUFFLE_NOTES)
+		gEditing->shuffleNotes(true);
+	CASE(TURN_NOTES_LEFT)
+		gEditing->turnNotes(false);
+	CASE(TURN_NOTES_RIGHT)
+		gEditing->turnNotes(true);
+
 	CASE(EXPORT_NOTES_AS_LUA_TABLE)
 		gEditing->exportNotesAsLuaTable();
 
@@ -258,6 +275,24 @@ void Action::perform(Type action)
 		gMusic->setSpeed(gMusic->getSpeed() + 10);
 	CASE(SPEED_DECREASE)
 		gMusic->setSpeed(gMusic->getSpeed() - 10);
+
+	CASE(TOGGLE_LOOP_SELECTION)
+		{
+			if (gMusic->isLooping()) {
+				gMusic->toggleLoop();
+			} else {
+				auto region = gSelection->getSelectedRegion();
+				if (region.beginRow != region.endRow) {
+					double start = gTempo->rowToTime(region.beginRow);
+					double end = gTempo->rowToTime(region.endRow);
+					gMusic->setLoopRegion(start, end);
+					gMusic->seek(start);
+					if (gMusic->isPaused()) gMusic->play();
+				} else {
+					HudError("Select a region to loop.");
+				}
+			}
+		}
 
 	CASE(TOGGLE_BEAT_TICK)
 		gMusic->toggleBeatTick();

@@ -43,6 +43,7 @@ Item* myMinimapMenu;
 Item* myBgStyleMenu;
 Item* myStatusMenu;
 Item* myEditMenu;
+Item* myAudioMenu;
 
 UpdateFunction myUpdateFunctions[NUM_PROPERTIES];
 
@@ -135,12 +136,16 @@ void init(Item* menu)
 	add(hEdit, EDIT_PASTE, "Paste\tCtrl+V");
 	add(hEdit, EDIT_DELETE, "Delete\tDelete");
 	sep(hEdit);
+	add(hEdit, INSERT_MEASURE, "Insert measure");
+	add(hEdit, DELETE_MEASURE, "Delete measure");
+	sep(hEdit);
 	add(hEdit, SELECT_ALL, "Select all\tCtrl+A");
 	add(hEdit, SELECT_REGION, "Select region");
 	sep(hEdit);
 	add(hEdit, TOGGLE_JUMP_TO_NEXT_NOTE, "Enable jump to next note");
 	add(hEdit, TOGGLE_UNDO_REDO_JUMP, "Enable undo/redo jump");
 	add(hEdit, TOGGLE_TIME_BASED_COPY, "Enable time-based copy");
+	add(hEdit, TOGGLE_RECORD_MODE, "Enable record mode");
 
 	// Chart > Convert menu.
 	Item* hChartConvert = newMenu();
@@ -151,6 +156,7 @@ void init(Item* menu)
 	Item* hChart = newMenu();
 	add(hChart, OPEN_DIALOG_CHART_LIST, "Chart list...");
 	add(hChart, OPEN_DIALOG_CHART_PROPERTIES, "Properties...");
+	add(hChart, OPEN_DIALOG_CHART_STATISTICS, "Statistics...");
 	add(hChart, OPEN_DIALOG_DANCING_BOT, "Dancing bot...");
 	sep(hChart);
 	add(hChart, OPEN_DIALOG_NEW_CHART, "New chart...");
@@ -213,6 +219,13 @@ void init(Item* menu)
 	add(hNoteMirror, MIRROR_NOTES_VERTICALLY, L"Vertically");
 	add(hNoteMirror, MIRROR_NOTES_FULL, L"Both");
 
+	// Notes > Transform menu.
+	Item* hNoteTransform = newMenu();
+	add(hNoteTransform, SHUFFLE_NOTES, "Shuffle");
+	add(hNoteTransform, SUPER_SHUFFLE_NOTES, "Super Shuffle");
+	add(hNoteTransform, TURN_NOTES_LEFT, "Turn Left");
+	add(hNoteTransform, TURN_NOTES_RIGHT, "Turn Right");
+
 	// Notes > Expand menu.
 	Item* hNoteExpand = newMenu();
 	add(hNoteExpand, SCALE_NOTES_2_TO_1, "2:1 (8th to 4th)");
@@ -230,6 +243,7 @@ void init(Item* menu)
 	sub(hNotes, hSelection, "Select");
 	sub(hNotes, hNoteConvert, "Convert");
 	sub(hNotes, hNoteMirror, "Mirror");
+	sub(hNotes, hNoteTransform, "Transform");
 	sub(hNotes, hNoteExpand, "Expand");
 	sub(hNotes, hNoteCompress, "Compress");
 	add(hNotes, OPEN_DIALOG_GENERATE_NOTES, "Generate...");
@@ -296,10 +310,11 @@ void init(Item* menu)
 	add(hAudioSpeed, SPEED_DECREASE, "Slower");
 
 	// Audio menu.
-	Item* hAudio = newMenu();
+	Item* hAudio = myAudioMenu = newMenu();
 	sub(hAudio, hAudioVol, "Volume");
 	sub(hAudio, hAudioSpeed, "Speed");
 	sep(hAudio);
+	add(hAudio, TOGGLE_LOOP_SELECTION, "Loop selection");
 	add(hAudio, TOGGLE_BEAT_TICK, "Beat tick");
 	add(hAudio, TOGGLE_NOTE_TICK, "Note tick");
 	sep(hAudio);
@@ -478,6 +493,10 @@ void registerUpdateFunctions()
 	{
 		MENU->myEditMenu->setChecked(TOGGLE_TIME_BASED_COPY, gEditing->hasTimeBasedCopy());
 	};
+	myUpdateFunctions[USE_RECORD_MODE] = []
+	{
+		MENU->myEditMenu->setChecked(TOGGLE_RECORD_MODE, gEditing->isRecordMode());
+	};
 	myUpdateFunctions[VISUAL_SYNC_ANCHOR] = []
 	{
 		MENU->myVisualSyncMenu->setChecked(SET_VISUAL_SYNC_CURSOR_ANCHOR, gEditing->getVisualSyncMode() == Editing::VisualSyncAnchor::CURSOR);
@@ -508,6 +527,10 @@ void registerUpdateFunctions()
 		MENU->myBgStyleMenu->setChecked(BACKGROUND_SET_STRETCH, bg == BG_STYLE_STRETCH);
 		MENU->myBgStyleMenu->setChecked(BACKGROUND_SET_LETTERBOX, bg == BG_STYLE_LETTERBOX);
 		MENU->myBgStyleMenu->setChecked(BACKGROUND_SET_CROP, bg == BG_STYLE_CROP);
+	};
+	myUpdateFunctions[AUDIO_LOOP] = []
+	{
+		MENU->myAudioMenu->setChecked(TOGGLE_LOOP_SELECTION, gMusic->isLooping());
 	};
 	myUpdateFunctions[VIEW_NOTESKIN] = []
 	{
