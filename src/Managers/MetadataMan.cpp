@@ -24,6 +24,8 @@ Simfile* mySimfile;
 
 History::EditId myApplyStringPropertyId;
 History::EditId myApplyMusicPreviewId;
+History::EditId myApplyBgChangesId;
+History::EditId myApplySelectableId;
 
 // ================================================================================================
 // MetadataManImpl :: constructor and destructor.
@@ -38,6 +40,8 @@ MetadataManImpl()
 
 	myApplyStringPropertyId = gHistory->addCallback(ApplyStringProperty);
 	myApplyMusicPreviewId   = gHistory->addCallback(ApplyMusicPreview);
+	myApplyBgChangesId      = gHistory->addCallback(ApplyBgChanges);
+	myApplySelectableId     = gHistory->addCallback(ApplySelectable);
 }
 
 // ================================================================================================
@@ -134,6 +138,67 @@ static String ApplyMusicPreview(ReadStream& in, History::Bindings bound, bool un
 }
 
 // ================================================================================================
+// MetadataManImpl :: BG Changes editing.
+
+void EncodeBgChanges(WriteStream& out, const Vector<BgChange>& in)
+{
+	out.writeNum(in.size());
+	for(const auto& c : in) {
+		out.writeStr(c.effect);
+		out.writeStr(c.file);
+		out.writeStr(c.file2);
+		out.writeStr(c.color);
+		out.writeStr(c.color2);
+		out.writeStr(c.transition);
+		out.write(c.startBeat);
+		out.write(c.rate);
+	}
+}
+
+void DecodeBgChanges(ReadStream& in, Vector<BgChange>& out)
+{
+	uint num = in.readNum();
+	out.resize(num);
+	for(uint i=0; i<num; ++i) {
+		auto& c = out[i];
+		c.effect = in.readStr();
+		c.file = in.readStr();
+		c.file2 = in.readStr();
+		c.color = in.readStr();
+		c.color2 = in.readStr();
+		c.transition = in.readStr();
+		c.startBeat = in.read<double>();
+		c.rate = in.read<double>();
+	}
+}
+
+void myQueueBgChanges(const Vector<BgChange>& val, int layer)
+{
+	WriteStream stream;
+	stream.write(layer);
+	if (layer == -1) EncodeBgChanges(stream, mySimfile->fgChanges);
+	else EncodeBgChanges(stream, mySimfile->bgChanges[layer]);
+	EncodeBgChanges(stream, val);
+	gHistory->addEntry(myApplyBgChangesId, stream.data(), stream.size());
+}
+
+static String ApplyBgChanges(ReadStream& in, History::Bindings bound, bool undo, bool redo)
+{
+	int layer = in.read<int>();
+	Vector<BgChange> before, after;
+	DecodeBgChanges(in, before);
+	DecodeBgChanges(in, after);
+
+	if (in.success()) {
+		Vector<BgChange>& target = (layer == -1) ? bound.simfile->fgChanges : bound.simfile->bgChanges[layer];
+		target = (undo ? before : after);
+		gEditor->reportChanges(VCM_SONG_PROPERTIES_CHANGED); // Use Generic change
+		return (layer == -1) ? "Changed FG Changes" : "Changed BG Changes";
+	}
+	return "Error applying BG Changes";
+}
+
+// ================================================================================================
 // MetadataManImpl :: set functions.
 
 void mySetString(String* target, StringRef value, const char* name)
@@ -151,6 +216,49 @@ void setMusicPreview(double start, double length)
 	if(mySimfile && (mySimfile->previewStart != start || mySimfile->previewLength != length))
 	{
 		myQueueMusicPreview(start, length);
+	}
+}
+
+void setBgChanges(const Vector<BgChange>& changes, int layer)
+{
+	if(mySimfile) myQueueBgChanges(changes, layer);
+}
+
+void setFgChanges(const Vector<BgChange>& changes)
+{
+	if(mySimfile) myQueueBgChanges(changes, -1);
+}
+
+// ================================================================================================
+// MetadataManImpl :: selectable editing.
+
+void myQueueSelectable(bool selectable)
+{
+	WriteStream stream;
+	stream.write(selectable);
+	gHistory->addEntry(myApplySelectableId, stream.data(), stream.size());
+}
+
+static String ApplySelectable(ReadStream& in, History::Bindings bound, bool undo, bool redo)
+{
+	String msg;
+	bool selectable = in.read<bool>();
+	if(in.success())
+	{
+		bool val = undo ? !selectable : selectable;
+		msg = "Changed Selectable: ";
+		msg += (val ? "Yes" : "No");
+		bound.simfile->isSelectable = val;
+		gEditor->reportChanges(VCM_SONG_PROPERTIES_CHANGED);
+	}
+	return msg;
+}
+
+void setSelectable(bool selectable)
+{
+	if(mySimfile && mySimfile->isSelectable != selectable)
+	{
+		myQueueSelectable(selectable);
 	}
 }
 
