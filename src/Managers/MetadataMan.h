@@ -69,6 +69,9 @@ struct MetadataMan
 
 	/// Sets the foreground changes.
 	virtual void setFgChanges(const Vector<BgChange>& changes) = 0;
+
+	/// Sets whether the song is selectable.
+	virtual void setSelectable(bool selectable) = 0;
 };
 
 extern MetadataMan* gMetadata;
