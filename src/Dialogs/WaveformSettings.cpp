@@ -16,9 +16,13 @@ DialogWaveformSettings::DialogWaveformSettings()
 
 	settingsColorScheme_ = gWaveform->getColors();
 	luminanceValue_ = gWaveform->getLuminance();
+	colorMode_ = gWaveform->getColorMode();
 	waveShape_ = gWaveform->getWaveShape();
 	antiAliasingMode_ = gWaveform->getAntiAliasing();
 	isOverlayFilterActive_ = gWaveform->getOverlayFilter();
+	isShowingOnsets_ = gWaveform->hasShowOnsets();
+	onsetThreshold_ = gWaveform->getOnsetThreshold();
+	spectrogramGain_ = gWaveform->getSpectrogramGain() / 100.0f;
 
 	filterType_ = Waveform::FT_HIGH_PASS;
 	filterStrength_ = 0.75f;
@@ -69,6 +73,23 @@ DialogWaveformSettings::DialogWaveformSettings()
 	lum->addItem("Uniform");
 	lum->addItem("Amplitude");
 	lum->setTooltip("Determines the lightness of the waveform peaks");
+
+	// Color Mode.
+	WgCycleButton* colMode = myLayout.add<WgCycleButton>("Color Mode");
+	colMode->value.bind(&colorMode_);
+	colMode->onChange.bind(this, &DialogWaveformSettings::myUpdateSettings);
+	colMode->addItem("Flat");
+	colMode->addItem("RGB (3-Band)");
+	colMode->addItem("Spectral (Centroid)");
+	colMode->addItem("Pitch (YIN)");
+	colMode->addItem("Spectrogram");
+	colMode->addItem("CQT (Musical)");
+	colMode->addItem("Percussion (HPSS)");
+	colMode->addItem("Harmonic (Vocals/Melody)");
+	colMode->addItem("Chromagram (Key)");
+	colMode->addItem("Novelty (Flux)");
+	colMode->addItem("Tempogram (BPM)");
+	colMode->setTooltip("Selects the coloring method for the waveform");
 
 	// Wave shape.
 	WgCycleButton* shape = myLayout.add<WgCycleButton>("Wave shape");
@@ -124,6 +145,46 @@ DialogWaveformSettings::DialogWaveformSettings()
 	enable->text.set("Apply filter");
 	enable->onPress.bind(this, &DialogWaveformSettings::myEnableFilter);
 	enable->setTooltip("Shows the filtered waveform");
+
+	// Onsets.
+	myLayout.row().col(228);
+	myLayout.add<WgSeperator>();
+	myLayout.row().col(228);
+
+	WgCheckbox* showOnsets = myLayout.add<WgCheckbox>();
+	showOnsets->text.set("Show detected onsets");
+	showOnsets->value.bind(&isShowingOnsets_);
+	showOnsets->onChange.bind(this, &DialogWaveformSettings::myToggleShowOnsets);
+	showOnsets->setTooltip("Draws lines at detected onset positions");
+
+	// Onset Threshold.
+	myLayout.row().col(228);
+	WgSlider* onsetThresh = myLayout.add<WgSlider>("Onset Threshold");
+	onsetThresh->value.bind(&onsetThreshold_);
+	onsetThresh->onChange.bind(this, &DialogWaveformSettings::myUpdateOnsets);
+	onsetThresh->setTooltip("Sensitivity of onset detection (lower = more onsets)");
+
+	// Spectrogram Gain.
+	myLayout.row().col(228);
+	WgSlider* specGain = myLayout.add<WgSlider>("Spectrogram Gain");
+	specGain->value.bind(&spectrogramGain_);
+	specGain->onChange.bind(this, &DialogWaveformSettings::myUpdateSpectrogram);
+	specGain->setTooltip("Contrast/Gain for spectrogram visualization");
+
+	// RGB Crossovers.
+	myLayout.row().col(228);
+	myLayout.add<WgSeperator>();
+	myLayout.row().col(228);
+
+	WgSlider* rgbLow = myLayout.add<WgSlider>("RGB Low Cutoff");
+	rgbLow->value.bind(&rgbLow_);
+	rgbLow->onChange.bind(this, &DialogWaveformSettings::myUpdateRGB);
+	rgbLow->setTooltip("Frequency cutoff for Low/Mid bands");
+
+	WgSlider* rgbHigh = myLayout.add<WgSlider>("RGB High Cutoff");
+	rgbHigh->value.bind(&rgbHigh_);
+	rgbHigh->onChange.bind(this, &DialogWaveformSettings::myUpdateRGB);
+	rgbHigh->setTooltip("Frequency cutoff for Mid/High bands");
 }
 
 void DialogWaveformSettings::myApplyPreset()
@@ -131,8 +192,14 @@ void DialogWaveformSettings::myApplyPreset()
 	gWaveform->setPreset((Waveform::Preset)presetIndex_);
 	settingsColorScheme_ = gWaveform->getColors();
 	luminanceValue_ = gWaveform->getLuminance();
+	colorMode_ = gWaveform->getColorMode();
 	waveShape_ = gWaveform->getWaveShape();
 	antiAliasingMode_ = gWaveform->getAntiAliasing();
+	isShowingOnsets_ = gWaveform->hasShowOnsets();
+	onsetThreshold_ = gWaveform->getOnsetThreshold();
+	spectrogramGain_ = gWaveform->getSpectrogramGain() / 100.0f;
+	rgbLow_ = gWaveform->getRGBLowHigh(false) / 1000.0f;
+	rgbHigh_ = gWaveform->getRGBLowHigh(true) / 10000.0f;
 }
 
 void DialogWaveformSettings::myUpdateSettings()
@@ -140,6 +207,7 @@ void DialogWaveformSettings::myUpdateSettings()
 	gWaveform->setColors(settingsColorScheme_);
 	gWaveform->setAntiAliasing(antiAliasingMode_);
 	gWaveform->setLuminance((Waveform::Luminance)luminanceValue_);
+	gWaveform->setColorMode((Waveform::ColorMode)colorMode_);
 	gWaveform->setWaveShape((Waveform::WaveShape)waveShape_);
 }
 
@@ -157,5 +225,25 @@ void DialogWaveformSettings::myDisableFilter()
 {
 	gWaveform->disableFilter();
 }	
+
+void DialogWaveformSettings::myToggleShowOnsets()
+{
+	gWaveform->setShowOnsets(isShowingOnsets_);
+}
+
+void DialogWaveformSettings::myUpdateOnsets()
+{
+	gWaveform->setOnsetThreshold(onsetThreshold_);
+}
+
+void DialogWaveformSettings::myUpdateSpectrogram()
+{
+	gWaveform->setSpectrogramGain(spectrogramGain_ * 100.0f);
+}
+
+void DialogWaveformSettings::myUpdateRGB()
+{
+	gWaveform->setRGBCrossovers(rgbLow_ * 1000.0f, rgbHigh_ * 10000.0f);
+}
 
 }; // namespace Vortex
