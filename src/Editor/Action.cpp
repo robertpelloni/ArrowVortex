@@ -26,6 +26,7 @@
 #include <Managers/TempoMan.h>
 
 #include <Dialogs/Dialog.h>
+#include <Dialogs/GoTo.h>
 
 namespace Vortex {
 
@@ -79,6 +80,8 @@ void Action::perform(Type action)
 		gEditor->openDialog(DIALOG_ZOOM);
 	CASE(OPEN_DIALOG_CUSTOM_SNAP)
 		gEditor->openDialog(DIALOG_CUSTOM_SNAP);
+	CASE(OPEN_DIALOG_GO_TO)
+		gEditor->openDialog(DIALOG_GO_TO);
 
 	CASE(EDIT_UNDO)
 		gSystem->getEvents().addKeyPress(Key::Z, Keyflag::CTRL, false);
@@ -96,6 +99,16 @@ void Action::perform(Type action)
 		gEditing->insertRows(gView->getCursorRow(), 192, false);
 	CASE(DELETE_MEASURE)
 		gEditing->insertRows(gView->getCursorRow(), -192, false);
+	CASE(INSERT_BEAT)
+		gEditing->insertRows(gView->getCursorRow(), 48, false);
+	CASE(DELETE_BEAT)
+		gEditing->insertRows(gView->getCursorRow(), -48, false);
+	CASE(QUANTIZE_SELECTION)
+		{
+			int snap = gView->getSnapQuant();
+			if (snap > 0) gEditing->quantizeSelection(snap);
+			else HudError("Invalid snap for quantization.");
+		}
 	CASE(SELECT_ALL)
 		gSystem->getEvents().addKeyPress(Key::A, Keyflag::CTRL, false);
 

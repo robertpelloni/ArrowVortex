@@ -136,8 +136,12 @@ void init(Item* menu)
 	add(hEdit, EDIT_PASTE, "Paste\tCtrl+V");
 	add(hEdit, EDIT_DELETE, "Delete\tDelete");
 	sep(hEdit);
+	add(hEdit, OPEN_DIALOG_GO_TO, "Go to...\tCtrl+G");
+	sep(hEdit);
 	add(hEdit, INSERT_MEASURE, "Insert measure");
 	add(hEdit, DELETE_MEASURE, "Delete measure");
+	add(hEdit, INSERT_BEAT, "Insert beat");
+	add(hEdit, DELETE_BEAT, "Delete beat");
 	sep(hEdit);
 	add(hEdit, SELECT_ALL, "Select all\tCtrl+A");
 	add(hEdit, SELECT_REGION, "Select region");
@@ -246,6 +250,7 @@ void init(Item* menu)
 	sub(hNotes, hNoteTransform, "Transform");
 	sub(hNotes, hNoteExpand, "Expand");
 	sub(hNotes, hNoteCompress, "Compress");
+	add(hNotes, QUANTIZE_SELECTION, "Quantize to current snap");
 	add(hNotes, OPEN_DIALOG_GENERATE_NOTES, "Generate...");
 	sep(hNotes);
 	add(hNotes, VERIFY_CHART_INTEGRITY, "Verify Integrity");

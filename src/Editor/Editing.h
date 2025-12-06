@@ -58,6 +58,7 @@ struct Editing : public InputHandler
 	virtual void scaleNotes(int numerator, int denominator) = 0;
 
 	virtual void insertRows(int row, int numRows, bool curChartOnly) = 0;
+	virtual void quantizeSelection(int snap) = 0;
 
 	virtual void convertCouplesToRoutine() = 0;
 	virtual void convertRoutineToCouples() = 0;
