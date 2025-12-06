@@ -43,6 +43,7 @@ Item* myMinimapMenu;
 Item* myBgStyleMenu;
 Item* myStatusMenu;
 Item* myEditMenu;
+Item* myAudioMenu;
 
 UpdateFunction myUpdateFunctions[NUM_PROPERTIES];
 
@@ -135,12 +136,20 @@ void init(Item* menu)
 	add(hEdit, EDIT_PASTE, "Paste\tCtrl+V");
 	add(hEdit, EDIT_DELETE, "Delete\tDelete");
 	sep(hEdit);
+	add(hEdit, OPEN_DIALOG_GO_TO, "Go to...\tCtrl+G");
+	sep(hEdit);
+	add(hEdit, INSERT_MEASURE, "Insert measure");
+	add(hEdit, DELETE_MEASURE, "Delete measure");
+	add(hEdit, INSERT_BEAT, "Insert beat");
+	add(hEdit, DELETE_BEAT, "Delete beat");
+	sep(hEdit);
 	add(hEdit, SELECT_ALL, "Select all\tCtrl+A");
 	add(hEdit, SELECT_REGION, "Select region");
 	sep(hEdit);
 	add(hEdit, TOGGLE_JUMP_TO_NEXT_NOTE, "Enable jump to next note");
 	add(hEdit, TOGGLE_UNDO_REDO_JUMP, "Enable undo/redo jump");
 	add(hEdit, TOGGLE_TIME_BASED_COPY, "Enable time-based copy");
+	add(hEdit, TOGGLE_RECORD_MODE, "Enable record mode");
 
 	// Chart > Convert menu.
 	Item* hChartConvert = newMenu();
@@ -151,7 +160,9 @@ void init(Item* menu)
 	Item* hChart = newMenu();
 	add(hChart, OPEN_DIALOG_CHART_LIST, "Chart list...");
 	add(hChart, OPEN_DIALOG_CHART_PROPERTIES, "Properties...");
+	add(hChart, OPEN_DIALOG_CHART_STATISTICS, "Statistics...");
 	add(hChart, OPEN_DIALOG_DANCING_BOT, "Dancing bot...");
+	add(hChart, OPEN_DIALOG_LYRICS_EDITOR, "Edit Lyrics...");
 	sep(hChart);
 	add(hChart, OPEN_DIALOG_NEW_CHART, "New chart...");
 	sep(hChart);
@@ -213,6 +224,13 @@ void init(Item* menu)
 	add(hNoteMirror, MIRROR_NOTES_VERTICALLY, L"Vertically");
 	add(hNoteMirror, MIRROR_NOTES_FULL, L"Both");
 
+	// Notes > Transform menu.
+	Item* hNoteTransform = newMenu();
+	add(hNoteTransform, SHUFFLE_NOTES, "Shuffle");
+	add(hNoteTransform, SUPER_SHUFFLE_NOTES, "Super Shuffle");
+	add(hNoteTransform, TURN_NOTES_LEFT, "Turn Left");
+	add(hNoteTransform, TURN_NOTES_RIGHT, "Turn Right");
+
 	// Notes > Expand menu.
 	Item* hNoteExpand = newMenu();
 	add(hNoteExpand, SCALE_NOTES_2_TO_1, "2:1 (8th to 4th)");
@@ -230,9 +248,14 @@ void init(Item* menu)
 	sub(hNotes, hSelection, "Select");
 	sub(hNotes, hNoteConvert, "Convert");
 	sub(hNotes, hNoteMirror, "Mirror");
+	sub(hNotes, hNoteTransform, "Transform");
 	sub(hNotes, hNoteExpand, "Expand");
 	sub(hNotes, hNoteCompress, "Compress");
+	add(hNotes, QUANTIZE_SELECTION, "Quantize to current snap");
 	add(hNotes, OPEN_DIALOG_GENERATE_NOTES, "Generate...");
+	sep(hNotes);
+	add(hNotes, VERIFY_CHART_INTEGRITY, "Verify Integrity");
+	add(hNotes, SELECT_OFF_SYNC_NOTES, "Select Off-Sync Notes");
 
 	// Tempo > Select menu.
 	Item* hSelectTempo = newMenu();
@@ -264,6 +287,17 @@ void init(Item* menu)
 	add(hTempo, SWITCH_TO_SYNC_MODE, "Sync mode");
 	add(hTempo, OPEN_DIALOG_TEMPO_BREAKDOWN, "Breakdown...");
 	sub(hTempo, myVisualSyncMenu, "Visual sync anchor");
+	sep(hTempo);
+	add(hTempo, APPLY_SYNC_LAYOUT, "Apply Sync Layout");
+	sep(hTempo);
+	add(hTempo, DETECT_SONG_SECTIONS, "Detect song sections");
+	add(hTempo, ESTIMATE_BPM_FROM_SELECTION, "Estimate BPM from selection");
+	add(hTempo, AUTO_SYNC_SONG, "Auto-sync song (Global)");
+	add(hTempo, AUTO_SYNC_SECTIONS, "Auto-sync sections (Local BPMs)");
+	add(hTempo, SNAP_OFFSET_TO_FIRST_BEAT, "Snap offset to first beat");
+	add(hTempo, QUANTIZE_TO_AUDIO, "Quantize to audio (Selection)");
+	add(hTempo, WARP_GRID_TO_AUDIO, "Warp grid to audio (Selection)");
+	add(hTempo, PLACE_BEAT_AT_PLAYHEAD, "Place beat at playhead (Tap Sync)");
 
 	// Audio > Volume menu.
 	Item* hAudioVol = newMenu();
@@ -282,10 +316,11 @@ void init(Item* menu)
 	add(hAudioSpeed, SPEED_DECREASE, "Slower");
 
 	// Audio menu.
-	Item* hAudio = newMenu();
+	Item* hAudio = myAudioMenu = newMenu();
 	sub(hAudio, hAudioVol, "Volume");
 	sub(hAudio, hAudioSpeed, "Speed");
 	sep(hAudio);
+	add(hAudio, TOGGLE_LOOP_SELECTION, "Loop selection");
 	add(hAudio, TOGGLE_BEAT_TICK, "Beat tick");
 	add(hAudio, TOGGLE_NOTE_TICK, "Note tick");
 	sep(hAudio);
@@ -344,6 +379,9 @@ void init(Item* menu)
 	sep(hViewCursor);
 	add(hViewCursor, CURSOR_CHART_START, "First beat");
 	add(hViewCursor, CURSOR_CHART_END, "Last beat");
+	sep(hViewCursor);
+	add(hViewCursor, CURSOR_NEXT_TRANSIENT, "Next transient (Audio)");
+	add(hViewCursor, CURSOR_PREV_TRANSIENT, "Previous transient (Audio)");
 
 	// View > Statusbar menu.
 	myStatusMenu = newMenu();
@@ -461,6 +499,10 @@ void registerUpdateFunctions()
 	{
 		MENU->myEditMenu->setChecked(TOGGLE_TIME_BASED_COPY, gEditing->hasTimeBasedCopy());
 	};
+	myUpdateFunctions[USE_RECORD_MODE] = []
+	{
+		MENU->myEditMenu->setChecked(TOGGLE_RECORD_MODE, gEditing->isRecordMode());
+	};
 	myUpdateFunctions[VISUAL_SYNC_ANCHOR] = []
 	{
 		MENU->myVisualSyncMenu->setChecked(SET_VISUAL_SYNC_CURSOR_ANCHOR, gEditing->getVisualSyncMode() == Editing::VisualSyncAnchor::CURSOR);
@@ -491,6 +533,10 @@ void registerUpdateFunctions()
 		MENU->myBgStyleMenu->setChecked(BACKGROUND_SET_STRETCH, bg == BG_STYLE_STRETCH);
 		MENU->myBgStyleMenu->setChecked(BACKGROUND_SET_LETTERBOX, bg == BG_STYLE_LETTERBOX);
 		MENU->myBgStyleMenu->setChecked(BACKGROUND_SET_CROP, bg == BG_STYLE_CROP);
+	};
+	myUpdateFunctions[AUDIO_LOOP] = []
+	{
+		MENU->myAudioMenu->setChecked(TOGGLE_LOOP_SELECTION, gMusic->isLooping());
 	};
 	myUpdateFunctions[VIEW_NOTESKIN] = []
 	{
