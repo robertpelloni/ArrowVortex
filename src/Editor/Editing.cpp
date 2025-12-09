@@ -813,14 +813,14 @@ void quantizeSelection(int snap)
 			else n.row += (snap - rem);
 		}
 		// Quantize both the head and tail of holds/rolls to maintain proper alignment.
-		if (n.type == NoteType::NOTE_HOLD_HEAD || n.type == NoteType::NOTE_ROLL_HEAD) {
-			int tailRow = n.row + n.length; // Assuming length is duration
+		if (n.endrow > n.row) {
+			int tailRow = n.endrow;
 			int trem = tailRow % snap;
 			if (trem != 0) {
 				if (trem < snap / 2) tailRow -= trem;
 				else tailRow += (snap - trem);
 			}
-			if (tailRow > (int)n.row) n.length = tailRow - n.row;
+			if (tailRow > (int)n.row) n.endrow = tailRow;
 		}
 	}
 
