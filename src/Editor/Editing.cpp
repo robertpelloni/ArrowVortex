@@ -797,13 +797,12 @@ void quantizeSelection(int snap)
 {
 	NoteEdit edit;
 	gSelection->getSelectedNotes(edit.add);
-	edit.rem = edit.add;
-
-	if (edit.add.empty()) {
-		HudNote("No notes selected.");
-		return;
-	}
-
+	    edit.rem = edit.add;
+	
+	    if (edit.add.empty()) {
+	        HudNote("There are no notes selected.");
+	        return;
+	    }
 	if (snap <= 0) return;
 
 	for(auto& n : edit.add) {
@@ -1218,7 +1217,7 @@ void shuffleNotes(bool perRow)
 	NoteEdit edit;
 	gSelection->getSelectedNotes(edit.add);
 	if (edit.add.empty()) {
-		HudNote("No notes selected.");
+		HudNote("There are no notes selected.");
 		return;
 	}
 	edit.rem = edit.add;
@@ -1260,7 +1259,7 @@ void turnNotes(bool right)
 	NoteEdit edit;
 	gSelection->getSelectedNotes(edit.add);
 	if (edit.add.empty()) {
-		HudNote("No notes selected.");
+		HudNote("There are no notes selected.");
 		return;
 	}
 	edit.rem = edit.add;
