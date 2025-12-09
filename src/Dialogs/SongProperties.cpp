@@ -100,6 +100,15 @@ void DialogSongProperties::myCreateWidgets()
 	w = CreateField(myLayout, "Credit",   myCredit,   [](String& s){ gMetadata->setCredit(s); });
 	w->setTooltip("Author of the simfile");
 
+	auto selectable = myLayout.add<WgCheckBox>("Selectable");
+	selectable->value.bind(&myIsSelectable);
+	selectable->onChange.bind<void, bool>([](bool b){ gMetadata->setSelectable(b); }, true); // Placeholder bind, manual update in myUpdateProperties?
+	// WgCheckBox binds to bool pointer. We need to bridge to gMetadata->setSelectable.
+	// Since widgets update the pointer, we can use a lambda that reads the pointer.
+	// But `onChange` is called when clicked.
+	selectable->onChange.bind([this](bool v) { gMetadata->setSelectable(v); });
+	selectable->setTooltip("Whether the song is selectable in the music wheel");
+
 	myLayout.row().col(418);
 	myLayout.add<WgSeperator>();
 	myLayout.row().col(72).col(314).col(24);
@@ -213,6 +222,7 @@ void DialogSongProperties::myUpdateProperties()
 		myBackground = meta->background;
 		myBanner = meta->banner;
 		myCdTitle = meta->cdTitle;
+		myIsSelectable = meta->isSelectable;
 
 		// Update the preview start/end time.
 		if(meta->previewStart == 0.0 && meta->previewLength == 0.0)
