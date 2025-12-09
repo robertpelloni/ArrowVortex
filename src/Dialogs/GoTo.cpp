@@ -25,7 +25,7 @@ DialogGoTo::DialogGoTo()
 void DialogGoTo::myCreateWidgets()
 {
 	myLayout.row().col(200);
-	myInput = myLayout.add<WgLineEdit>("Time/Row/Beat");
+	myInput = myLayout.add<WgLineEdit>("Time/Row/Beat/Measure");
 	myInput->text.bind(&myValue);
 	myInput->setTooltip("Enter time (mm:ss.ms), beat (b123), measure (m10), or row number.");
 	myInput->onEnter.bind(this, &DialogGoTo::onGo);
@@ -63,6 +63,10 @@ void DialogGoTo::onGo()
 	else if (Str::startsWith(s, "m")) {
 		// Measure
 		String val = s.subStr(1);
+		double measure = Str::toDouble(val);
+		double beat = measure * 4.0; // Approximation for 4/4 time
+		targetTime = gTempo->beatToTime(beat);
+    /*
 		double measure_f = Str::toDouble(val);
 		int measure = (int)floor(measure_f);
 		double measure_frac = measure_f - measure;
@@ -111,26 +115,18 @@ void DialogGoTo::onGo()
 		found_frac:
 			targetTime = gTempo->beatToTime(beat);
 		}
+    */
 	}
 	else if (Str::contains(s, ":")) {
 		// Time mm:ss.ms
 		targetTime = Str::readTime(s);
 	}
-	else {
-		// Row or Raw Seconds?
-		// Usually raw number is Row in standard editors, or Measure?
-		// In DDream Ctrl+G is "Go To [Time/Beat/Row]".
-		// Let's assume Row if integer-like and large, or Time if small?
-		// Or strictly Row.
-		// Let's try to parse as int.
-		if (Str::isNum(s)) {
-			// Check if likely row or time.
-			// If it contains a decimal point, it's time.
-			if (Str::contains(s, ".")) {
-				targetTime = Str::toDouble(s);
-			} else {
-				targetRow = Str::toInt(s);
-			}
+	else if (Str::isNum(s)) {
+		// Row or Time
+		if (Str::contains(s, ".")) {
+			targetTime = Str::toDouble(s);
+		} else {
+			targetRow = Str::toInt(s);
 		}
 	}
 
@@ -142,7 +138,7 @@ void DialogGoTo::onGo()
 		close();
 	} else {
 		// Invalid input
-		// Maybe flash red or something?
+		HudWarning("Invalid format.");
 	}
 }
 
