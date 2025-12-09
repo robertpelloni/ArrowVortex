@@ -6,12 +6,15 @@
 #include <Core/StringUtils.h>
 #include <System/System.h>
 
+#include <Simfile/Tempo.h>
+
+
 namespace Vortex {
 
 DialogGoTo::~DialogGoTo()
 {
 }
-
+-
 DialogGoTo::DialogGoTo()
 {
 	setTitle("GO TO");
@@ -58,15 +61,56 @@ void DialogGoTo::onGo()
 		targetTime = gTempo->beatToTime(beat);
 	}
 	else if (Str::startsWith(s, "m")) {
-		// Measure (assume 4 beats per measure if not standard? Or use TempoMan logic if available?)
-		// TempoMan beatToMeasure exists. We need measureToBeat/Time.
-		// Standard: Measure = Beat / 4.0? Or variable time sig?
-		// TempoMan handles variable time sigs usually. But I don't see `measureToBeat` in `TempoMan`.
-		// Let's assume standard 4/4 for simple input or just Beat*4.
+		// Measure
 		String val = s.subStr(1);
-		double measure = Str::toDouble(val);
-		double beat = measure * 4.0; // Approximation if no time sig support in TempoMan reverse lookup
-		targetTime = gTempo->beatToTime(beat);
+		double measure_f = Str::toDouble(val);
+		int measure = (int)floor(measure_f);
+		double measure_frac = measure_f - measure;
+
+
+		const TimingData &timingData = gTempo->getTimingData();
+		if (timingData.sigs.empty()) {
+			// no time signatures, assume 4/4
+			targetTime = gTempo->beatToTime(measure_f * 4.0);
+		} else {
+			double beat = 0;
+			int last_row = 0;
+			int last_measure = 0;
+			// find the beat for the start of the measure
+			for (const auto &sig : timingData.sigs) {
+				int next_measure = last_measure + (sig.row - last_row) / sig.rowsPerMeasure;
+				if (next_measure > measure) {
+					beat = (double)last_row / ROWS_PER_BEAT + (double)(measure - last_measure) * sig.rowsPerMeasure / ROWS_PER_BEAT;
+					goto found;
+				}
+
+				last_row = sig.row;
+				last_measure = next_measure;
+			}
+			// after all sigs
+			beat = (double)last_row / ROWS_PER_BEAT + (double)(measure - last_measure) * timingData.sigs.back().rowsPerMeasure / ROWS_PER_BEAT;
+
+		found:
+			// add fractional part
+			// how do we find rowspermeasure for the fractional part?
+			// i guess it's just the sig that we landed on.
+			last_row = 0;
+			last_measure = 0;
+			for (const auto &sig : timingData.sigs) {
+				int next_measure = last_measure + (sig.row - last_row) / sig.rowsPerMeasure;
+				if (next_measure > measure) {
+					beat += measure_frac * sig.rowsPerMeasure / ROWS_PER_BEAT;
+					goto found_frac;
+				}
+
+				last_row = sig.row;
+				last_measure = next_measure;
+			}
+			beat += measure_frac * timingData.sigs.back().rowsPerMeasure / ROWS_PER_BEAT;
+			
+		found_frac:
+			targetTime = gTempo->beatToTime(beat);
+		}
 	}
 	else if (Str::contains(s, ":")) {
 		// Time mm:ss.ms
