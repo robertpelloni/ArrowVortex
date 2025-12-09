@@ -812,11 +812,7 @@ void quantizeSelection(int snap)
 			if (rem < snap / 2) n.row -= rem;
 			else n.row += (snap - rem);
 		}
-		// Also quantize length for holds?
-		// Standard quantization usually just moves the start row.
-		// If it's a hold, we should probably check if the tail needs quantizing too,
-		// but typically "Quantize" snaps the attack.
-		// Let's also snap the tail if it exists.
+		// Quantize both the head and tail of holds/rolls to maintain proper alignment.
 		if (n.type == NoteType::NOTE_HOLD_HEAD || n.type == NoteType::NOTE_ROLL_HEAD) {
 			int tailRow = n.row + n.length; // Assuming length is duration
 			int trem = tailRow % snap;
