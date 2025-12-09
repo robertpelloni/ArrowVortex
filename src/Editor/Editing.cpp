@@ -820,7 +820,9 @@ void quantizeSelection(int snap)
 				if (trem < snap / 2) tailRow -= trem;
 				else tailRow += (snap - trem);
 			}
-			if (tailRow > (int)n.row) n.length = tailRow - n.row;
+			// Enforce minimum hold length of one snap
+			if (tailRow <= (int)n.row) tailRow = n.row + snap;
+			n.length = tailRow - n.row;
 		}
 	}
 
