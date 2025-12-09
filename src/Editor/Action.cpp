@@ -27,6 +27,7 @@
 
 #include <Dialogs/Dialog.h>
 #include <Dialogs/GoTo.h>
+#include <Dialogs/LyricsEditor.h>
 
 namespace Vortex {
 
@@ -82,6 +83,8 @@ void Action::perform(Type action)
 		gEditor->openDialog(DIALOG_CUSTOM_SNAP);
 	CASE(OPEN_DIALOG_GO_TO)
 		gEditor->openDialog(DIALOG_GO_TO);
+	CASE(OPEN_DIALOG_LYRICS_EDITOR)
+		gEditor->openDialog(DIALOG_LYRICS_EDITOR);
 
 	CASE(EDIT_UNDO)
 		gSystem->getEvents().addKeyPress(Key::Z, Keyflag::CTRL, false);

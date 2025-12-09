@@ -162,6 +162,7 @@ void init(Item* menu)
 	add(hChart, OPEN_DIALOG_CHART_PROPERTIES, "Properties...");
 	add(hChart, OPEN_DIALOG_CHART_STATISTICS, "Statistics...");
 	add(hChart, OPEN_DIALOG_DANCING_BOT, "Dancing bot...");
+	add(hChart, OPEN_DIALOG_LYRICS_EDITOR, "Edit Lyrics...");
 	sep(hChart);
 	add(hChart, OPEN_DIALOG_NEW_CHART, "New chart...");
 	sep(hChart);

@@ -53,6 +53,8 @@
 #include <Dialogs/WaveformSettings.h>
 #include <Dialogs/Zoom.h>
 #include <Dialogs/CustomSnap.h>
+#include <Dialogs/GoTo.h>
+#include <Dialogs/LyricsEditor.h>
 
 namespace Vortex {
 
@@ -760,6 +762,10 @@ void handleDialogOpening(DialogId id, recti rect)
 		dlg = new DialogZoom; break;
 	case DIALOG_CUSTOM_SNAP:
 		dlg = new DialogCustomSnap; break;
+	case DIALOG_GO_TO:
+		dlg = new DialogGoTo; break;
+	case DIALOG_LYRICS_EDITOR:
+		dlg = new DialogLyricsEditor; break;
 	};
 
 	dlg->setId(id);
