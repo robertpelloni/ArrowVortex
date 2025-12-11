@@ -1,6 +1,8 @@
 #include <Managers/TempoMan.h>
 
 #include <math.h>
+#include <climits>
+#include <cfloat>
 
 #include <Core/Utils.h>
 #include <Core/StringUtils.h>
