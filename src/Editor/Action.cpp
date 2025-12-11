@@ -29,6 +29,7 @@
 #include <Dialogs/GoTo.h>
 #include <Dialogs/LyricsEditor.h>
 #include <Dialogs/BgChanges.h>
+#include <Dialogs/ChartStatistics.h>
 
 namespace Vortex {
 
@@ -88,6 +89,8 @@ void Action::perform(Type action)
 		gEditor->openDialog(DIALOG_LYRICS_EDITOR);
 	CASE(OPEN_DIALOG_BG_CHANGES)
 		gEditor->openDialog(DIALOG_BG_CHANGES);
+	CASE(OPEN_DIALOG_CHART_STATISTICS)
+		gEditor->openDialog(DIALOG_CHART_STATISTICS);
 
 	CASE(EDIT_UNDO)
 		gSystem->getEvents().addKeyPress(Key::Z, Keyflag::CTRL, false);
