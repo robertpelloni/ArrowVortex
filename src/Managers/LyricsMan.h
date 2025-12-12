@@ -1,7 +1,7 @@
 #pragma once
 #include <Core/String.h>
 #include <Core/Vector.h>
-#include <Core/Color.h>
+#include <Core/Core.h>
 
 namespace Vortex {
 
