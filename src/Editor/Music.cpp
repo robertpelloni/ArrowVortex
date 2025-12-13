@@ -58,12 +58,16 @@ int myTickOffsetMs;
 double myPlayPosition;
 double myPlayStartTime;
 bool myIsPaused, myIsMuted;
+bool myIsLooping;
+double myLoopStart, myLoopEnd;
 LoadState myLoadState;
 Reference<InfoBoxWithProgress> myInfoBox;
 
 Vector<short> myMixBuffer;
 
 OggConversionThread* myOggConversionThread;
+
+void writeFramesInternal(short* buffer, int frames);
 
 // ================================================================================================
 // MusicImpl :: constructor and destructor.
@@ -85,6 +89,9 @@ MusicImpl()
 	myPlayStartTime = 0.0;
 	myIsPaused = true;
 	myIsMuted = false;
+	myIsLooping = false;
+	myLoopStart = 0.0;
+	myLoopEnd = 0.0;
 	myLoadState = LOADING_DONE;
 
 	myBeatTick.enabled = false;
@@ -299,7 +306,7 @@ void WriteSourceFrames(short* buffer, int frames, int64_t srcPos)
 	if(myNoteTick.enabled) WriteTicks(buffer, frames, myNoteTick, rate);
 }
 
-void writeFrames(short* buffer, int frames) override
+void writeFramesInternal(short* buffer, int frames)
 {
 	double srcAdvance = (double)frames;
 	if(myMusicSpeed == 100)
@@ -347,6 +354,49 @@ void writeFrames(short* buffer, int frames) override
 	}
 
 	myPlayPosition += srcAdvance;
+}
+
+void writeFrames(short* buffer, int frames) override
+{
+	if (!mySamples.isAllocated()) {
+		memset(buffer, 0, frames * MIX_CHANNELS * sizeof(short));
+		return;
+	}
+
+	double freq = (double)mySamples.getFrequency();
+	double loopStartPos = myLoopStart * freq;
+	double loopEndPos = myLoopEnd * freq;
+	bool looping = myIsLooping && (loopEndPos > loopStartPos);
+
+	if (looping && myPlayPosition < loopEndPos)
+	{
+		double speed = (double)myMusicSpeed / 100.0;
+		double srcNeeded = (double)frames * speed;
+
+		if ((myPlayPosition + srcNeeded) >= loopEndPos)
+		{
+			// Crosses boundary
+			double srcAvailable = loopEndPos - myPlayPosition;
+			int framesBeforeWrap = (int)(srcAvailable / speed);
+			if (framesBeforeWrap < 0) framesBeforeWrap = 0;
+			if (framesBeforeWrap > frames) framesBeforeWrap = frames;
+
+			int framesAfterWrap = frames - framesBeforeWrap;
+
+			if (framesBeforeWrap > 0)
+				writeFramesInternal(buffer, framesBeforeWrap);
+
+			// Wrap
+			myPlayPosition = loopStartPos;
+
+			if (framesAfterWrap > 0)
+				writeFramesInternal(buffer + framesBeforeWrap * MIX_CHANNELS, framesAfterWrap);
+
+			return;
+		}
+	}
+
+	writeFramesInternal(buffer, frames);
 }
 
 
@@ -631,6 +681,35 @@ bool hasNoteTick()
 {
 	return myNoteTick.enabled;
 }
+
+void toggleLoop()
+{
+	myIsLooping = !myIsLooping;
+	HudNote("Looping: %s", myIsLooping ? "ON" : "OFF");
+	if(gMenubar) gMenubar->update(Menubar::AUDIO_LOOP);
+}
+
+void setLoopRegion(double start, double end)
+{
+	if (start > end) std::swap(start, end);
+	myLoopStart = start;
+	myLoopEnd = end;
+	if (myLoopEnd > myLoopStart) {
+		HudNote("Loop set: %.3fs - %.3fs", start, end);
+		myIsLooping = true;
+	} else {
+		myIsLooping = false;
+	}
+	if(gMenubar) gMenubar->update(Menubar::AUDIO_LOOP);
+}
+
+bool isLooping()
+{
+	return myIsLooping;
+}
+
+double getLoopStart() { return myLoopStart; }
+double getLoopEnd() { return myLoopEnd; }
 
 // ================================================================================================
 // MusicImpl :: handling of external changes.

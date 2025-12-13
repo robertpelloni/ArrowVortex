@@ -138,19 +138,20 @@ static bool SegmentsIntersect(int l1, int r1, int l2, int r2)
 	return r1 >= l2 && r2 >= l1;
 }
 
-void selectTempoBoxes(SelectModifier mod, double t, double b, int l, int r)
+bool selectTempoBoxes(SelectModifier mod, double t, double b, int l, int r)
 {
 	if(gView->getScaleLevel() >= 2)
 	{
 		if(gView->isTimeBased())
 		{
-			gTempoBoxes->selectTime(mod, t, b, l, r);
+			return gTempoBoxes->selectTime(mod, t, b, l, r) > 0;
 		}
 		else
 		{
-			gTempoBoxes->selectRows(mod, (int)(t + 0.5), (int)(b + 0.5), l, r);
+			return gTempoBoxes->selectRows(mod, (int)(t + 0.5), (int)(b + 0.5), l, r) > 0;
 		}
 	}
+	return false;
 }
 
 bool selectNotes(SelectModifier mod, double torT, double torB, int xl, int xr)
