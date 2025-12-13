@@ -1,6 +1,8 @@
 #include <Managers/TempoMan.h>
 
 #include <math.h>
+#include <climits>
+#include <cfloat>
 
 #include <Core/Utils.h>
 #include <Core/StringUtils.h>
@@ -863,12 +865,15 @@ const SegmentGroup* getSegments() const
 	return nullptr;
 }
 
-void moveBeat(int row, double time)
+void moveBeat(int row, double time, bool ripple)
 {
 	if (!myTempo)
 		return;
 
-	nonDestructiveShiftRowToTime(row, time);
+	if (ripple)
+		destructiveShiftRowToTime(row, time);
+	else
+		nonDestructiveShiftRowToTime(row, time);
 }
 
 // ================================================================================================
@@ -878,6 +883,8 @@ void injectBoundingBpmChange(const int target_row) {
 	if (target_row <= 0) {
 		return;
 	}
+
+	if (!myTempo) return;
 
 	const BpmChange cur_bpm = this->myTempo->segments->getRecent<BpmChange>(target_row);
 
@@ -896,6 +903,8 @@ void destructiveShiftRowToTime(const int target_row, const double target_time) {
 		this->setOffset(-target_time);
 		return;
 	}
+
+	if (!myTempo) return;
 
 	const BpmChange prev_bpm_change = this->myTempo->segments->getRecent<BpmChange>(target_row - 1);
 	const int prev_bpm_row = prev_bpm_change.row;

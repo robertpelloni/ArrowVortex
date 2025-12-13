@@ -63,6 +63,21 @@ struct MetadataMan
 
 	/// Sets the music preview time to the given start time and duration in seconds.
 	virtual void setMusicPreview(double start, double len) = 0;
+
+	/// Sets the background changes for the given layer (0 or 1).
+	virtual void setBgChanges(const Vector<BgChange>& changes, int layer) = 0;
+
+	/// Sets the foreground changes.
+	virtual void setFgChanges(const Vector<BgChange>& changes) = 0;
+
+	/// Sets whether the song is selectable.
+	virtual void setSelectable(bool selectable) = 0;
+
+	/// Returns the background changes for the given layer.
+	virtual const Vector<BgChange>& getBgChanges(int layer) const = 0;
+
+	/// Returns the foreground changes.
+	virtual const Vector<BgChange>& getFgChanges() const = 0;
 };
 
 extern MetadataMan* gMetadata;
