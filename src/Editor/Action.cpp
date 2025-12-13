@@ -19,6 +19,11 @@
 #include <Editor/FindTempo.h>
 #include <Editor/FindOnsets.h>
 
+#include <vector>
+#include <algorithm>
+#include <thread>
+#include <chrono>
+
 #include <Managers/MetadataMan.h>
 #include <Managers/NoteskinMan.h>
 #include <Managers/StyleMan.h>
@@ -26,6 +31,10 @@
 #include <Managers/TempoMan.h>
 
 #include <Dialogs/Dialog.h>
+#include <Dialogs/GoTo.h>
+#include <Dialogs/LyricsEditor.h>
+#include <Dialogs/BgChanges.h>
+#include <Dialogs/ChartStatistics.h>
 
 namespace Vortex {
 
@@ -79,6 +88,14 @@ void Action::perform(Type action)
 		gEditor->openDialog(DIALOG_ZOOM);
 	CASE(OPEN_DIALOG_CUSTOM_SNAP)
 		gEditor->openDialog(DIALOG_CUSTOM_SNAP);
+	CASE(OPEN_DIALOG_GO_TO)
+		gEditor->openDialog(DIALOG_GO_TO);
+	CASE(OPEN_DIALOG_LYRICS_EDITOR)
+		gEditor->openDialog(DIALOG_LYRICS_EDITOR);
+	CASE(OPEN_DIALOG_BG_CHANGES)
+		gEditor->openDialog(DIALOG_BG_CHANGES);
+	CASE(OPEN_DIALOG_CHART_STATISTICS)
+		gEditor->openDialog(DIALOG_CHART_STATISTICS);
 
 	CASE(EDIT_UNDO)
 		gSystem->getEvents().addKeyPress(Key::Z, Keyflag::CTRL, false);
@@ -96,6 +113,16 @@ void Action::perform(Type action)
 		gEditing->insertRows(gView->getCursorRow(), 192, false);
 	CASE(DELETE_MEASURE)
 		gEditing->insertRows(gView->getCursorRow(), -192, false);
+	CASE(INSERT_BEAT)
+		gEditing->insertRows(gView->getCursorRow(), 48, false);
+	CASE(DELETE_BEAT)
+		gEditing->insertRows(gView->getCursorRow(), -48, false);
+	CASE(QUANTIZE_SELECTION)
+		{
+			int snap = gView->getSnapQuant();
+			if (snap > 0) gEditing->quantizeSelection(snap);
+			else HudError("Invalid snap for quantization.");
+		}
 	CASE(SELECT_ALL)
 		gSystem->getEvents().addKeyPress(Key::A, Keyflag::CTRL, false);
 
@@ -504,17 +531,16 @@ void Action::perform(Type action)
 				if(detector) {
 					int timeout = 500; // 5 seconds
 					while(!detector->hasResult() && timeout > 0) {
-						System::sleep(0.01);
+						std::this_thread::sleep_for(std::chrono::milliseconds(10));
 						timeout--;
 					}
 					if(detector->hasResult()) {
 						auto results = detector->getResult();
 						if(!results.empty()) {
 							double bpm = results[0].bpm;
-							String msg;
-							Str::fmt(msg, "Estimated BPM: %.3f. Apply at row %d?");
+							Str::fmt msg("Estimated BPM: %.3f. Apply at row %d?");
 							msg.arg(bpm).arg(region.beginRow);
-							int res = gSystem->showMessageDlg("BPM Estimation", msg, System::T_YES_NO, System::I_QUESTION);
+							int res = gSystem->showMessageDlg("BPM Estimation", msg, System::T_YES_NO, System::I_INFO);
 							if (res == System::R_YES) {
 								gTempo->addSegment(BpmChange(region.beginRow, bpm));
 							}
@@ -539,7 +565,7 @@ void Action::perform(Type action)
 				if (detector) {
 					int timeout = 1000; // 10 seconds
 					while(!detector->hasResult() && timeout > 0) {
-						System::sleep(0.01);
+						std::this_thread::sleep_for(std::chrono::milliseconds(10));
 						timeout--;
 					}
 					if(detector->hasResult()) {
@@ -547,10 +573,9 @@ void Action::perform(Type action)
 						if(!results.empty()) {
 							double bpm = results[0].bpm;
 							double offset = -results[0].offset; // detector offset is sample time of first beat
-							String msg;
-							Str::fmt(msg, "Detected BPM: %.3f, Offset: %.3f. Apply (Replace All)?");
+							Str::fmt msg("Detected BPM: %.3f, Offset: %.3f. Apply (Replace All)?");
 							msg.arg(bpm).arg(offset);
-							int res = gSystem->showMessageDlg("Auto Sync", msg, System::T_YES_NO, System::I_QUESTION);
+							int res = gSystem->showMessageDlg("Auto Sync", msg, System::T_YES_NO, System::I_INFO);
 							if (res == System::R_YES) {
 								SegmentEdit edit;
 								// Remove all existing BPM/Stops
@@ -615,10 +640,9 @@ void Action::perform(Type action)
 					// FindOnsets returns everything above threshold.
 					double firstTime = (double)onsets[0].pos / samplerate;
 
-					String msg;
-					Str::fmt(msg, "Snap offset to first beat at %.3f? (Current: %.3f)");
+					Str::fmt msg("Snap offset to first beat at %.3f? (Current: %.3f)");
 					msg.arg(-firstTime).arg(gTempo->getOffset());
-					int res = gSystem->showMessageDlg("Snap Offset", msg, System::T_YES_NO, System::I_QUESTION);
+					int res = gSystem->showMessageDlg("Snap Offset", msg, System::T_YES_NO, System::I_INFO);
 					if (res == System::R_YES) {
 						gTempo->setOffset(-firstTime);
 					}
@@ -649,10 +673,9 @@ void Action::perform(Type action)
 					break;
 				}
 
-				String msg;
-				Str::fmt(msg, "Quantize beats in range [%d, %d] to audio?");
+				Str::fmt msg("Quantize beats in range [%d, %d] to audio?");
 				msg.arg(startRow).arg(endRow);
-				int res = gSystem->showMessageDlg("Quantize to Audio", msg, System::T_YES_NO, System::I_QUESTION);
+				int res = gSystem->showMessageDlg("Quantize to Audio", msg, System::T_YES_NO, System::I_INFO);
 				if (res != System::R_YES) break;
 
 				int samplerate = music.getFrequency();
@@ -775,10 +798,9 @@ void Action::perform(Type action)
 				int step = gView->getSnapQuant();
 				if (step <= 0) step = ROWS_PER_BEAT; // Default to beat if no snap
 
-				String msg;
-				Str::fmt(msg, "Warp grid in range [%d, %d] to audio (Step: %d)?");
+				Str::fmt msg("Warp grid in range [%d, %d] to audio (Step: %d)?");
 				msg.arg(startRow).arg(endRow).arg(step);
-				int res = gSystem->showMessageDlg("Warp Grid", msg, System::T_YES_NO, System::I_QUESTION);
+				int res = gSystem->showMessageDlg("Warp Grid", msg, System::T_YES_NO, System::I_INFO);
 				if (res != System::R_YES) break;
 
 				int samplerate = music.getFrequency();
@@ -848,9 +870,13 @@ void Action::perform(Type action)
 			// We need a sorted list of section start rows.
 			std::vector<int> sectionRows;
 			sectionRows.push_back(0); // Always start at 0
-			for(const auto& l : labels) {
-				if (l.row > 0) sectionRows.push_back(l.row);
+			if(segs) {
+				const auto& labels = segs->getList<Label>();
+				for(auto it = labels.begin(); it != labels.end(); ++it) {
+					if (it->row > 0) sectionRows.push_back(it->row);
+				}
 			}
+
 			// Sort and unique
 			std::sort(sectionRows.begin(), sectionRows.end());
 			sectionRows.erase(std::unique(sectionRows.begin(), sectionRows.end()), sectionRows.end());
@@ -878,7 +904,7 @@ void Action::perform(Type action)
 					// Wait for result (blocking for simplicity in this Action)
 					int timeout = 200; // 2 seconds
 					while(!detector->hasResult() && timeout > 0) {
-						System::sleep(0.01);
+						std::this_thread::sleep_for(std::chrono::milliseconds(10));
 						timeout--;
 					}
 
@@ -938,8 +964,8 @@ void Action::perform(Type action)
 			int activeHoldEnd[8] = {-1, -1, -1, -1, -1, -1, -1, -1}; // Max cols?
 			int numCols = gStyle->getNumCols();
 
-			for(auto it = gNotes->begin(); it != gNotes->end(); ++it) {
-				Note& n = *it;
+			for(const auto* it = gNotes->begin(); it != gNotes->end(); ++it) {
+				const ExpandedNote& n = *it;
 				if (n.col >= numCols) continue;
 
 				if (n.row < activeHoldEnd[n.col]) {

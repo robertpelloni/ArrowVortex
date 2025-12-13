@@ -793,6 +793,46 @@ void scaleNotes(int numerator, int denominator)
 	}
 }
 
+void quantizeSelection(int snap)
+{
+	NoteEdit edit;
+	gSelection->getSelectedNotes(edit.add);
+	edit.rem = edit.add;
+
+	if (edit.add.empty()) {
+		HudNote("No notes selected.");
+		return;
+	}
+
+	if (snap <= 0) return;
+
+	for(auto& n : edit.add) {
+		int rem = n.row % snap;
+		if (rem != 0) {
+			if (rem < snap / 2) n.row -= rem;
+			else n.row += (snap - rem);
+		}
+		// Also quantize length for holds?
+		// Standard quantization usually just moves the start row.
+		// If it's a hold, we should probably check if the tail needs quantizing too,
+		// but typically "Quantize" snaps the attack.
+		// Let's also snap the tail if it exists.
+		if (n.type == NoteType::NOTE_HOLD_HEAD || n.type == NoteType::NOTE_ROLL_HEAD) {
+			int tailRow = n.row + n.length; // Assuming length is duration
+			int trem = tailRow % snap;
+			if (trem != 0) {
+				if (trem < snap / 2) tailRow -= trem;
+				else tailRow += (snap - trem);
+			}
+			if (tailRow > (int)n.row) n.length = tailRow - n.row;
+		}
+	}
+
+	static const NotesMan::EditDescription desc = {"Quantized %1 note.", "Quantized %1 notes."};
+	gNotes->modify(edit, true, &desc);
+	if (gSelection->getType() == Selection::NOTES) gNotes->select(SELECT_SET, edit.add.begin(), edit.add.size());
+}
+
 void insertRows(int row, int numRows, bool curChartOnly)
 {
 	if(gSimfile->isOpen())

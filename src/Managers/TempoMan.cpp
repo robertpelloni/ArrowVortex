@@ -1,6 +1,8 @@
 #include <Managers/TempoMan.h>
 
 #include <math.h>
+#include <climits>
+#include <cfloat>
 
 #include <Core/Utils.h>
 #include <Core/StringUtils.h>
@@ -882,6 +884,8 @@ void injectBoundingBpmChange(const int target_row) {
 		return;
 	}
 
+	if (!myTempo) return;
+
 	const BpmChange cur_bpm = this->myTempo->segments->getRecent<BpmChange>(target_row);
 
 	if (cur_bpm.row == target_row) {
@@ -899,6 +903,8 @@ void destructiveShiftRowToTime(const int target_row, const double target_time) {
 		this->setOffset(-target_time);
 		return;
 	}
+
+	if (!myTempo) return;
 
 	const BpmChange prev_bpm_change = this->myTempo->segments->getRecent<BpmChange>(target_row - 1);
 	const int prev_bpm_row = prev_bpm_change.row;

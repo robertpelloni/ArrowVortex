@@ -25,6 +25,7 @@ Simfile* mySimfile;
 History::EditId myApplyStringPropertyId;
 History::EditId myApplyMusicPreviewId;
 History::EditId myApplyBgChangesId;
+History::EditId myApplySelectableId;
 
 // ================================================================================================
 // MetadataManImpl :: constructor and destructor.
@@ -40,6 +41,7 @@ MetadataManImpl()
 	myApplyStringPropertyId = gHistory->addCallback(ApplyStringProperty);
 	myApplyMusicPreviewId   = gHistory->addCallback(ApplyMusicPreview);
 	myApplyBgChangesId      = gHistory->addCallback(ApplyBgChanges);
+	myApplySelectableId     = gHistory->addCallback(ApplySelectable);
 }
 
 // ================================================================================================
@@ -227,6 +229,39 @@ void setFgChanges(const Vector<BgChange>& changes)
 	if(mySimfile) myQueueBgChanges(changes, -1);
 }
 
+// ================================================================================================
+// MetadataManImpl :: selectable editing.
+
+void myQueueSelectable(bool selectable)
+{
+	WriteStream stream;
+	stream.write(selectable);
+	gHistory->addEntry(myApplySelectableId, stream.data(), stream.size());
+}
+
+static String ApplySelectable(ReadStream& in, History::Bindings bound, bool undo, bool redo)
+{
+	String msg;
+	bool selectable = in.read<bool>();
+	if(in.success())
+	{
+		bool val = undo ? !selectable : selectable;
+		msg = "Changed Selectable: ";
+		msg += (val ? "Yes" : "No");
+		bound.simfile->isSelectable = val;
+		gEditor->reportChanges(VCM_SONG_PROPERTIES_CHANGED);
+	}
+	return msg;
+}
+
+void setSelectable(bool selectable)
+{
+	if(mySimfile && mySimfile->isSelectable != selectable)
+	{
+		myQueueSelectable(selectable);
+	}
+}
+
 void setTitle(StringRef s)
 {
 	mySetString(&mySimfile->title, s, "title");
@@ -382,6 +417,20 @@ String findCdTitleFile()
 void update(Simfile* simfile)
 {
 	mySimfile = simfile;
+}
+
+const Vector<BgChange>& getBgChanges(int layer) const
+{
+	static Vector<BgChange> empty;
+	if (mySimfile && layer >= 0 && layer < 2) return mySimfile->bgChanges[layer];
+	return empty;
+}
+
+const Vector<BgChange>& getFgChanges() const
+{
+	static Vector<BgChange> empty;
+	if (mySimfile) return mySimfile->fgChanges;
+	return empty;
 }
 
 }; // MetadataManImpl
