@@ -419,6 +419,20 @@ void update(Simfile* simfile)
 	mySimfile = simfile;
 }
 
+const Vector<BgChange>& getBgChanges(int layer) const
+{
+	static Vector<BgChange> empty;
+	if (mySimfile && layer >= 0 && layer < 2) return mySimfile->bgChanges[layer];
+	return empty;
+}
+
+const Vector<BgChange>& getFgChanges() const
+{
+	static Vector<BgChange> empty;
+	if (mySimfile) return mySimfile->fgChanges;
+	return empty;
+}
+
 }; // MetadataManImpl
 
 // ================================================================================================

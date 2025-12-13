@@ -333,6 +333,8 @@ void init(Item* menu)
 	
 	// View > Background menu.
 	Item* hViewBg = myBgStyleMenu = newMenu();
+	add(hViewBg, OPEN_DIALOG_BG_CHANGES, "Edit changes...");
+	sep(hViewBg);
 	add(hViewBg, BACKGROUND_HIDE, "Hide");
 	sep(hViewBg);
 	add(hViewBg, BACKGROUND_INCREASE_ALPHA, "More visible");

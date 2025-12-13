@@ -72,6 +72,12 @@ struct MetadataMan
 
 	/// Sets whether the song is selectable.
 	virtual void setSelectable(bool selectable) = 0;
+
+	/// Returns the background changes for the given layer.
+	virtual const Vector<BgChange>& getBgChanges(int layer) const = 0;
+
+	/// Returns the foreground changes.
+	virtual const Vector<BgChange>& getFgChanges() const = 0;
 };
 
 extern MetadataMan* gMetadata;

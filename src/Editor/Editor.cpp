@@ -55,6 +55,8 @@
 #include <Dialogs/CustomSnap.h>
 #include <Dialogs/GoTo.h>
 #include <Dialogs/LyricsEditor.h>
+#include <Dialogs/BgChanges.h>
+#include <Dialogs/ChartStatistics.h>
 
 namespace Vortex {
 
@@ -766,6 +768,10 @@ void handleDialogOpening(DialogId id, recti rect)
 		dlg = new DialogGoTo; break;
 	case DIALOG_LYRICS_EDITOR:
 		dlg = new DialogLyricsEditor; break;
+	case DIALOG_BG_CHANGES:
+		dlg = new DialogBgChanges; break;
+	case DIALOG_CHART_STATISTICS:
+		dlg = new DialogChartStatistics; break;
 	};
 
 	dlg->setId(id);
