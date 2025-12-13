@@ -35,6 +35,7 @@
 #include <Dialogs/LyricsEditor.h>
 #include <Dialogs/BgChanges.h>
 #include <Dialogs/ChartStatistics.h>
+#include <Core/Widgets.h>
 
 namespace Vortex {
 
@@ -928,120 +929,73 @@ void Action::perform(Type action)
 
 	CASE(VERIFY_CHART_INTEGRITY)
 		{
-			// Check for common charting errors
+			Vector<RowCol> stacked, overlapped;
 			int stackedNotes = 0;
 			int minesOnNotes = 0;
 			int overlaps = 0;
 
-			// Clear current selection first?
-			// gSelection->deselectAll(); // If such method exists, or selectRegion(0,0)
-
-			// We need to select the offending notes.
-			// Let's iterate and build a list of offending notes?
-			// Or just count them first.
-
-			for(auto it = gNotes->begin(); it != gNotes->end(); ++it) {
-				Note& n = *it;
-
-				// Check for stacked notes (same row/col)
-				// Sorted list, so check next note
-				auto next = it + 1;
+			// Check for stacked notes
+			for(const auto* it = gNotes->begin(); it != gNotes->end(); ++it) {
+				const ExpandedNote& n = *it;
+				const auto* next = it + 1;
 				if (next != gNotes->end() && next->row == n.row && next->col == n.col) {
-					// Found stack
-					if (n.type == NoteType::NOTE_MINE && next->type != NoteType::NOTE_MINE) minesOnNotes++;
-					else if (n.type != NoteType::NOTE_MINE && next->type == NoteType::NOTE_MINE) minesOnNotes++;
+					if (n.isMine && !next->isMine) minesOnNotes++;
+					else if (!n.isMine && next->isMine) minesOnNotes++;
 					else stackedNotes++;
 
-					// Select them?
-					// gSelection->selectNote(*it);
+					stacked.push_back({(int)n.row, (int)n.col});
+					stacked.push_back({(int)next->row, (int)next->col});
 				}
-
-				// Check for overlaps (Hold head inside another hold)
-				// This is harder, need to track active holds per column.
 			}
 
-			// For overlaps:
-			int activeHoldEnd[8] = {-1, -1, -1, -1, -1, -1, -1, -1}; // Max cols?
+			// Check for overlaps
+			int activeHoldEnd[SIM_MAX_COLUMNS];
+			int activeHoldRow[SIM_MAX_COLUMNS];
+			for(int i=0; i<SIM_MAX_COLUMNS; ++i) { activeHoldEnd[i] = -1; activeHoldRow[i] = -1; }
+
 			int numCols = gStyle->getNumCols();
 
 			for(const auto* it = gNotes->begin(); it != gNotes->end(); ++it) {
 				const ExpandedNote& n = *it;
 				if (n.col >= numCols) continue;
 
-				if (n.row < activeHoldEnd[n.col]) {
-					// Overlap!
+				if (n.row < activeHoldEnd[n.col] && n.row > activeHoldRow[n.col]) {
 					overlaps++;
+					overlapped.push_back({(int)n.row, (int)n.col});
 				}
 
-				if (n.type == NoteType::NOTE_HOLD_HEAD || n.type == NoteType::NOTE_ROLL_HEAD) {
-					// n.tailRow is absolute row of tail?
-					// Usually Note struct has duration or tailRow.
-					// Let's assume tailRow or row + length.
-					// Looking at Note.h (in memory): struct Note { int row, col, type, player, length; ... }
-					// Usually length > 0.
-					if (n.length > 0) {
-						activeHoldEnd[n.col] = n.row + n.length;
-					}
+				if (n.endrow > n.row) {
+					activeHoldEnd[n.col] = n.endrow;
+					activeHoldRow[n.col] = n.row;
 				}
 			}
 
-			String msg;
-			Str::fmt(msg, "Chart Verification:\nStacked Notes: %d\nMines on Notes: %d\nOverlaps: %d");
+			if (stackedNotes > 0 || minesOnNotes > 0 || overlaps > 0) {
+				gNotes->deselectAll();
+				if (!stacked.empty()) gNotes->select(SELECT_ADD, stacked);
+				if (!overlapped.empty()) gNotes->select(SELECT_ADD, overlapped);
+			}
+
+			Str::fmt msg("Chart Verification:\nStacked Notes: %d\nMines on Notes: %d\nOverlaps: %d");
 			msg.arg(stackedNotes).arg(minesOnNotes).arg(overlaps);
-			gSystem->showMessageDlg("Verify Chart", msg, System::T_OK, System::I_INFORMATION);
+			gSystem->showMessageDlg("Verify Chart", msg, System::T_OK, System::I_INFO);
 		}
 
 	CASE(SELECT_OFF_SYNC_NOTES)
 		{
-			// Select notes not aligned to 192nds (or current snap?)
-			// Usually off-sync means not on 4th/8th/12th/16th/24th/32nd/48th/64th.
-			// 192nd is the base resolution.
-			// If a note is not integer row? No, row is int.
-			// Wait, "off sync" means not aligned to the *grid*.
-			// If the chart uses 192nds, everything is on grid.
-			// But maybe the user wants to find notes that are 192nds but SHOULD be 4ths?
-			// No, usually this finds notes that were autosynced to weird times.
-			// But in AV, notes are always on integer rows.
-			// Unless "Off Sync" means "Time-based quantization error"?
-			// If we assume a constant BPM, we can check. But BPM varies.
-			// Let's assume the user wants to find notes that are not on 4th/8th/12th/16th lines.
-			// i.e. (row % (192/16)) != 0 ?
-			// Let's use 64th note resolution as "Sync". (192 / 16 = 12).
-			// If row % 3 != 0, it's a 192nd that isn't a 64th.
+			Vector<RowCol> offSync;
 
-			int count = 0;
-			// Resolution: 192nds.
-			// 4th: 48
-			// 8th: 24
-			// 12th: 16
-			// 16th: 12
-			// 24th: 8
-			// 32nd: 6
-			// 48th: 4
-			// 64th: 3
-
-			// If it's not divisible by 3, it's a 192nd deviation.
-			// Let's select anything not on 64th grid?
-
-			for(auto it = gNotes->begin(); it != gNotes->end(); ++it) {
+			// Detect notes not on 64th note grid (row % 3 != 0)
+			for(const auto* it = gNotes->begin(); it != gNotes->end(); ++it) {
 				if (it->row % 3 != 0) {
-					// It's a 192nd note (micro-timing).
-					// Select it.
-					// gSelection->selectNote(*it); // Need selection API.
-					// gSelection->selectRegion? No.
-					// gSelection->addNote(*it)?
-					// I don't have the Selection API in front of me fully.
-					// I see `gSelection->selectNotes(int type_mask)`.
-					// I don't see `selectNote(Note*)`.
-					// But `selectRegion` selects range.
-					// I might not be able to select specific notes easily without extending Selection.
-					// But I can count them.
-					count++;
+					offSync.push_back({(int)it->row, (int)it->col});
 				}
 			}
 
-			if (count > 0) {
-				HudNote("Found %d notes with 192nd micro-timing (potential sync errors).", count);
+			if (!offSync.empty()) {
+				gNotes->deselectAll();
+				gNotes->select(SELECT_SET, offSync);
+				HudNote("Selected %d notes with 192nd micro-timing.", offSync.size());
 			} else {
 				HudNote("No off-sync (192nd) notes found.");
 			}
