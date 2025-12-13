@@ -49,6 +49,7 @@ double myZoomLevel, myScaleLevel;
 bool myIsDraggingReceptors;
 bool myIsDraggingBeat;
 int myDraggedBeatRow;
+double myDraggedBeatTime;
 int myHoveredBeatRow;
 bool myUseTimeBasedView;
 bool myUseReverseScroll;
@@ -81,6 +82,7 @@ ViewImpl()
 	, myIsDraggingReceptors(false)
 	, myIsDraggingBeat(false)
 	, myDraggedBeatRow(-1)
+	, myDraggedBeatTime(-1.0)
 	, myHoveredBeatRow(-1)
 	, myPixPerSec(32)
 	, myPixPerRow(16 * BEATS_PER_ROW)
@@ -191,6 +193,8 @@ void onMouseRelease(MouseRelease& evt) override
 	if (evt.button == Mouse::LMB && myIsDraggingBeat)
 	{
 		myIsDraggingBeat = false;
+		gTempo->moveBeat(myDraggedBeatRow, myDraggedBeatTime);
+		myDraggedBeatTime = -1.0;
 	}
 }
 
