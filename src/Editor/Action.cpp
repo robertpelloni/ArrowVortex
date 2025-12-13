@@ -865,6 +865,7 @@ void Action::perform(Type action)
 
 			// Iterate through Label segments
 			const SegmentGroup* segs = gTempo->getSegments();
+			const auto& labels = segs->get<Label>();
 
 			// We need a sorted list of section start rows.
 			std::vector<int> sectionRows;
@@ -939,16 +940,16 @@ void Action::perform(Type action)
 			// Let's iterate and build a list of offending notes?
 			// Or just count them first.
 
-			for(const auto* it = gNotes->begin(); it != gNotes->end(); ++it) {
-				const ExpandedNote& n = *it;
+			for(auto it = gNotes->begin(); it != gNotes->end(); ++it) {
+				Note& n = *it;
 
 				// Check for stacked notes (same row/col)
 				// Sorted list, so check next note
-				const auto* next = it + 1;
+				auto next = it + 1;
 				if (next != gNotes->end() && next->row == n.row && next->col == n.col) {
 					// Found stack
-					if (n.isMine && !next->isMine) minesOnNotes++;
-					else if (!n.isMine && next->isMine) minesOnNotes++;
+					if (n.type == NoteType::NOTE_MINE && next->type != NoteType::NOTE_MINE) minesOnNotes++;
+					else if (n.type != NoteType::NOTE_MINE && next->type == NoteType::NOTE_MINE) minesOnNotes++;
 					else stackedNotes++;
 
 					// Select them?
@@ -972,14 +973,22 @@ void Action::perform(Type action)
 					overlaps++;
 				}
 
-				if (n.endrow > n.row) {
-					activeHoldEnd[n.col] = n.endrow;
+				if (n.type == NoteType::NOTE_HOLD_HEAD || n.type == NoteType::NOTE_ROLL_HEAD) {
+					// n.tailRow is absolute row of tail?
+					// Usually Note struct has duration or tailRow.
+					// Let's assume tailRow or row + length.
+					// Looking at Note.h (in memory): struct Note { int row, col, type, player, length; ... }
+					// Usually length > 0.
+					if (n.length > 0) {
+						activeHoldEnd[n.col] = n.row + n.length;
+					}
 				}
 			}
 
-			Str::fmt msg("Chart Verification:\nStacked Notes: %d\nMines on Notes: %d\nOverlaps: %d");
+			String msg;
+			Str::fmt(msg, "Chart Verification:\nStacked Notes: %d\nMines on Notes: %d\nOverlaps: %d");
 			msg.arg(stackedNotes).arg(minesOnNotes).arg(overlaps);
-			gSystem->showMessageDlg("Verify Chart", msg, System::T_OK, System::I_INFO);
+			gSystem->showMessageDlg("Verify Chart", msg, System::T_OK, System::I_INFORMATION);
 		}
 
 	CASE(SELECT_OFF_SYNC_NOTES)
