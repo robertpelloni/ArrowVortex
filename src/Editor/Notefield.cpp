@@ -435,6 +435,9 @@ void drawBeatLines()
 
 void drawBeats()
 {
+	if (!gView->isTimeBased())
+		return;
+
 	int row = gView->getHoveredBeatRow();
 	if (row == -1)
 		return;
@@ -823,16 +826,43 @@ void NotefieldImpl::toggleShowWaveform()
 	gMenubar->update(Menubar::SHOW_WAVEFORM);
 }
 
+void NotefieldImpl::setShowWaveform(bool show)
+{
+	if (myShowWaveform != show)
+	{
+		myShowWaveform = show;
+		gMenubar->update(Menubar::SHOW_WAVEFORM);
+	}
+}
+
 void NotefieldImpl::toggleShowBeatLines()
 {
 	myShowBeatLines = !myShowBeatLines;
 	gMenubar->update(Menubar::SHOW_BEATLINES);
 }
 
+void NotefieldImpl::setShowBeatLines(bool show)
+{
+	if (myShowBeatLines != show)
+	{
+		myShowBeatLines = show;
+		gMenubar->update(Menubar::SHOW_BEATLINES);
+	}
+}
+
 void NotefieldImpl::toggleShowNotes()
 {
 	myShowNotes = !myShowNotes;
 	gMenubar->update(Menubar::SHOW_NOTES);
+}
+
+void NotefieldImpl::setShowNotes(bool show)
+{
+	if (myShowNotes != show)
+	{
+		myShowNotes = show;
+		gMenubar->update(Menubar::SHOW_NOTES);
+	}
 }
 
 void NotefieldImpl::toggleShowSongPreview()

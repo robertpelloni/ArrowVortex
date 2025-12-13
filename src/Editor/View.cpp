@@ -247,6 +247,10 @@ namespace {
 		// Find the beat the mouse is closest to
 		const double time = gView->offsetToTime(gView->yToOffset(y));
 		int closestRow = gTempo->timeToRow(time);
+
+		// We want to snap to ANY visible grid line, not just 4ths?
+		// snapRow uses the current snap setting (View::SNAP_CLOSEST).
+		// If snap is set to 16ths, closestRow will be a 16th.
 		closestRow = gView->snapRow(closestRow, View::SNAP_CLOSEST);
 
 		// Check if the mouse is close enough to the beat
@@ -375,7 +379,9 @@ void tick()
 	// Handle beat dragging.
 	if (myIsDraggingBeat)
 	{
-		myDraggedBeatTime = offsetToTime(yToOffset(gSystem->getMousePos().y));
+		const double time = offsetToTime(yToOffset(gSystem->getMousePos().y));
+		bool ripple = (gSystem->getKeyboardState() & Keyflag::SHIFT) != 0;
+		gTempo->moveBeat(myDraggedBeatRow, time, ripple);
 	}
 
 	// Set cursor to arrows when hovering over/dragging the receptors.
