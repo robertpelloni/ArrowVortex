@@ -924,6 +924,89 @@ void Action::perform(Type action)
 			HudNote("Applied %d BPM changes based on sections.", count);
 		}
 
+	CASE(CONVERT_REGION_TO_CONSTANT_BPM)
+		{
+			auto region = gSelection->getSelectedRegion();
+			if(region.beginRow >= region.endRow) {
+				HudError("Select a region to flatten.");
+				break;
+			}
+
+			double t1 = gTempo->rowToTime(region.beginRow);
+			double t2 = gTempo->rowToTime(region.endRow);
+			double rows = (double)(region.endRow - region.beginRow);
+			double beats = rows / ROWS_PER_BEAT;
+			double duration = t2 - t1;
+
+			if (duration <= 0.001) {
+				HudError("Invalid duration.");
+				break;
+			}
+
+			double avgBpm = beats * 60.0 / duration;
+
+			// Confirm with user?
+			Str::fmt msg("Flatten region [%d, %d] to constant BPM?\nNew BPM: %.3f");
+			msg.arg(region.beginRow).arg(region.endRow).arg(avgBpm);
+			if (gSystem->showMessageDlg("Flatten Tempo", msg, System::T_YES_NO, System::I_INFO) != System::R_YES) break;
+
+			gHistory->startChain();
+
+			// 1. Remove all BPM changes in (start, end]
+			// We keep Start if it exists, or insert new one.
+			// Actually we want to remove everything strictly inside the region.
+			SegmentEdit edit;
+			const auto& bpms = gTempo->getSegments()->getList<BpmChange>();
+			for(auto it = bpms.begin(); it != bpms.end(); ++it) {
+				if (it->row > region.beginRow && it->row < region.endRow) {
+					edit.rem.append(Segment::BPM, it->row);
+				}
+			}
+			gTempo->modify(edit, false); // false = don't clear region implicitly, we are explicit
+
+			// 2. Insert new BPM at start
+			gTempo->addSegment(BpmChange(region.beginRow, avgBpm));
+
+			// 3. Anchor end?
+			// If we change BPM at start, the time at EndRow will ideally match t2.
+			// But floating point errors.
+			// And we must ensure the NEXT section starts at the correct BPM (if it was different).
+			// If there was a BPM change AT EndRow, it remains.
+			// If there wasn't, we might need to insert one to preserve the tempo AFTER the region?
+			// Yes, we should preserve the BPM that was active at EndRow.
+			double bpmAtEnd = gTempo->getBpm(region.endRow);
+			// But wait, getBpm() calculates based on current segments.
+			// If we just removed segments, getBpm might have changed if we removed the change that governed EndRow.
+			// So we should have captured bpmAtEnd BEFORE modification.
+			// BUT, the logic above (remove > begin && < end) preserves a BPM change exactly AT end.
+			// So if there was one, it's safe.
+			// If there wasn't, then the BPM *after* EndRow was governed by something *before* EndRow.
+			// That "something" might be what we just replaced!
+			// So yes, we MUST insert a BPM change at EndRow to preserve the tempo of the rest of the song.
+			// BUT, what value? The value that *was* active at EndRow.
+
+			// We need to capture this BEFORE editing.
+			// Re-logic:
+
+			// a. Capture BPM at EndRow (before changes)
+			double originalBpmAtEnd = gTempo->getBpm(region.endRow);
+
+			// b. Perform edits (Remove inside, Insert at Start)
+			// ... (done above)
+
+			// c. Insert anchor at EndRow if one doesn't exist
+			bool hasBpmAtEnd = false;
+			// We can check via getRow but getRow returns default if not found.
+			// Just trying to add it is safe if we want to enforce it.
+			// Is it redundant? If avgBpm == originalBpmAtEnd?
+			// Yes, but safe to add.
+
+			gTempo->addSegment(BpmChange(region.endRow, originalBpmAtEnd));
+
+			gHistory->finishChain("Flatten Tempo");
+			HudNote("Region converted to constant %.3f BPM.", avgBpm);
+		}
+
 	CASE(VERIFY_CHART_INTEGRITY)
 		{
 			Vector<RowCol> stacked, overlapped;

@@ -294,6 +294,7 @@ void init(Item* menu)
 	add(hTempo, ESTIMATE_BPM_FROM_SELECTION, "Estimate BPM from selection");
 	add(hTempo, AUTO_SYNC_SONG, "Auto-sync song (Global)");
 	add(hTempo, AUTO_SYNC_SECTIONS, "Auto-sync sections (Local BPMs)");
+	add(hTempo, CONVERT_REGION_TO_CONSTANT_BPM, "Convert region to constant BPM");
 	add(hTempo, SNAP_OFFSET_TO_FIRST_BEAT, "Snap offset to first beat");
 	add(hTempo, QUANTIZE_TO_AUDIO, "Quantize to audio (Selection)");
 	add(hTempo, WARP_GRID_TO_AUDIO, "Warp grid to audio (Selection)");
