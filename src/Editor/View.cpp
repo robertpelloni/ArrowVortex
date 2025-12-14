@@ -200,6 +200,7 @@ void onMouseRelease(MouseRelease& evt) override
 		const double time = offsetToTime(yToOffset(gSystem->getMousePos().y));
 		bool ripple = (gSystem->getKeyboardState() & Keyflag::SHIFT) != 0;
 		gTempo->moveBeat(myDraggedBeatRow, time, ripple);
+		gTempo->injectBoundingBpmChange(myDraggedBeatRow);
 	}
 }
 
