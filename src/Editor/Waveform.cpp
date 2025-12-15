@@ -1290,6 +1290,148 @@ void edgeLumAmplitude(WaveEdge* edge, int w, int h)
 	}
 }
 
+float getSpectrogramGain()
+{
+	return waveformSpectrogramGain_;
+}
+
+void setRGBCrossovers(float low, float high)
+{
+	if (waveformRGBLow_ != low || waveformRGBHigh_ != high)
+	{
+		waveformRGBLow_ = low;
+		waveformRGBHigh_ = high;
+		if (waveformColorMode_ == CM_RGB)
+		{
+			waveformFilterRGB_->dirty = true;
+			waveformFilterRGB_->update(waveformRGBLow_, waveformRGBHigh_);
+			clearBlocks();
+		}
+	}
+}
+
+float getRGBLowHigh(bool high)
+{
+	return high ? waveformRGBHigh_ : waveformRGBLow_;
+}
+
+void updateOnsets()
+{
+	waveformOnsets_.clear();
+	auto& music = gMusic->getSamples();
+	if(music.isCompleted() && music.getNumFrames() > 0)
+	{
+		// Convert to float buffer for FindOnsets
+		int numFrames = music.getNumFrames();
+		int samplerate = music.getFrequency();
+		std::vector<float> floatSamples(numFrames);
+		const short* src = music.samplesL(); // Use Left channel for onsets
+		for(int i=0; i<numFrames; ++i) {
+			floatSamples[i] = src[i] / 32768.0f;
+		}
+
+		FindOnsets(floatSamples.data(), samplerate, numFrames, 1, waveformOnsets_, waveformOnsetThreshold_);
+	}
+}
+
+// ================================================================================================
+// Waveform :: luminance functions.
+
+bool hasShowOnsets()
+{
+	return waveformShowOnsets_;
+}
+
+void setOnsetThreshold(float threshold)
+{
+	if (waveformOnsetThreshold_ != threshold)
+	{
+		waveformOnsetThreshold_ = threshold;
+		updateOnsets();
+	}
+}
+
+float getOnsetThreshold()
+{
+	return waveformOnsetThreshold_;
+}
+
+void setSpectrogramGain(float gain)
+{
+	if (waveformSpectrogramGain_ != gain)
+	{
+		waveformSpectrogramGain_ = gain;
+		clearBlocks();
+	}
+}
+
+float getSpectrogramGain()
+{
+	return waveformSpectrogramGain_;
+}
+
+void setRGBCrossovers(float low, float high)
+{
+	if (waveformRGBLow_ != low || waveformRGBHigh_ != high)
+	{
+		waveformRGBLow_ = low;
+		waveformRGBHigh_ = high;
+		if (waveformColorMode_ == CM_RGB)
+		{
+			waveformFilterRGB_->dirty = true;
+			waveformFilterRGB_->update(waveformRGBLow_, waveformRGBHigh_);
+			clearBlocks();
+		}
+	}
+}
+
+float getRGBLowHigh(bool high)
+{
+	return high ? waveformRGBHigh_ : waveformRGBLow_;
+}
+
+void updateOnsets()
+{
+	waveformOnsets_.clear();
+	auto& music = gMusic->getSamples();
+	if(music.isCompleted() && music.getNumFrames() > 0)
+	{
+		// Convert to float buffer for FindOnsets
+		int numFrames = music.getNumFrames();
+		int samplerate = music.getFrequency();
+		std::vector<float> floatSamples(numFrames);
+		const short* src = music.samplesL(); // Use Left channel for onsets
+		for(int i=0; i<numFrames; ++i) {
+			floatSamples[i] = src[i] / 32768.0f;
+		}
+
+		FindOnsets(floatSamples.data(), samplerate, numFrames, 1, waveformOnsets_, waveformOnsetThreshold_);
+	}
+}
+
+// ================================================================================================
+// Waveform :: luminance functions.
+
+struct WaveEdge { int l, r; uchar lum; };
+
+void edgeLumUniform(WaveEdge* edge, int h)
+{
+	for(int y = 0; y < h; ++y, ++edge)
+	{
+		edge->lum = 255;
+	}
+}
+
+void edgeLumAmplitude(WaveEdge* edge, int w, int h)
+{
+	int scalar = (255 << 16) * 2 / w;
+	for(int y = 0; y < h; ++y, ++edge)
+	{
+		int mag = max(abs(edge->l), abs(edge->r));
+		edge->lum = (mag * scalar) >> 16;
+	}
+}
+
 // ================================================================================================
 // Waveform :: edge shape functions.
 
@@ -1824,6 +1966,2429 @@ void renderWaveformSpectrogram(Texture* textures, WaveEdge* edgeBuf, int w, int 
 }
 
 void renderWaveformChromagram(Texture* textures, WaveEdge* edgeBuf, int w, int h, int blockId)
+
+			// Extract frame centered at currentSample
+			int start = currentSample - frameSize / 2;
+			for(int k=0; k<frameSize; ++k) {
+				if (start + k >= 0 && start + k < totalFrames) {
+					audioFrame[k] = samples[start+k] / 32768.0f;
+				} else {
+					audioFrame[k] = 0.0f;
+				}
+			}
+
+			gist.processAudioFrame(audioFrame);
+			const auto& magSpec = gist.getMelFrequencySpectrum();
+			// Mel spectrum is better for visualization. Gist default mel bank size is usually 40?
+			// Let's check Gist.h... getMelFrequencySpectrum returns vector.
+			// If it's small, we upscale. If we use getMagnitudeSpectrum(), it's frameSize/2 (512).
+			// w is around 256 or 512.
+
+			const auto& spectrum = gist.getMagnitudeSpectrum();
+			int numBins = spectrum.size();
+
+			// We map bins to x (0..w).
+			// Standard waveform is centered at w/2.
+			// Spectrogram usually goes low->high freq.
+			// Let's draw: Center = Low Freq (Bass). Edges = High Freq.
+			// This mimics the waveform shape (amplitude highest in center).
+			// Or: Left = Low, Right = High? No, w is the width of the notefield lane basically.
+			// If we duplicate (mirror) it looks like a waveform.
+			// Center (x=w/2) = 0Hz. x=0 and x=w = Nyquist.
+
+			int cx = w / 2;
+			for(int x = 0; x < cx; ++x)
+			{
+				// Map x to frequency bin (logarithmic looks better but linear is easier first)
+				// Linear mapping: bin = x * numBins / cx;
+				// Log mapping:
+				float t = (float)x / cx; // 0..1 (Low..High)
+				// We want more resolution at low freqs.
+				// bin = numBins * (pow(100, t) - 1) / 99?
+				// Let's stick to linear for now or simple log.
+
+				int bin = (int)(t * t * numBins); // Quadratic
+				bin = clamp(bin, 0, numBins-1);
+
+				float val = spectrum[bin];
+				val = log10(1 + val * waveformSpectrogramGain_) * 2.0f; // Scale for visibility
+				val = clamp(val, 0.0f, 1.0f);
+
+				uchar intensity = (uchar)(val * 255);
+
+				// Magma-like colormap (Black -> Red -> Yellow -> White)
+				uchar r = intensity;
+				uchar g = (intensity > 128) ? (intensity - 128) * 2 : 0;
+				uchar b = (intensity > 192) ? (intensity - 192) * 4 : 0;
+
+				// Mirror
+				int l = cx - 1 - x;
+				int r_pos = cx + x;
+
+				if(l >= 0) {
+					texBuf[(y * w + l) * 4 + 0] = r;
+					texBuf[(y * w + l) * 4 + 1] = g;
+					texBuf[(y * w + l) * 4 + 2] = b;
+					texBuf[(y * w + l) * 4 + 3] = intensity; // Use intensity as alpha? Or full opaque?
+					// Standard waveform uses alpha for shape.
+					// If we use full opaque, we fill the box.
+					// Let's use intensity as alpha to blend with background.
+				}
+				if(r_pos < w) {
+					texBuf[(y * w + r_pos) * 4 + 0] = r;
+					texBuf[(y * w + r_pos) * 4 + 1] = g;
+					texBuf[(y * w + r_pos) * 4 + 2] = b;
+					texBuf[(y * w + r_pos) * 4 + 3] = intensity;
+				}
+			}
+		}
+
+		// Apply anti-aliasing
+		switch (waveformAntiAliasingMode_) {
+		case 1: antiAlias2xRGB(texBuf, w, h); break;
+		case 2: antiAlias3xRGB(texBuf, w, h); break;
+		case 3: antiAlias4xRGB(texBuf, w, h); break;
+		}
+
+		if (!textures[channel].handle() || textures[channel].format() != Texture::RGBA) {
+			textures[channel] = Texture(TEX_W, TEX_H, Texture::RGBA);
+		}
+		textures[channel].modify(0, 0, waveformBlockWidth_, TEX_H, texBuf);
+	}
+}
+
+void renderWaveformChromagram(Texture* textures, WaveEdge* edgeBuf, int w, int h, int blockId)
+{
+	uchar* texBuf = waveformTextureBuffer_.begin();
+
+	auto& music = gMusic->getSamples();
+	double samplesPerSec = (double)music.getFrequency();
+	double samplesPerPixel = samplesPerSec / fabs(gView->getPixPerSec());
+	double samplesPerBlock = (double)TEX_H * samplesPerPixel;
+	int64_t samplePos = max((int64_t)0, (int64_t)(samplesPerBlock * (double)blockId));
+
+	double advance = samplesPerPixel * TEX_H / h;
+
+	memset(texBuf, 0, w * h * 4);
+
+	for(int channel = 0; channel < 2; ++channel)
+	{
+		const auto& chroma = (channel == 0) ? waveformFilterChromagram_->chromaL : waveformFilterChromagram_->chromaR;
+		int numBlocks = chroma.empty() ? 0 : chroma[0].size();
+
+		for(int y = 0; y < h; ++y)
+		{
+			int64_t currentSample = samplePos + (int64_t)(y * advance);
+			int blockIndex = (int)(currentSample / waveformFilterChromagram_->samplesPerBlock);
+
+			if (blockIndex < 0 || blockIndex >= numBlocks) continue;
+
+			int cx = w / 2;
+
+			// Draw chromagram (12 bins). Map x to bin.
+			for(int x = 0; x < cx; ++x)
+			{
+				float t = (float)x / cx; // 0..1
+				int bin = (int)(t * 12);
+				bin = clamp(bin, 0, 11);
+
+				uchar intensity = chroma[bin][blockIndex];
+
+				// Map bin to hue (Circle of Fifths or Chromatic?)
+				// Chromatic: C=Red, C#=Orange...
+				float hue = bin * 30.0f; // 360 / 12
+
+				float s = 0.8f;
+				float v = intensity / 255.0f;
+
+				float c = v * s;
+				float hh = hue / 60.0f;
+				float xx = c * (1 - fabs(fmod(hh, 2) - 1));
+				float r=0, g=0, b=0;
+
+				if (hh < 1) { r=c; g=xx; b=0; }
+				else if (hh < 2) { r=xx; g=c; b=0; }
+				else if (hh < 3) { r=0; g=c; b=xx; }
+				else if (hh < 4) { r=0; g=xx; b=c; }
+				else if (hh < 5) { r=xx; g=0; b=c; }
+				else { r=c; g=0; b=xx; }
+
+				uchar R = (uchar)(r * 255);
+				uchar G = (uchar)(g * 255);
+				uchar B = (uchar)(b * 255);
+
+				// Mirror
+				int l = cx - 1 - x;
+				int r_pos = cx + x;
+
+				if(l >= 0) {
+					texBuf[(y * w + l) * 4 + 0] = R;
+					texBuf[(y * w + l) * 4 + 1] = G;
+					texBuf[(y * w + l) * 4 + 2] = B;
+					texBuf[(y * w + l) * 4 + 3] = intensity;
+				}
+				if(r_pos < w) {
+					texBuf[(y * w + r_pos) * 4 + 0] = R;
+					texBuf[(y * w + r_pos) * 4 + 1] = G;
+					texBuf[(y * w + r_pos) * 4 + 2] = B;
+					texBuf[(y * w + r_pos) * 4 + 3] = intensity;
+				}
+			}
+		}
+
+		// Apply anti-aliasing
+		switch (waveformAntiAliasingMode_) {
+		case 1: antiAlias2xRGB(texBuf, w, h); break;
+		case 2: antiAlias3xRGB(texBuf, w, h); break;
+		case 3: antiAlias4xRGB(texBuf, w, h); break;
+		}
+
+		if (!textures[channel].handle() || textures[channel].format() != Texture::RGBA) {
+			textures[channel] = Texture(TEX_W, TEX_H, Texture::RGBA);
+		}
+		textures[channel].modify(0, 0, waveformBlockWidth_, TEX_H, texBuf);
+	}
+}
+
+void renderWaveformNovelty(Texture* textures, WaveEdge* edgeBuf, int w, int h, int blockId)
+{
+	uchar* texBuf = waveformTextureBuffer_.begin();
+
+	auto& music = gMusic->getSamples();
+	double samplesPerSec = (double)music.getFrequency();
+	double samplesPerPixel = samplesPerSec / fabs(gView->getPixPerSec());
+	double samplesPerBlock = (double)TEX_H * samplesPerPixel;
+	int64_t samplePos = max((int64_t)0, (int64_t)(samplesPerBlock * (double)blockId));
+
+	double advance = samplesPerPixel * TEX_H / h;
+
+	memset(texBuf, 0, w * h * 4);
+
+	for(int channel = 0; channel < 2; ++channel)
+	{
+		const auto& flux = (channel == 0) ? waveformFilterNovelty_->fluxL : waveformFilterNovelty_->fluxR;
+		int numBlocks = flux.size();
+
+		for(int y = 0; y < h; ++y)
+		{
+			int64_t currentSample = samplePos + (int64_t)(y * advance);
+			int blockIndex = (int)(currentSample / waveformFilterNovelty_->samplesPerBlock);
+
+			if (blockIndex < 0 || blockIndex >= numBlocks) continue;
+
+			int cx = w / 2;
+			uchar intensity = flux[blockIndex];
+
+			// Draw flux as a solid block width proportional to intensity
+			int width = (int)(intensity / 255.0f * cx);
+
+			for(int x = 0; x < cx; ++x)
+			{
+				// Color: Green -> Red (Low -> High Novelty)
+				uchar r = intensity;
+				uchar g = 255 - intensity;
+				uchar b = 0;
+				uchar a = (x <= width) ? 255 : 0;
+
+				if (a == 0) { r=0; g=0; b=0; }
+
+				// Mirror
+				int l = cx - 1 - x;
+				int r_pos = cx + x;
+
+				if(l >= 0) {
+					texBuf[(y * w + l) * 4 + 0] = r;
+					texBuf[(y * w + l) * 4 + 1] = g;
+					texBuf[(y * w + l) * 4 + 2] = b;
+					texBuf[(y * w + l) * 4 + 3] = a;
+				}
+				if(r_pos < w) {
+					texBuf[(y * w + r_pos) * 4 + 0] = r;
+					texBuf[(y * w + r_pos) * 4 + 1] = g;
+					texBuf[(y * w + r_pos) * 4 + 2] = b;
+					texBuf[(y * w + r_pos) * 4 + 3] = a;
+				}
+			}
+		}
+
+		// Apply anti-aliasing
+		switch (waveformAntiAliasingMode_) {
+		case 1: antiAlias2xRGB(texBuf, w, h); break;
+		case 2: antiAlias3xRGB(texBuf, w, h); break;
+		case 3: antiAlias4xRGB(texBuf, w, h); break;
+		}
+
+		if (!textures[channel].handle() || textures[channel].format() != Texture::RGBA) {
+			textures[channel] = Texture(TEX_W, TEX_H, Texture::RGBA);
+		}
+		textures[channel].modify(0, 0, waveformBlockWidth_, TEX_H, texBuf);
+	}
+}
+
+void renderWaveformChromagram(Texture* textures, WaveEdge* edgeBuf, int w, int h, int blockId)
+{
+	uchar* texBuf = waveformTextureBuffer_.begin();
+
+	auto& music = gMusic->getSamples();
+	double samplesPerSec = (double)music.getFrequency();
+	double samplesPerPixel = samplesPerSec / fabs(gView->getPixPerSec());
+	double samplesPerBlock = (double)TEX_H * samplesPerPixel;
+	int64_t samplePos = max((int64_t)0, (int64_t)(samplesPerBlock * (double)blockId));
+
+	double advance = samplesPerPixel * TEX_H / h;
+
+	memset(texBuf, 0, w * h * 4);
+
+	for(int channel = 0; channel < 2; ++channel)
+	{
+		const auto& chroma = (channel == 0) ? waveformFilterChromagram_->chromaL : waveformFilterChromagram_->chromaR;
+		int numBlocks = chroma.empty() ? 0 : chroma[0].size();
+
+		for(int y = 0; y < h; ++y)
+		{
+			int64_t currentSample = samplePos + (int64_t)(y * advance);
+			int blockIndex = (int)(currentSample / waveformFilterChromagram_->samplesPerBlock);
+
+			if (blockIndex < 0 || blockIndex >= numBlocks) continue;
+
+			int cx = w / 2;
+
+			// Draw chromagram (12 bins). Map x to bin.
+			for(int x = 0; x < cx; ++x)
+			{
+				float t = (float)x / cx; // 0..1
+				int bin = (int)(t * 12);
+				bin = clamp(bin, 0, 11);
+
+				uchar intensity = chroma[bin][blockIndex];
+
+				// Map bin to hue (Circle of Fifths or Chromatic?)
+				// Chromatic: C=Red, C#=Orange...
+				float hue = bin * 30.0f; // 360 / 12
+
+				float s = 0.8f;
+				float v = intensity / 255.0f;
+
+				float c = v * s;
+				float hh = hue / 60.0f;
+				float xx = c * (1 - fabs(fmod(hh, 2) - 1));
+				float r=0, g=0, b=0;
+
+				if (hh < 1) { r=c; g=xx; b=0; }
+				else if (hh < 2) { r=xx; g=c; b=0; }
+				else if (hh < 3) { r=0; g=c; b=xx; }
+				else if (hh < 4) { r=0; g=xx; b=c; }
+				else if (hh < 5) { r=xx; g=0; b=c; }
+				else { r=c; g=0; b=xx; }
+
+				uchar R = (uchar)(r * 255);
+				uchar G = (uchar)(g * 255);
+				uchar B = (uchar)(b * 255);
+
+				// Mirror
+				int l = cx - 1 - x;
+				int r_pos = cx + x;
+
+				if(l >= 0) {
+					texBuf[(y * w + l) * 4 + 0] = R;
+					texBuf[(y * w + l) * 4 + 1] = G;
+					texBuf[(y * w + l) * 4 + 2] = B;
+					texBuf[(y * w + l) * 4 + 3] = intensity;
+				}
+				if(r_pos < w) {
+					texBuf[(y * w + r_pos) * 4 + 0] = R;
+					texBuf[(y * w + r_pos) * 4 + 1] = G;
+					texBuf[(y * w + r_pos) * 4 + 2] = B;
+					texBuf[(y * w + r_pos) * 4 + 3] = intensity;
+				}
+			}
+		}
+
+		// Apply anti-aliasing
+		switch (waveformAntiAliasingMode_) {
+		case 1: antiAlias2xRGB(texBuf, w, h); break;
+		case 2: antiAlias3xRGB(texBuf, w, h); break;
+		case 3: antiAlias4xRGB(texBuf, w, h); break;
+		}
+
+		if (!textures[channel].handle() || textures[channel].format() != Texture::RGBA) {
+			textures[channel] = Texture(TEX_W, TEX_H, Texture::RGBA);
+		}
+		textures[channel].modify(0, 0, waveformBlockWidth_, TEX_H, texBuf);
+	}
+}
+
+void renderWaveformNovelty(Texture* textures, WaveEdge* edgeBuf, int w, int h, int blockId)
+{
+	uchar* texBuf = waveformTextureBuffer_.begin();
+
+	auto& music = gMusic->getSamples();
+	double samplesPerSec = (double)music.getFrequency();
+	double samplesPerPixel = samplesPerSec / fabs(gView->getPixPerSec());
+	double samplesPerBlock = (double)TEX_H * samplesPerPixel;
+	int64_t samplePos = max((int64_t)0, (int64_t)(samplesPerBlock * (double)blockId));
+
+	double advance = samplesPerPixel * TEX_H / h;
+
+	memset(texBuf, 0, w * h * 4);
+
+	for(int channel = 0; channel < 2; ++channel)
+	{
+		const auto& flux = (channel == 0) ? waveformFilterNovelty_->fluxL : waveformFilterNovelty_->fluxR;
+		int numBlocks = flux.size();
+
+		for(int y = 0; y < h; ++y)
+		{
+			int64_t currentSample = samplePos + (int64_t)(y * advance);
+			int blockIndex = (int)(currentSample / waveformFilterNovelty_->samplesPerBlock);
+
+			if (blockIndex < 0 || blockIndex >= numBlocks) continue;
+
+			int cx = w / 2;
+			uchar intensity = flux[blockIndex];
+
+			// Draw flux as a solid block width proportional to intensity
+			int width = (int)(intensity / 255.0f * cx);
+
+			for(int x = 0; x < cx; ++x)
+			{
+				// Color: Green -> Red (Low -> High Novelty)
+				uchar r = intensity;
+				uchar g = 255 - intensity;
+				uchar b = 0;
+				uchar a = (x <= width) ? 255 : 0;
+
+				if (a == 0) { r=0; g=0; b=0; }
+
+				// Mirror
+				int l = cx - 1 - x;
+				int r_pos = cx + x;
+
+				if(l >= 0) {
+					texBuf[(y * w + l) * 4 + 0] = r;
+					texBuf[(y * w + l) * 4 + 1] = g;
+					texBuf[(y * w + l) * 4 + 2] = b;
+					texBuf[(y * w + l) * 4 + 3] = a;
+				}
+				if(r_pos < w) {
+					texBuf[(y * w + r_pos) * 4 + 0] = r;
+					texBuf[(y * w + r_pos) * 4 + 1] = g;
+					texBuf[(y * w + r_pos) * 4 + 2] = b;
+					texBuf[(y * w + r_pos) * 4 + 3] = a;
+				}
+			}
+		}
+
+		// Apply anti-aliasing
+		switch (waveformAntiAliasingMode_) {
+		case 1: antiAlias2xRGB(texBuf, w, h); break;
+		case 2: antiAlias3xRGB(texBuf, w, h); break;
+		case 3: antiAlias4xRGB(texBuf, w, h); break;
+		}
+
+		if (!textures[channel].handle() || textures[channel].format() != Texture::RGBA) {
+			textures[channel] = Texture(TEX_W, TEX_H, Texture::RGBA);
+		}
+		textures[channel].modify(0, 0, waveformBlockWidth_, TEX_H, texBuf);
+	}
+}
+
+void renderWaveformColored(Texture* textures, WaveEdge* edgeBuf, int w, int h, int blockId, FilterType* filter)
+{
+	// Similar to standard render, but we pass a color buffer to the shape function
+	uchar* texBuf = waveformTextureBuffer_.begin();
+
+	auto& music = gMusic->getSamples();
+	double samplesPerSec = (double)music.getFrequency();
+	double samplesPerPixel = samplesPerSec / fabs(gView->getPixPerSec());
+	double samplesPerBlock = (double)TEX_H * samplesPerPixel;
+	int64_t samplePos = max((int64_t)0, (int64_t)(samplesPerBlock * (double)blockId));
+
+	// Collect colors for this block
+	// We need to sample the color array at the same rate as the pixels (lines)
+	Vector<WaveFilterSpectral::ColorPoint> blockColors;
+	blockColors.resize(h);
+
+	for(int channel = 0; channel < 2; ++channel)
+	{
+		const auto& srcColors = (channel==0) ? filter->colorsL : filter->colorsR;
+		if (samplePos < srcColors.size()) {
+			double advance = samplesPerPixel * TEX_H / h;
+			for(int y=0; y<h; ++y) {
+				int idx = (int)(samplePos + y * advance);
+				if (idx < srcColors.size()) {
+					// We assume ColorPoint is compatible or castable
+					const auto& sc = srcColors[idx];
+					blockColors[y] = {sc.r, sc.g, sc.b};
+				} else {
+					blockColors[y] = {255, 255, 255};
+				}
+			}
+		}
+
+		memset(texBuf, 0, w * h * 4);
+
+		// Process edges (using standard sampleEdges on original audio)
+		sampleEdges(edgeBuf, w, h, channel, blockId, false);
+
+		if (waveformLuminance_ == LL_UNIFORM) {
+			edgeLumUniform(edgeBuf, h);
+		}
+		else if (waveformLuminance_ == LL_AMPLITUDE) {
+			edgeLumAmplitude(edgeBuf, w, h);
+		}
+
+		if (waveformShape_ == WS_RECTIFIED) {
+			edgeShapeRectifiedSpectral(texBuf, edgeBuf, w, h, blockColors.begin());
+		}
+		else if (waveformShape_ == WS_SIGNED) {
+			edgeShapeSignedSpectral(texBuf, edgeBuf, w, h, blockColors.begin());
+		}
+
+		// Anti-alias
+		switch (waveformAntiAliasingMode_) {
+		case 1: antiAlias2xRGB(texBuf, w, h); break;
+		case 2: antiAlias3xRGB(texBuf, w, h); break;
+		case 3: antiAlias4xRGB(texBuf, w, h); break;
+		}
+
+		if (!textures[channel].handle() || textures[channel].format() != Texture::RGBA) {
+			textures[channel] = Texture(TEX_W, TEX_H, Texture::RGBA);
+		}
+		textures[channel].modify(0, 0, waveformBlockWidth_, TEX_H, texBuf);
+	}
+}
+
+void renderWaveformCQT(Texture* textures, WaveEdge* edgeBuf, int w, int h, int blockId)
+{
+	uchar* texBuf = waveformTextureBuffer_.begin();
+
+	auto& music = gMusic->getSamples();
+	double samplesPerSec = (double)music.getFrequency();
+	double samplesPerPixel = samplesPerSec / fabs(gView->getPixPerSec());
+	double samplesPerBlock = (double)TEX_H * samplesPerPixel;
+	int64_t samplePos = max((int64_t)0, (int64_t)(samplesPerBlock * (double)blockId));
+
+	double advance = samplesPerPixel * TEX_H / h;
+
+	memset(texBuf, 0, w * h * 4);
+
+	const int minNote = 21;
+	const int maxNote = 108;
+	const int numNotes = maxNote - minNote + 1;
+
+	for(int channel = 0; channel < 2; ++channel)
+	{
+		const auto& intensities = (channel == 0) ? waveformFilterCQT_->intensitiesL : waveformFilterCQT_->intensitiesR;
+		int numBlocks = intensities.empty() ? 0 : intensities[0].size();
+
+		for(int y = 0; y < h; ++y)
+		{
+			int64_t currentSample = samplePos + (int64_t)(y * advance);
+			int blockIndex = (int)(currentSample / waveformFilterCQT_->samplesPerBlock);
+
+			if (blockIndex < 0 || blockIndex >= numBlocks) continue;
+
+			int cx = w / 2;
+
+			for(int x = 0; x < cx; ++x)
+			{
+				float t = (float)x / cx; // 0..1
+				float noteFloat = minNote + t * (maxNote - minNote);
+				int note = (int)noteFloat;
+
+				if (note < minNote || note > maxNote) continue;
+				int noteIdx = note - minNote;
+				if (noteIdx >= numNotes) continue;
+
+				uchar intensity = intensities[noteIdx][blockIndex];
+
+				float chroma = fmod(noteFloat, 12.0f);
+				float hue = chroma * 30.0f;
+
+				float s = 0.8f;
+				float v = intensity / 255.0f;
+
+				float c = v * s;
+				float hh = hue / 60.0f;
+				float xx = c * (1 - fabs(fmod(hh, 2) - 1));
+				float r=0, g=0, b=0;
+
+				if (hh < 1) { r=c; g=xx; b=0; }
+				else if (hh < 2) { r=xx; g=c; b=0; }
+				else if (hh < 3) { r=0; g=c; b=xx; }
+				else if (hh < 4) { r=0; g=xx; b=c; }
+				else if (hh < 5) { r=xx; g=0; b=c; }
+				else { r=c; g=0; b=xx; }
+
+				uchar R = (uchar)(r * 255);
+				uchar G = (uchar)(g * 255);
+				uchar B = (uchar)(b * 255);
+
+				// Mirror
+				int l = cx - 1 - x;
+				int r_pos = cx + x;
+
+				if(l >= 0) {
+					texBuf[(y * w + l) * 4 + 0] = R;
+					texBuf[(y * w + l) * 4 + 1] = G;
+					texBuf[(y * w + l) * 4 + 2] = B;
+					texBuf[(y * w + l) * 4 + 3] = intensity;
+				}
+				if(r_pos < w) {
+					texBuf[(y * w + r_pos) * 4 + 0] = R;
+					texBuf[(y * w + r_pos) * 4 + 1] = G;
+					texBuf[(y * w + r_pos) * 4 + 2] = B;
+					texBuf[(y * w + r_pos) * 4 + 3] = intensity;
+				}
+			}
+		}
+
+		// Apply anti-aliasing
+		switch (waveformAntiAliasingMode_) {
+		case 1: antiAlias2xRGB(texBuf, w, h); break;
+		case 2: antiAlias3xRGB(texBuf, w, h); break;
+		case 3: antiAlias4xRGB(texBuf, w, h); break;
+		}
+
+		if (!textures[channel].handle() || textures[channel].format() != Texture::RGBA) {
+			textures[channel] = Texture(TEX_W, TEX_H, Texture::RGBA);
+		}
+		textures[channel].modify(0, 0, waveformBlockWidth_, TEX_H, texBuf);
+	}
+}
+
+void renderWaveformRGB(Texture* textures, WaveEdge* edgeBuf, int w, int h, int blockId)
+{
+	uchar* texBuf = waveformTextureBuffer_.begin();
+	for(int channel = 0; channel < 2; ++channel)
+	{
+		memset(texBuf, 0, w * h * 4); // RGBA
+
+		// Process edges for each band
+		// Band 0: Low -> Red (channel offset 0)
+		// Band 1: Mid -> Green (channel offset 1)
+		// Band 2: High -> Blue (channel offset 2)
+
+		for(int band = 0; band < 3; ++band) {
+			sampleEdgesRGB(edgeBuf, w, h, channel, blockId, band);
+
+			if (waveformLuminance_ == LL_UNIFORM) {
+				edgeLumUniform(edgeBuf, h);
+			}
+			else if (waveformLuminance_ == LL_AMPLITUDE) {
+				edgeLumAmplitude(edgeBuf, w, h);
+			}
+
+			if (waveformShape_ == WS_RECTIFIED) {
+				edgeShapeRectifiedRGB(texBuf, edgeBuf, w, h, band);
+			}
+			else if (waveformShape_ == WS_SIGNED) {
+				edgeShapeSignedRGB(texBuf, edgeBuf, w, h, band);
+			}
+		}
+
+		// Apply anti-aliasing (needs RGB support)
+		switch (waveformAntiAliasingMode_) {
+		case 1: antiAlias2xRGB(texBuf, w, h); break;
+		case 2: antiAlias3xRGB(texBuf, w, h); break;
+		case 3: antiAlias4xRGB(texBuf, w, h); break;
+		}
+
+		// Create or update texture
+		if (!textures[channel].handle() || textures[channel].format() != Texture::RGBA) {
+			textures[channel] = Texture(TEX_W, TEX_H, Texture::RGBA);
+		}
+		textures[channel].modify(0, 0, waveformBlockWidth_, TEX_H, texBuf);
+	}
+}
+
+void renderWaveformTempogram(Texture* textures, WaveEdge* edgeBuf, int w, int h, int blockId)
+{
+	uchar* texBuf = waveformTextureBuffer_.begin();
+
+	auto& music = gMusic->getSamples();
+	double samplesPerSec = (double)music.getFrequency();
+	double samplesPerPixel = samplesPerSec / fabs(gView->getPixPerSec());
+	double samplesPerBlock = (double)TEX_H * samplesPerPixel;
+	int64_t samplePos = max((int64_t)0, (int64_t)(samplesPerBlock * (double)blockId));
+
+	double advance = samplesPerPixel * TEX_H / h;
+
+	memset(texBuf, 0, w * h * 4);
+
+	for(int channel = 0; channel < 2; ++channel)
+	{
+		const auto& tempogram = (channel == 0) ? waveformFilterTempogram_->tempogramL : waveformFilterTempogram_->tempogramR;
+		int numBins = tempogram.size();
+		int numBlocks = (numBins > 0) ? tempogram[0].size() : 0;
+
+		for(int y = 0; y < h; ++y)
+		{
+			int64_t currentSample = samplePos + (int64_t)(y * advance);
+			int blockIndex = (int)(currentSample / waveformFilterTempogram_->samplesPerBlock);
+
+			if (blockIndex < 0 || blockIndex >= numBlocks) continue;
+
+			int cx = w / 2;
+
+			for(int x = 0; x < cx; ++x)
+			{
+				float t = (float)x / cx; // 0..1
+				int bin = (int)(t * numBins);
+				bin = clamp(bin, 0, numBins-1);
+
+				uchar intensity = tempogram[bin][blockIndex];
+
+				// Heatmap: Blue->Red->Yellow
+				uchar r, g, b;
+				if (intensity < 128) {
+					// Blue to Green
+					r = 0;
+					g = intensity * 2;
+					b = 255 - intensity * 2;
+				} else {
+					// Green to Red
+					r = (intensity - 128) * 2;
+					g = 255 - (intensity - 128) * 2;
+					b = 0;
+				}
+
+				int l = cx - 1 - x;
+				int r_pos = cx + x;
+
+				if(l >= 0) {
+					texBuf[(y * w + l) * 4 + 0] = r;
+					texBuf[(y * w + l) * 4 + 1] = g;
+					texBuf[(y * w + l) * 4 + 2] = b;
+					texBuf[(y * w + l) * 4 + 3] = intensity;
+				}
+				if(r_pos < w) {
+					texBuf[(y * w + r_pos) * 4 + 0] = r;
+					texBuf[(y * w + r_pos) * 4 + 1] = g;
+					texBuf[(y * w + r_pos) * 4 + 2] = b;
+					texBuf[(y * w + r_pos) * 4 + 3] = intensity;
+				}
+			}
+		}
+
+		switch (waveformAntiAliasingMode_) {
+		case 1: antiAlias2xRGB(texBuf, w, h); break;
+		case 2: antiAlias3xRGB(texBuf, w, h); break;
+		case 3: antiAlias4xRGB(texBuf, w, h); break;
+		}
+
+		if (!textures[channel].handle() || textures[channel].format() != Texture::RGBA) {
+			textures[channel] = Texture(TEX_W, TEX_H, Texture::RGBA);
+		}
+		textures[channel].modify(0, 0, waveformBlockWidth_, TEX_H, texBuf);
+	}
+}
+
+void renderWaveformHPSS(Texture* textures, WaveEdge* edgeBuf, int w, int h, int blockId, bool harmonic)
+{
+	uchar* texBuf = waveformTextureBuffer_.begin();
+
+	auto& music = gMusic->getSamples();
+	double samplesPerSec = (double)music.getFrequency();
+	double samplesPerPixel = samplesPerSec / fabs(gView->getPixPerSec());
+	double samplesPerBlock = (double)TEX_H * samplesPerPixel;
+	int64_t samplePos = max((int64_t)0, (int64_t)(samplesPerBlock * (double)blockId));
+
+	double advance = samplesPerPixel * TEX_H / h;
+
+	memset(texBuf, 0, w * h * 4);
+
+	for(int channel = 0; channel < 2; ++channel)
+	{
+		const auto& spec = harmonic ? waveformFilterHPSS_->specH[channel] : waveformFilterHPSS_->specP[channel];
+		if (spec.width == 0) continue;
+
+		for(int y = 0; y < h; ++y)
+		{
+			int64_t currentSample = samplePos + (int64_t)(y * advance);
+			// Calculate time index in spectrogram
+			int t = (int)(currentSample / waveformFilterHPSS_->samplesPerBlock);
+			if (t < 0 || t >= spec.width) continue;
+
+			int cx = w / 2;
+			int numBins = spec.height;
+
+			for(int x = 0; x < cx; ++x)
+			{
+				float u = (float)x / cx;
+				// Linear mapping for now to match spectrogram
+				int bin = (int)(u * u * numBins);
+				bin = clamp(bin, 0, numBins-1);
+
+				uchar intensity = spec.get(t, bin);
+
+				// Color map
+				// Harmonic: Blue/Greenish? Percussive: Red/Orange?
+				uchar r, g, b;
+				if (harmonic) {
+					// Cyan/Blue
+					r = 0;
+					g = intensity;
+					b = (intensity > 128) ? 255 : intensity * 2;
+				} else {
+					// Red/Orange
+					r = intensity;
+					g = (intensity > 128) ? (intensity - 128) * 2 : 0;
+					b = 0;
+				}
+
+				// Mirror
+				int l = cx - 1 - x;
+				int r_pos = cx + x;
+
+				if(l >= 0) {
+					texBuf[(y * w + l) * 4 + 0] = r;
+					texBuf[(y * w + l) * 4 + 1] = g;
+					texBuf[(y * w + l) * 4 + 2] = b;
+					texBuf[(y * w + l) * 4 + 3] = intensity;
+				}
+				if(r_pos < w) {
+					texBuf[(y * w + r_pos) * 4 + 0] = r;
+					texBuf[(y * w + r_pos) * 4 + 1] = g;
+					texBuf[(y * w + r_pos) * 4 + 2] = b;
+					texBuf[(y * w + r_pos) * 4 + 3] = intensity;
+				}
+			}
+		}
+
+		// Apply anti-aliasing
+		switch (waveformAntiAliasingMode_) {
+		case 1: antiAlias2xRGB(texBuf, w, h); break;
+		case 2: antiAlias3xRGB(texBuf, w, h); break;
+		case 3: antiAlias4xRGB(texBuf, w, h); break;
+		}
+
+		if (!textures[channel].handle() || textures[channel].format() != Texture::RGBA) {
+			textures[channel] = Texture(TEX_W, TEX_H, Texture::RGBA);
+		}
+		textures[channel].modify(0, 0, waveformBlockWidth_, TEX_H, texBuf);
+	}
+}
+
+void renderBlock(WaveBlock* block)
+{
+	int w = waveformBlockWidth_ * (waveformAntiAliasingMode_ + 1);
+	int h = TEX_H * (waveformAntiAliasingMode_ + 1);
+	waveformTextureBuffer_.resize(w * h * 4); // Resize for RGBA
+
+	Vector<WaveEdge> edges;
+	edges.resize(h);
+
+	if(waveformColorMode_ == CM_RGB)
+	{
+		// Update RGB filter if needed (might have been lazy loaded)
+		waveformFilterRGB_->update(waveformRGBLow_, waveformRGBHigh_);
+		renderWaveformRGB(block->tex, edges.begin(), w, h, block->id);
+	}
+	else if(waveformColorMode_ == CM_SPECTRAL)
+	{
+		waveformFilterSpectral_->update();
+		renderWaveformColored(block->tex, edges.begin(), w, h, block->id, waveformFilterSpectral_);
+	}
+	else if(waveformColorMode_ == CM_SPECTROGRAM)
+	{
+		waveformFilterSpectral_->update();
+		renderWaveformSpectrogram(block->tex, edges.begin(), w, h, block->id);
+	}
+	else if(waveformColorMode_ == CM_PITCH)
+	{
+		waveformFilterPitch_->update();
+		renderWaveformColored(block->tex, edges.begin(), w, h, block->id, waveformFilterPitch_);
+	}
+	else if(waveformColorMode_ == CM_CQT)
+	{
+		waveformFilterCQT_->update(waveformSpectrogramGain_);
+		renderWaveformCQT(block->tex, edges.begin(), w, h, block->id);
+	}
+	else if(waveformColorMode_ == CM_CHROMAGRAM)
+	{
+		waveformFilterChromagram_->update(waveformSpectrogramGain_);
+		renderWaveformChromagram(block->tex, edges.begin(), w, h, block->id);
+	}
+	else if(waveformColorMode_ == CM_NOVELTY)
+	{
+		waveformFilterNovelty_->update(waveformSpectrogramGain_);
+		renderWaveformNovelty(block->tex, edges.begin(), w, h, block->id);
+	}
+	else if(waveformColorMode_ == CM_TEMPOGRAM)
+	{
+		waveformFilterTempogram_->update(waveformSpectrogramGain_);
+		renderWaveformTempogram(block->tex, edges.begin(), w, h, block->id);
+	}
+	else if(waveformColorMode_ == CM_PERCUSSION)
+	{
+		waveformFilterHPSS_->update(waveformSpectrogramGain_);
+		renderWaveformHPSS(block->tex, edges.begin(), w, h, block->id, false);
+	}
+	else if(waveformColorMode_ == CM_HARMONIC)
+	{
+		waveformFilterHPSS_->update(waveformSpectrogramGain_);
+		renderWaveformHPSS(block->tex, edges.begin(), w, h, block->id, true);
+	}
+	else if(waveformFilter_)
+	{
+		if(waveformOverlayFilter_)
+		{
+			renderWaveform(block->tex + 0, edges.begin(), w, h, block->id, false);
+			renderWaveform(block->tex + 2, edges.begin(), w, h, block->id, true);
+		}
+		else
+		{
+			renderWaveform(block->tex, edges.begin(), w, h, block->id, true);
+		}
+	}
+	else
+	{
+		renderWaveform(block->tex, edges.begin(), w, h, block->id, false);
+	}
+}
+
+WaveBlock* getBlock(int id)
+{
+	// Check if we already have the requested block.
+	for(auto block : waveformBlocks_)
+	{
+		if(block->id == id)
+		{
+			return block;
+		}
+	}
+
+	// If not, check if we have any free blocks available.
+	for(auto block : waveformBlocks_)
+	{
+		if(block->id == UNUSED_BLOCK)
+		{
+			block->id = id;
+			renderBlock(block);
+			return block;
+		}
+	}
+
+	// If not, create a new block.
+	WaveBlock* block = new WaveBlock;
+	waveformBlocks_.push_back(block);
+
+	block->id = id;
+	renderBlock(block);
+	return block;
+}
+
+void updateBlockW()
+{
+	int width = waveformBlockWidth_;
+
+	waveformBlockWidth_ = min(TEX_W, gView->applyZoom(256));
+	waveformSpacing_ = gView->applyZoom(24);
+
+	if(waveformBlockWidth_ != width) clearBlocks();
+}
+
+void drawBackground()
+{
+	uchar* texBuf = waveformTextureBuffer_.begin();
+
+	auto& music = gMusic->getSamples();
+	double samplesPerSec = (double)music.getFrequency();
+	double samplesPerPixel = samplesPerSec / fabs(gView->getPixPerSec());
+	double samplesPerBlock = (double)TEX_H * samplesPerPixel;
+	int64_t samplePos = max((int64_t)0, (int64_t)(samplesPerBlock * (double)blockId));
+
+	double advance = samplesPerPixel * TEX_H / h;
+
+	memset(texBuf, 0, w * h * 4);
+
+	for(int channel = 0; channel < 2; ++channel)
+	{
+		const auto& flux = (channel == 0) ? waveformFilterNovelty_->fluxL : waveformFilterNovelty_->fluxR;
+		int numBlocks = flux.size();
+
+		for(int y = 0; y < h; ++y)
+		{
+			int64_t currentSample = samplePos + (int64_t)(y * advance);
+			int blockIndex = (int)(currentSample / waveformFilterNovelty_->samplesPerBlock);
+
+			if (blockIndex < 0 || blockIndex >= numBlocks) continue;
+
+			int cx = w / 2;
+			uchar intensity = flux[blockIndex];
+
+			// Draw flux as a solid block width proportional to intensity
+			int width = (int)(intensity / 255.0f * cx);
+
+			for(int x = 0; x < cx; ++x)
+			{
+				// Color: Green -> Red (Low -> High Novelty)
+				uchar r = intensity;
+				uchar g = 255 - intensity;
+				uchar b = 0;
+				uchar a = (x <= width) ? 255 : 0;
+
+				if (a == 0) { r=0; g=0; b=0; }
+
+				// Mirror
+				int l = cx - 1 - x;
+				int r_pos = cx + x;
+
+				if(l >= 0) {
+					texBuf[(y * w + l) * 4 + 0] = r;
+					texBuf[(y * w + l) * 4 + 1] = g;
+					texBuf[(y * w + l) * 4 + 2] = b;
+					texBuf[(y * w + l) * 4 + 3] = a;
+				}
+				if(r_pos < w) {
+					texBuf[(y * w + r_pos) * 4 + 0] = r;
+					texBuf[(y * w + r_pos) * 4 + 1] = g;
+					texBuf[(y * w + r_pos) * 4 + 2] = b;
+					texBuf[(y * w + r_pos) * 4 + 3] = a;
+				}
+			}
+		}
+
+		// Apply anti-aliasing
+		switch (waveformAntiAliasingMode_) {
+		case 1: antiAlias2xRGB(texBuf, w, h); break;
+		case 2: antiAlias3xRGB(texBuf, w, h); break;
+		case 3: antiAlias4xRGB(texBuf, w, h); break;
+		}
+
+		if (!textures[channel].handle() || textures[channel].format() != Texture::RGBA) {
+			textures[channel] = Texture(TEX_W, TEX_H, Texture::RGBA);
+		}
+		textures[channel].modify(0, 0, waveformBlockWidth_, TEX_H, texBuf);
+	}
+}
+
+void renderWaveformChromagram(Texture* textures, WaveEdge* edgeBuf, int w, int h, int blockId)
+{
+	uchar* texBuf = waveformTextureBuffer_.begin();
+
+	auto& music = gMusic->getSamples();
+	double samplesPerSec = (double)music.getFrequency();
+	double samplesPerPixel = samplesPerSec / fabs(gView->getPixPerSec());
+	double samplesPerBlock = (double)TEX_H * samplesPerPixel;
+	int64_t samplePos = max((int64_t)0, (int64_t)(samplesPerBlock * (double)blockId));
+
+	double advance = samplesPerPixel * TEX_H / h;
+
+	memset(texBuf, 0, w * h * 4);
+
+	for(int channel = 0; channel < 2; ++channel)
+	{
+		const auto& chroma = (channel == 0) ? waveformFilterChromagram_->chromaL : waveformFilterChromagram_->chromaR;
+		int numBlocks = chroma.empty() ? 0 : chroma[0].size();
+
+		for(int y = 0; y < h; ++y)
+		{
+			int64_t currentSample = samplePos + (int64_t)(y * advance);
+			int blockIndex = (int)(currentSample / waveformFilterChromagram_->samplesPerBlock);
+
+			if (blockIndex < 0 || blockIndex >= numBlocks) continue;
+
+			int cx = w / 2;
+
+			// Draw chromagram (12 bins). Map x to bin.
+			for(int x = 0; x < cx; ++x)
+			{
+				float t = (float)x / cx; // 0..1
+				int bin = (int)(t * 12);
+				bin = clamp(bin, 0, 11);
+
+				uchar intensity = chroma[bin][blockIndex];
+
+				// Map bin to hue (Circle of Fifths or Chromatic?)
+				// Chromatic: C=Red, C#=Orange...
+				float hue = bin * 30.0f; // 360 / 12
+
+				float s = 0.8f;
+				float v = intensity / 255.0f;
+
+				float c = v * s;
+				float hh = hue / 60.0f;
+				float xx = c * (1 - fabs(fmod(hh, 2) - 1));
+				float r=0, g=0, b=0;
+
+				if (hh < 1) { r=c; g=xx; b=0; }
+				else if (hh < 2) { r=xx; g=c; b=0; }
+				else if (hh < 3) { r=0; g=c; b=xx; }
+				else if (hh < 4) { r=0; g=xx; b=c; }
+				else if (hh < 5) { r=xx; g=0; b=c; }
+				else { r=c; g=0; b=xx; }
+
+				uchar R = (uchar)(r * 255);
+				uchar G = (uchar)(g * 255);
+				uchar B = (uchar)(b * 255);
+
+				// Mirror
+				int l = cx - 1 - x;
+				int r_pos = cx + x;
+
+				if(l >= 0) {
+					texBuf[(y * w + l) * 4 + 0] = R;
+					texBuf[(y * w + l) * 4 + 1] = G;
+					texBuf[(y * w + l) * 4 + 2] = B;
+					texBuf[(y * w + l) * 4 + 3] = intensity;
+				}
+				if(r_pos < w) {
+					texBuf[(y * w + r_pos) * 4 + 0] = R;
+					texBuf[(y * w + r_pos) * 4 + 1] = G;
+					texBuf[(y * w + r_pos) * 4 + 2] = B;
+					texBuf[(y * w + r_pos) * 4 + 3] = intensity;
+				}
+			}
+		}
+
+		// Apply anti-aliasing
+		switch (waveformAntiAliasingMode_) {
+		case 1: antiAlias2xRGB(texBuf, w, h); break;
+		case 2: antiAlias3xRGB(texBuf, w, h); break;
+		case 3: antiAlias4xRGB(texBuf, w, h); break;
+		}
+
+		if (!textures[channel].handle() || textures[channel].format() != Texture::RGBA) {
+			textures[channel] = Texture(TEX_W, TEX_H, Texture::RGBA);
+		}
+		textures[channel].modify(0, 0, waveformBlockWidth_, TEX_H, texBuf);
+	}
+}
+
+void renderWaveformNovelty(Texture* textures, WaveEdge* edgeBuf, int w, int h, int blockId)
+{
+	uchar* texBuf = waveformTextureBuffer_.begin();
+
+	auto& music = gMusic->getSamples();
+	double samplesPerSec = (double)music.getFrequency();
+	double samplesPerPixel = samplesPerSec / fabs(gView->getPixPerSec());
+	double samplesPerBlock = (double)TEX_H * samplesPerPixel;
+	int64_t samplePos = max((int64_t)0, (int64_t)(samplesPerBlock * (double)blockId));
+
+	double advance = samplesPerPixel * TEX_H / h;
+
+	memset(texBuf, 0, w * h * 4);
+
+	for(int channel = 0; channel < 2; ++channel)
+	{
+		const auto& flux = (channel == 0) ? waveformFilterNovelty_->fluxL : waveformFilterNovelty_->fluxR;
+		int numBlocks = flux.size();
+
+		for(int y = 0; y < h; ++y)
+		{
+			int64_t currentSample = samplePos + (int64_t)(y * advance);
+			int blockIndex = (int)(currentSample / waveformFilterNovelty_->samplesPerBlock);
+
+			if (blockIndex < 0 || blockIndex >= numBlocks) continue;
+
+			int cx = w / 2;
+			uchar intensity = flux[blockIndex];
+
+			// Draw flux as a solid block width proportional to intensity
+			int width = (int)(intensity / 255.0f * cx);
+
+			for(int x = 0; x < cx; ++x)
+			{
+				// Color: Green -> Red (Low -> High Novelty)
+				uchar r = intensity;
+				uchar g = 255 - intensity;
+				uchar b = 0;
+				uchar a = (x <= width) ? 255 : 0;
+
+				if (a == 0) { r=0; g=0; b=0; }
+
+				// Mirror
+				int l = cx - 1 - x;
+				int r_pos = cx + x;
+
+				if(l >= 0) {
+					texBuf[(y * w + l) * 4 + 0] = r;
+					texBuf[(y * w + l) * 4 + 1] = g;
+					texBuf[(y * w + l) * 4 + 2] = b;
+					texBuf[(y * w + l) * 4 + 3] = a;
+				}
+				if(r_pos < w) {
+					texBuf[(y * w + r_pos) * 4 + 0] = r;
+					texBuf[(y * w + r_pos) * 4 + 1] = g;
+					texBuf[(y * w + r_pos) * 4 + 2] = b;
+					texBuf[(y * w + r_pos) * 4 + 3] = a;
+				}
+			}
+		}
+
+		// Apply anti-aliasing
+		switch (waveformAntiAliasingMode_) {
+		case 1: antiAlias2xRGB(texBuf, w, h); break;
+		case 2: antiAlias3xRGB(texBuf, w, h); break;
+		case 3: antiAlias4xRGB(texBuf, w, h); break;
+		}
+
+		if (!textures[channel].handle() || textures[channel].format() != Texture::RGBA) {
+			textures[channel] = Texture(TEX_W, TEX_H, Texture::RGBA);
+		}
+		textures[channel].modify(0, 0, waveformBlockWidth_, TEX_H, texBuf);
+	}
+}
+
+void renderWaveformColored(Texture* textures, WaveEdge* edgeBuf, int w, int h, int blockId, FilterType* filter)
+{
+	// Similar to standard render, but we pass a color buffer to the shape function
+	uchar* texBuf = waveformTextureBuffer_.begin();
+
+	auto& music = gMusic->getSamples();
+	double samplesPerSec = (double)music.getFrequency();
+	double samplesPerPixel = samplesPerSec / fabs(gView->getPixPerSec());
+	double samplesPerBlock = (double)TEX_H * samplesPerPixel;
+	int64_t samplePos = max((int64_t)0, (int64_t)(samplesPerBlock * (double)blockId));
+
+	// Collect colors for this block
+	// We need to sample the color array at the same rate as the pixels (lines)
+	Vector<WaveFilterSpectral::ColorPoint> blockColors;
+	blockColors.resize(h);
+
+	for(int channel = 0; channel < 2; ++channel)
+	{
+		const auto& srcColors = (channel==0) ? filter->colorsL : filter->colorsR;
+		if (samplePos < srcColors.size()) {
+			double advance = samplesPerPixel * TEX_H / h;
+			for(int y=0; y<h; ++y) {
+				int idx = (int)(samplePos + y * advance);
+				if (idx < srcColors.size()) {
+					// We assume ColorPoint is compatible or castable
+					const auto& sc = srcColors[idx];
+					blockColors[y] = {sc.r, sc.g, sc.b};
+				} else {
+					blockColors[y] = {255, 255, 255};
+				}
+			}
+		}
+
+		memset(texBuf, 0, w * h * 4);
+
+		// Process edges (using standard sampleEdges on original audio)
+		sampleEdges(edgeBuf, w, h, channel, blockId, false);
+
+		if (waveformLuminance_ == LL_UNIFORM) {
+			edgeLumUniform(edgeBuf, h);
+		}
+		else if (waveformLuminance_ == LL_AMPLITUDE) {
+			edgeLumAmplitude(edgeBuf, w, h);
+		}
+
+		if (waveformShape_ == WS_RECTIFIED) {
+			edgeShapeRectifiedSpectral(texBuf, edgeBuf, w, h, blockColors.begin());
+		}
+		else if (waveformShape_ == WS_SIGNED) {
+			edgeShapeSignedSpectral(texBuf, edgeBuf, w, h, blockColors.begin());
+		}
+
+		// Anti-alias
+		switch (waveformAntiAliasingMode_) {
+		case 1: antiAlias2xRGB(texBuf, w, h); break;
+		case 2: antiAlias3xRGB(texBuf, w, h); break;
+		case 3: antiAlias4xRGB(texBuf, w, h); break;
+		}
+
+		if (!textures[channel].handle() || textures[channel].format() != Texture::RGBA) {
+			textures[channel] = Texture(TEX_W, TEX_H, Texture::RGBA);
+		}
+		textures[channel].modify(0, 0, waveformBlockWidth_, TEX_H, texBuf);
+	}
+}
+
+void renderWaveformCQT(Texture* textures, WaveEdge* edgeBuf, int w, int h, int blockId)
+{
+	uchar* texBuf = waveformTextureBuffer_.begin();
+
+	auto& music = gMusic->getSamples();
+	double samplesPerSec = (double)music.getFrequency();
+	double samplesPerPixel = samplesPerSec / fabs(gView->getPixPerSec());
+	double samplesPerBlock = (double)TEX_H * samplesPerPixel;
+	int64_t samplePos = max((int64_t)0, (int64_t)(samplesPerBlock * (double)blockId));
+
+	double advance = samplesPerPixel * TEX_H / h;
+
+	memset(texBuf, 0, w * h * 4);
+
+	const int minNote = 21;
+	const int maxNote = 108;
+	const int numNotes = maxNote - minNote + 1;
+
+	for(int channel = 0; channel < 2; ++channel)
+	{
+		const auto& intensities = (channel == 0) ? waveformFilterCQT_->intensitiesL : waveformFilterCQT_->intensitiesR;
+		int numBlocks = intensities.empty() ? 0 : intensities[0].size();
+
+		for(int y = 0; y < h; ++y)
+		{
+			int64_t currentSample = samplePos + (int64_t)(y * advance);
+			int blockIndex = (int)(currentSample / waveformFilterCQT_->samplesPerBlock);
+
+			if (blockIndex < 0 || blockIndex >= numBlocks) continue;
+
+			int cx = w / 2;
+
+			for(int x = 0; x < cx; ++x)
+			{
+				float t = (float)x / cx; // 0..1
+				float noteFloat = minNote + t * (maxNote - minNote);
+				int note = (int)noteFloat;
+
+				if (note < minNote || note > maxNote) continue;
+				int noteIdx = note - minNote;
+				if (noteIdx >= numNotes) continue;
+
+				uchar intensity = intensities[noteIdx][blockIndex];
+
+				float chroma = fmod(noteFloat, 12.0f);
+				float hue = chroma * 30.0f;
+
+				float s = 0.8f;
+				float v = intensity / 255.0f;
+
+				float c = v * s;
+				float hh = hue / 60.0f;
+				float xx = c * (1 - fabs(fmod(hh, 2) - 1));
+				float r=0, g=0, b=0;
+
+				if (hh < 1) { r=c; g=xx; b=0; }
+				else if (hh < 2) { r=xx; g=c; b=0; }
+				else if (hh < 3) { r=0; g=c; b=xx; }
+				else if (hh < 4) { r=0; g=xx; b=c; }
+				else if (hh < 5) { r=xx; g=0; b=c; }
+				else { r=c; g=0; b=xx; }
+
+				uchar R = (uchar)(r * 255);
+				uchar G = (uchar)(g * 255);
+				uchar B = (uchar)(b * 255);
+
+				// Mirror
+				int l = cx - 1 - x;
+				int r_pos = cx + x;
+
+				if(l >= 0) {
+					texBuf[(y * w + l) * 4 + 0] = R;
+					texBuf[(y * w + l) * 4 + 1] = G;
+					texBuf[(y * w + l) * 4 + 2] = B;
+					texBuf[(y * w + l) * 4 + 3] = intensity;
+				}
+				if(r_pos < w) {
+					texBuf[(y * w + r_pos) * 4 + 0] = R;
+					texBuf[(y * w + r_pos) * 4 + 1] = G;
+					texBuf[(y * w + r_pos) * 4 + 2] = B;
+					texBuf[(y * w + r_pos) * 4 + 3] = intensity;
+				}
+			}
+		}
+
+		// Apply anti-aliasing
+		switch (waveformAntiAliasingMode_) {
+		case 1: antiAlias2xRGB(texBuf, w, h); break;
+		case 2: antiAlias3xRGB(texBuf, w, h); break;
+		case 3: antiAlias4xRGB(texBuf, w, h); break;
+		}
+
+		if (!textures[channel].handle() || textures[channel].format() != Texture::RGBA) {
+			textures[channel] = Texture(TEX_W, TEX_H, Texture::RGBA);
+		}
+		textures[channel].modify(0, 0, waveformBlockWidth_, TEX_H, texBuf);
+	}
+}
+
+void renderWaveformRGB(Texture* textures, WaveEdge* edgeBuf, int w, int h, int blockId)
+{
+	uchar* texBuf = waveformTextureBuffer_.begin();
+	for(int channel = 0; channel < 2; ++channel)
+	{
+		memset(texBuf, 0, w * h * 4); // RGBA
+
+		// Process edges for each band
+		// Band 0: Low -> Red (channel offset 0)
+		// Band 1: Mid -> Green (channel offset 1)
+		// Band 2: High -> Blue (channel offset 2)
+
+		for(int band = 0; band < 3; ++band) {
+			sampleEdgesRGB(edgeBuf, w, h, channel, blockId, band);
+
+			if (waveformLuminance_ == LL_UNIFORM) {
+				edgeLumUniform(edgeBuf, h);
+			}
+			else if (waveformLuminance_ == LL_AMPLITUDE) {
+				edgeLumAmplitude(edgeBuf, w, h);
+			}
+
+			if (waveformShape_ == WS_RECTIFIED) {
+				edgeShapeRectifiedRGB(texBuf, edgeBuf, w, h, band);
+			}
+			else if (waveformShape_ == WS_SIGNED) {
+				edgeShapeSignedRGB(texBuf, edgeBuf, w, h, band);
+			}
+		}
+
+		// Apply anti-aliasing (needs RGB support)
+		switch (waveformAntiAliasingMode_) {
+		case 1: antiAlias2xRGB(texBuf, w, h); break;
+		case 2: antiAlias3xRGB(texBuf, w, h); break;
+		case 3: antiAlias4xRGB(texBuf, w, h); break;
+		}
+
+		// Create or update texture
+		if (!textures[channel].handle() || textures[channel].format() != Texture::RGBA) {
+			textures[channel] = Texture(TEX_W, TEX_H, Texture::RGBA);
+		}
+		textures[channel].modify(0, 0, waveformBlockWidth_, TEX_H, texBuf);
+	}
+}
+
+void renderWaveformTempogram(Texture* textures, WaveEdge* edgeBuf, int w, int h, int blockId)
+{
+	uchar* texBuf = waveformTextureBuffer_.begin();
+
+	auto& music = gMusic->getSamples();
+	double samplesPerSec = (double)music.getFrequency();
+	double samplesPerPixel = samplesPerSec / fabs(gView->getPixPerSec());
+	double samplesPerBlock = (double)TEX_H * samplesPerPixel;
+	int64_t samplePos = max((int64_t)0, (int64_t)(samplesPerBlock * (double)blockId));
+
+	double advance = samplesPerPixel * TEX_H / h;
+
+	memset(texBuf, 0, w * h * 4);
+
+	for(int channel = 0; channel < 2; ++channel)
+	{
+		const auto& tempogram = (channel == 0) ? waveformFilterTempogram_->tempogramL : waveformFilterTempogram_->tempogramR;
+		int numBins = tempogram.size();
+		int numBlocks = (numBins > 0) ? tempogram[0].size() : 0;
+
+		for(int y = 0; y < h; ++y)
+		{
+			int64_t currentSample = samplePos + (int64_t)(y * advance);
+			int blockIndex = (int)(currentSample / waveformFilterTempogram_->samplesPerBlock);
+
+			if (blockIndex < 0 || blockIndex >= numBlocks) continue;
+
+			int cx = w / 2;
+
+			for(int x = 0; x < cx; ++x)
+			{
+				float t = (float)x / cx; // 0..1
+				int bin = (int)(t * numBins);
+				bin = clamp(bin, 0, numBins-1);
+
+				uchar intensity = tempogram[bin][blockIndex];
+
+				// Heatmap: Blue->Red->Yellow
+				uchar r, g, b;
+				if (intensity < 128) {
+					// Blue to Green
+					r = 0;
+					g = intensity * 2;
+					b = 255 - intensity * 2;
+				} else {
+					// Green to Red
+					r = (intensity - 128) * 2;
+					g = 255 - (intensity - 128) * 2;
+					b = 0;
+				}
+
+				int l = cx - 1 - x;
+				int r_pos = cx + x;
+
+				if(l >= 0) {
+					texBuf[(y * w + l) * 4 + 0] = r;
+					texBuf[(y * w + l) * 4 + 1] = g;
+					texBuf[(y * w + l) * 4 + 2] = b;
+					texBuf[(y * w + l) * 4 + 3] = intensity;
+				}
+				if(r_pos < w) {
+					texBuf[(y * w + r_pos) * 4 + 0] = r;
+					texBuf[(y * w + r_pos) * 4 + 1] = g;
+					texBuf[(y * w + r_pos) * 4 + 2] = b;
+					texBuf[(y * w + r_pos) * 4 + 3] = intensity;
+				}
+			}
+		}
+
+		switch (waveformAntiAliasingMode_) {
+		case 1: antiAlias2xRGB(texBuf, w, h); break;
+		case 2: antiAlias3xRGB(texBuf, w, h); break;
+		case 3: antiAlias4xRGB(texBuf, w, h); break;
+		}
+
+		if (!textures[channel].handle() || textures[channel].format() != Texture::RGBA) {
+			textures[channel] = Texture(TEX_W, TEX_H, Texture::RGBA);
+		}
+		textures[channel].modify(0, 0, waveformBlockWidth_, TEX_H, texBuf);
+	}
+}
+
+void renderWaveformHPSS(Texture* textures, WaveEdge* edgeBuf, int w, int h, int blockId, bool harmonic)
+{
+	uchar* texBuf = waveformTextureBuffer_.begin();
+
+	auto& music = gMusic->getSamples();
+	double samplesPerSec = (double)music.getFrequency();
+	double samplesPerPixel = samplesPerSec / fabs(gView->getPixPerSec());
+	double samplesPerBlock = (double)TEX_H * samplesPerPixel;
+	int64_t samplePos = max((int64_t)0, (int64_t)(samplesPerBlock * (double)blockId));
+
+	double advance = samplesPerPixel * TEX_H / h;
+
+	memset(texBuf, 0, w * h * 4);
+
+	for(int channel = 0; channel < 2; ++channel)
+	{
+		const auto& spec = harmonic ? waveformFilterHPSS_->specH[channel] : waveformFilterHPSS_->specP[channel];
+		if (spec.width == 0) continue;
+
+		for(int y = 0; y < h; ++y)
+		{
+			int64_t currentSample = samplePos + (int64_t)(y * advance);
+			// Calculate time index in spectrogram
+			int t = (int)(currentSample / waveformFilterHPSS_->samplesPerBlock);
+			if (t < 0 || t >= spec.width) continue;
+
+			int cx = w / 2;
+			int numBins = spec.height;
+
+			for(int x = 0; x < cx; ++x)
+			{
+				float u = (float)x / cx;
+				// Linear mapping for now to match spectrogram
+				int bin = (int)(u * u * numBins);
+				bin = clamp(bin, 0, numBins-1);
+
+				uchar intensity = spec.get(t, bin);
+
+				// Color map
+				// Harmonic: Blue/Greenish? Percussive: Red/Orange?
+				uchar r, g, b;
+				if (harmonic) {
+					// Cyan/Blue
+					r = 0;
+					g = intensity;
+					b = (intensity > 128) ? 255 : intensity * 2;
+				} else {
+					// Red/Orange
+					r = intensity;
+					g = (intensity > 128) ? (intensity - 128) * 2 : 0;
+					b = 0;
+				}
+
+				// Mirror
+				int l = cx - 1 - x;
+				int r_pos = cx + x;
+
+				if(l >= 0) {
+					texBuf[(y * w + l) * 4 + 0] = r;
+					texBuf[(y * w + l) * 4 + 1] = g;
+					texBuf[(y * w + l) * 4 + 2] = b;
+					texBuf[(y * w + l) * 4 + 3] = intensity;
+				}
+				if(r_pos < w) {
+					texBuf[(y * w + r_pos) * 4 + 0] = r;
+					texBuf[(y * w + r_pos) * 4 + 1] = g;
+					texBuf[(y * w + r_pos) * 4 + 2] = b;
+					texBuf[(y * w + r_pos) * 4 + 3] = intensity;
+				}
+			}
+		}
+
+		// Apply anti-aliasing
+		switch (waveformAntiAliasingMode_) {
+		case 1: antiAlias2xRGB(texBuf, w, h); break;
+		case 2: antiAlias3xRGB(texBuf, w, h); break;
+		case 3: antiAlias4xRGB(texBuf, w, h); break;
+		}
+
+		if (!textures[channel].handle() || textures[channel].format() != Texture::RGBA) {
+			textures[channel] = Texture(TEX_W, TEX_H, Texture::RGBA);
+		}
+		textures[channel].modify(0, 0, waveformBlockWidth_, TEX_H, texBuf);
+	}
+}
+
+void renderBlock(WaveBlock* block)
+{
+	int w = waveformBlockWidth_ * (waveformAntiAliasingMode_ + 1);
+	int h = TEX_H * (waveformAntiAliasingMode_ + 1);
+	waveformTextureBuffer_.resize(w * h * 4); // Resize for RGBA
+
+	Vector<WaveEdge> edges;
+	edges.resize(h);
+
+	if(waveformColorMode_ == CM_RGB)
+	{
+		// Update RGB filter if needed (might have been lazy loaded)
+		waveformFilterRGB_->update(waveformRGBLow_, waveformRGBHigh_);
+		renderWaveformRGB(block->tex, edges.begin(), w, h, block->id);
+	}
+	else if(waveformColorMode_ == CM_SPECTRAL)
+	{
+		waveformFilterSpectral_->update();
+		renderWaveformColored(block->tex, edges.begin(), w, h, block->id, waveformFilterSpectral_);
+	}
+	else if(waveformColorMode_ == CM_SPECTROGRAM)
+	{
+		waveformFilterSpectral_->update();
+		renderWaveformSpectrogram(block->tex, edges.begin(), w, h, block->id);
+	}
+	else if(waveformColorMode_ == CM_PITCH)
+	{
+		waveformFilterPitch_->update();
+		renderWaveformColored(block->tex, edges.begin(), w, h, block->id, waveformFilterPitch_);
+	}
+	else if(waveformColorMode_ == CM_CQT)
+	{
+		waveformFilterCQT_->update(waveformSpectrogramGain_);
+		renderWaveformCQT(block->tex, edges.begin(), w, h, block->id);
+	}
+	else if(waveformColorMode_ == CM_CHROMAGRAM)
+	{
+		waveformFilterChromagram_->update(waveformSpectrogramGain_);
+		renderWaveformChromagram(block->tex, edges.begin(), w, h, block->id);
+	}
+	else if(waveformColorMode_ == CM_NOVELTY)
+	{
+		waveformFilterNovelty_->update(waveformSpectrogramGain_);
+		renderWaveformNovelty(block->tex, edges.begin(), w, h, block->id);
+	}
+	else if(waveformColorMode_ == CM_TEMPOGRAM)
+	{
+		waveformFilterTempogram_->update(waveformSpectrogramGain_);
+		renderWaveformTempogram(block->tex, edges.begin(), w, h, block->id);
+	}
+	else if(waveformColorMode_ == CM_PERCUSSION)
+	{
+		waveformFilterHPSS_->update(waveformSpectrogramGain_);
+		renderWaveformHPSS(block->tex, edges.begin(), w, h, block->id, false);
+	}
+	else if(waveformColorMode_ == CM_HARMONIC)
+	{
+		waveformFilterHPSS_->update(waveformSpectrogramGain_);
+		renderWaveformHPSS(block->tex, edges.begin(), w, h, block->id, true);
+	}
+	else if(waveformFilter_)
+	{
+		if(waveformOverlayFilter_)
+		{
+			renderWaveform(block->tex + 0, edges.begin(), w, h, block->id, false);
+			renderWaveform(block->tex + 2, edges.begin(), w, h, block->id, true);
+		}
+		else
+		{
+			renderWaveform(block->tex, edges.begin(), w, h, block->id, true);
+		}
+	}
+	else
+	{
+		renderWaveform(block->tex, edges.begin(), w, h, block->id, false);
+	}
+}
+
+WaveBlock* getBlock(int id)
+{
+	// Check if we already have the requested block.
+	for(auto block : waveformBlocks_)
+	{
+		if(block->id == id)
+		{
+			return block;
+		}
+	}
+
+	auto& music = gMusic->getSamples();
+	double samplesPerSec = (double)music.getFrequency();
+	double samplesPerPixel = samplesPerSec / fabs(gView->getPixPerSec());
+	double samplesPerBlock = (double)TEX_H * samplesPerPixel;
+	int64_t samplePos = max((int64_t)0, (int64_t)(samplesPerBlock * (double)blockId));
+
+	double advance = samplesPerPixel * TEX_H / h;
+
+	memset(texBuf, 0, w * h * 4);
+
+	for(int channel = 0; channel < 2; ++channel)
+	{
+		const auto& chroma = (channel == 0) ? waveformFilterChromagram_->chromaL : waveformFilterChromagram_->chromaR;
+		int numBlocks = chroma.empty() ? 0 : chroma[0].size();
+
+		for(int y = 0; y < h; ++y)
+		{
+			int64_t currentSample = samplePos + (int64_t)(y * advance);
+			int blockIndex = (int)(currentSample / waveformFilterChromagram_->samplesPerBlock);
+
+			if (blockIndex < 0 || blockIndex >= numBlocks) continue;
+
+			int cx = w / 2;
+
+			// Draw chromagram (12 bins). Map x to bin.
+			for(int x = 0; x < cx; ++x)
+			{
+				float t = (float)x / cx; // 0..1
+				int bin = (int)(t * 12);
+				bin = clamp(bin, 0, 11);
+
+				uchar intensity = chroma[bin][blockIndex];
+
+				// Map bin to hue (Circle of Fifths or Chromatic?)
+				// Chromatic: C=Red, C#=Orange...
+				float hue = bin * 30.0f; // 360 / 12
+
+				float s = 0.8f;
+				float v = intensity / 255.0f;
+
+				float c = v * s;
+				float hh = hue / 60.0f;
+				float xx = c * (1 - fabs(fmod(hh, 2) - 1));
+				float r=0, g=0, b=0;
+
+				if (hh < 1) { r=c; g=xx; b=0; }
+				else if (hh < 2) { r=xx; g=c; b=0; }
+				else if (hh < 3) { r=0; g=c; b=xx; }
+				else if (hh < 4) { r=0; g=xx; b=c; }
+				else if (hh < 5) { r=xx; g=0; b=c; }
+				else { r=c; g=0; b=xx; }
+
+				uchar R = (uchar)(r * 255);
+				uchar G = (uchar)(g * 255);
+				uchar B = (uchar)(b * 255);
+
+				// Mirror
+				int l = cx - 1 - x;
+				int r_pos = cx + x;
+
+				if(l >= 0) {
+					texBuf[(y * w + l) * 4 + 0] = R;
+					texBuf[(y * w + l) * 4 + 1] = G;
+					texBuf[(y * w + l) * 4 + 2] = B;
+					texBuf[(y * w + l) * 4 + 3] = intensity;
+				}
+				if(r_pos < w) {
+					texBuf[(y * w + r_pos) * 4 + 0] = R;
+					texBuf[(y * w + r_pos) * 4 + 1] = G;
+					texBuf[(y * w + r_pos) * 4 + 2] = B;
+					texBuf[(y * w + r_pos) * 4 + 3] = intensity;
+				}
+			}
+		}
+
+		// Apply anti-aliasing
+		switch (waveformAntiAliasingMode_) {
+		case 1: antiAlias2xRGB(texBuf, w, h); break;
+		case 2: antiAlias3xRGB(texBuf, w, h); break;
+		case 3: antiAlias4xRGB(texBuf, w, h); break;
+		}
+
+		if (!textures[channel].handle() || textures[channel].format() != Texture::RGBA) {
+			textures[channel] = Texture(TEX_W, TEX_H, Texture::RGBA);
+		}
+		textures[channel].modify(0, 0, waveformBlockWidth_, TEX_H, texBuf);
+	}
+}
+
+void renderWaveformNovelty(Texture* textures, WaveEdge* edgeBuf, int w, int h, int blockId)
+{
+	uchar* texBuf = waveformTextureBuffer_.begin();
+
+	auto& music = gMusic->getSamples();
+	double samplesPerSec = (double)music.getFrequency();
+	double samplesPerPixel = samplesPerSec / fabs(gView->getPixPerSec());
+	double samplesPerBlock = (double)TEX_H * samplesPerPixel;
+	int64_t samplePos = max((int64_t)0, (int64_t)(samplesPerBlock * (double)blockId));
+
+	double advance = samplesPerPixel * TEX_H / h;
+
+	memset(texBuf, 0, w * h * 4);
+
+	for(int channel = 0; channel < 2; ++channel)
+	{
+		const auto& flux = (channel == 0) ? waveformFilterNovelty_->fluxL : waveformFilterNovelty_->fluxR;
+		int numBlocks = flux.size();
+
+		for(int y = 0; y < h; ++y)
+		{
+			int64_t currentSample = samplePos + (int64_t)(y * advance);
+			int blockIndex = (int)(currentSample / waveformFilterNovelty_->samplesPerBlock);
+
+			if (blockIndex < 0 || blockIndex >= numBlocks) continue;
+
+			int cx = w / 2;
+			uchar intensity = flux[blockIndex];
+
+			// Draw flux as a solid block width proportional to intensity
+			int width = (int)(intensity / 255.0f * cx);
+
+			for(int x = 0; x < cx; ++x)
+			{
+				// Color: Green -> Red (Low -> High Novelty)
+				uchar r = intensity;
+				uchar g = 255 - intensity;
+				uchar b = 0;
+				uchar a = (x <= width) ? 255 : 0;
+
+				if (a == 0) { r=0; g=0; b=0; }
+
+				// Mirror
+				int l = cx - 1 - x;
+				int r_pos = cx + x;
+
+				if(l >= 0) {
+					texBuf[(y * w + l) * 4 + 0] = r;
+					texBuf[(y * w + l) * 4 + 1] = g;
+					texBuf[(y * w + l) * 4 + 2] = b;
+					texBuf[(y * w + l) * 4 + 3] = a;
+				}
+				if(r_pos < w) {
+					texBuf[(y * w + r_pos) * 4 + 0] = r;
+					texBuf[(y * w + r_pos) * 4 + 1] = g;
+					texBuf[(y * w + r_pos) * 4 + 2] = b;
+					texBuf[(y * w + r_pos) * 4 + 3] = a;
+				}
+			}
+		}
+
+		// Apply anti-aliasing
+		switch (waveformAntiAliasingMode_) {
+		case 1: antiAlias2xRGB(texBuf, w, h); break;
+		case 2: antiAlias3xRGB(texBuf, w, h); break;
+		case 3: antiAlias4xRGB(texBuf, w, h); break;
+		}
+
+		if (!textures[channel].handle() || textures[channel].format() != Texture::RGBA) {
+			textures[channel] = Texture(TEX_W, TEX_H, Texture::RGBA);
+		}
+		textures[channel].modify(0, 0, waveformBlockWidth_, TEX_H, texBuf);
+	}
+}
+
+void renderWaveformChromagram(Texture* textures, WaveEdge* edgeBuf, int w, int h, int blockId)
+{
+	uchar* texBuf = waveformTextureBuffer_.begin();
+
+	auto& music = gMusic->getSamples();
+	double samplesPerSec = (double)music.getFrequency();
+	double samplesPerPixel = samplesPerSec / fabs(gView->getPixPerSec());
+	double samplesPerBlock = (double)TEX_H * samplesPerPixel;
+	int64_t samplePos = max((int64_t)0, (int64_t)(samplesPerBlock * (double)blockId));
+
+	double advance = samplesPerPixel * TEX_H / h;
+
+	memset(texBuf, 0, w * h * 4);
+
+	for(int channel = 0; channel < 2; ++channel)
+	{
+		const auto& chroma = (channel == 0) ? waveformFilterChromagram_->chromaL : waveformFilterChromagram_->chromaR;
+		int numBlocks = chroma.empty() ? 0 : chroma[0].size();
+
+		for(int y = 0; y < h; ++y)
+		{
+			int64_t currentSample = samplePos + (int64_t)(y * advance);
+			int blockIndex = (int)(currentSample / waveformFilterChromagram_->samplesPerBlock);
+
+			if (blockIndex < 0 || blockIndex >= numBlocks) continue;
+
+			int cx = w / 2;
+
+			// Draw chromagram (12 bins). Map x to bin.
+			for(int x = 0; x < cx; ++x)
+			{
+				float t = (float)x / cx; // 0..1
+				int bin = (int)(t * 12);
+				bin = clamp(bin, 0, 11);
+
+				uchar intensity = chroma[bin][blockIndex];
+
+				// Map bin to hue (Circle of Fifths or Chromatic?)
+				// Chromatic: C=Red, C#=Orange...
+				float hue = bin * 30.0f; // 360 / 12
+
+				float s = 0.8f;
+				float v = intensity / 255.0f;
+
+				float c = v * s;
+				float hh = hue / 60.0f;
+				float xx = c * (1 - fabs(fmod(hh, 2) - 1));
+				float r=0, g=0, b=0;
+
+				if (hh < 1) { r=c; g=xx; b=0; }
+				else if (hh < 2) { r=xx; g=c; b=0; }
+				else if (hh < 3) { r=0; g=c; b=xx; }
+				else if (hh < 4) { r=0; g=xx; b=c; }
+				else if (hh < 5) { r=xx; g=0; b=c; }
+				else { r=c; g=0; b=xx; }
+
+				uchar R = (uchar)(r * 255);
+				uchar G = (uchar)(g * 255);
+				uchar B = (uchar)(b * 255);
+
+				// Mirror
+				int l = cx - 1 - x;
+				int r_pos = cx + x;
+
+				if(l >= 0) {
+					texBuf[(y * w + l) * 4 + 0] = R;
+					texBuf[(y * w + l) * 4 + 1] = G;
+					texBuf[(y * w + l) * 4 + 2] = B;
+					texBuf[(y * w + l) * 4 + 3] = intensity;
+				}
+				if(r_pos < w) {
+					texBuf[(y * w + r_pos) * 4 + 0] = R;
+					texBuf[(y * w + r_pos) * 4 + 1] = G;
+					texBuf[(y * w + r_pos) * 4 + 2] = B;
+					texBuf[(y * w + r_pos) * 4 + 3] = intensity;
+				}
+			}
+		}
+
+		// Apply anti-aliasing
+		switch (waveformAntiAliasingMode_) {
+		case 1: antiAlias2xRGB(texBuf, w, h); break;
+		case 2: antiAlias3xRGB(texBuf, w, h); break;
+		case 3: antiAlias4xRGB(texBuf, w, h); break;
+		}
+
+		if (!textures[channel].handle() || textures[channel].format() != Texture::RGBA) {
+			textures[channel] = Texture(TEX_W, TEX_H, Texture::RGBA);
+		}
+		textures[channel].modify(0, 0, waveformBlockWidth_, TEX_H, texBuf);
+	}
+}
+
+void renderWaveformNovelty(Texture* textures, WaveEdge* edgeBuf, int w, int h, int blockId)
+{
+	uchar* texBuf = waveformTextureBuffer_.begin();
+
+	auto& music = gMusic->getSamples();
+	double samplesPerSec = (double)music.getFrequency();
+	double samplesPerPixel = samplesPerSec / fabs(gView->getPixPerSec());
+	double samplesPerBlock = (double)TEX_H * samplesPerPixel;
+	int64_t samplePos = max((int64_t)0, (int64_t)(samplesPerBlock * (double)blockId));
+
+	double advance = samplesPerPixel * TEX_H / h;
+
+	memset(texBuf, 0, w * h * 4);
+
+	for(int channel = 0; channel < 2; ++channel)
+	{
+		const auto& flux = (channel == 0) ? waveformFilterNovelty_->fluxL : waveformFilterNovelty_->fluxR;
+		int numBlocks = flux.size();
+
+		for(int y = 0; y < h; ++y)
+		{
+			int64_t currentSample = samplePos + (int64_t)(y * advance);
+			int blockIndex = (int)(currentSample / waveformFilterNovelty_->samplesPerBlock);
+
+			if (blockIndex < 0 || blockIndex >= numBlocks) continue;
+
+			int cx = w / 2;
+			uchar intensity = flux[blockIndex];
+
+			// Draw flux as a solid block width proportional to intensity
+			int width = (int)(intensity / 255.0f * cx);
+
+			for(int x = 0; x < cx; ++x)
+			{
+				// Color: Green -> Red (Low -> High Novelty)
+				uchar r = intensity;
+				uchar g = 255 - intensity;
+				uchar b = 0;
+				uchar a = (x <= width) ? 255 : 0;
+
+				if (a == 0) { r=0; g=0; b=0; }
+
+				// Mirror
+				int l = cx - 1 - x;
+				int r_pos = cx + x;
+
+				if(l >= 0) {
+					texBuf[(y * w + l) * 4 + 0] = r;
+					texBuf[(y * w + l) * 4 + 1] = g;
+					texBuf[(y * w + l) * 4 + 2] = b;
+					texBuf[(y * w + l) * 4 + 3] = a;
+				}
+				if(r_pos < w) {
+					texBuf[(y * w + r_pos) * 4 + 0] = r;
+					texBuf[(y * w + r_pos) * 4 + 1] = g;
+					texBuf[(y * w + r_pos) * 4 + 2] = b;
+					texBuf[(y * w + r_pos) * 4 + 3] = a;
+				}
+			}
+		}
+
+		// Apply anti-aliasing
+		switch (waveformAntiAliasingMode_) {
+		case 1: antiAlias2xRGB(texBuf, w, h); break;
+		case 2: antiAlias3xRGB(texBuf, w, h); break;
+		case 3: antiAlias4xRGB(texBuf, w, h); break;
+		}
+
+		if (!textures[channel].handle() || textures[channel].format() != Texture::RGBA) {
+			textures[channel] = Texture(TEX_W, TEX_H, Texture::RGBA);
+		}
+		textures[channel].modify(0, 0, waveformBlockWidth_, TEX_H, texBuf);
+	}
+}
+
+void renderWaveformColored(Texture* textures, WaveEdge* edgeBuf, int w, int h, int blockId, FilterType* filter)
+{
+	// Similar to standard render, but we pass a color buffer to the shape function
+	uchar* texBuf = waveformTextureBuffer_.begin();
+
+	auto& music = gMusic->getSamples();
+	double samplesPerSec = (double)music.getFrequency();
+	double samplesPerPixel = samplesPerSec / fabs(gView->getPixPerSec());
+	double samplesPerBlock = (double)TEX_H * samplesPerPixel;
+	int64_t samplePos = max((int64_t)0, (int64_t)(samplesPerBlock * (double)blockId));
+
+	// Collect colors for this block
+	// We need to sample the color array at the same rate as the pixels (lines)
+	Vector<WaveFilterSpectral::ColorPoint> blockColors;
+	blockColors.resize(h);
+
+	for(int channel = 0; channel < 2; ++channel)
+	{
+		const auto& srcColors = (channel==0) ? filter->colorsL : filter->colorsR;
+		if (samplePos < srcColors.size()) {
+			double advance = samplesPerPixel * TEX_H / h;
+			for(int y=0; y<h; ++y) {
+				int idx = (int)(samplePos + y * advance);
+				if (idx < srcColors.size()) {
+					// We assume ColorPoint is compatible or castable
+					const auto& sc = srcColors[idx];
+					blockColors[y] = {sc.r, sc.g, sc.b};
+				} else {
+					blockColors[y] = {255, 255, 255};
+				}
+			}
+		}
+
+		memset(texBuf, 0, w * h * 4);
+
+		// Process edges (using standard sampleEdges on original audio)
+		sampleEdges(edgeBuf, w, h, channel, blockId, false);
+
+		if (waveformLuminance_ == LL_UNIFORM) {
+			edgeLumUniform(edgeBuf, h);
+		}
+		else if (waveformLuminance_ == LL_AMPLITUDE) {
+			edgeLumAmplitude(edgeBuf, w, h);
+		}
+
+		if (waveformShape_ == WS_RECTIFIED) {
+			edgeShapeRectifiedSpectral(texBuf, edgeBuf, w, h, blockColors.begin());
+		}
+		else if (waveformShape_ == WS_SIGNED) {
+			edgeShapeSignedSpectral(texBuf, edgeBuf, w, h, blockColors.begin());
+		}
+
+		// Anti-alias
+		switch (waveformAntiAliasingMode_) {
+		case 1: antiAlias2xRGB(texBuf, w, h); break;
+		case 2: antiAlias3xRGB(texBuf, w, h); break;
+		case 3: antiAlias4xRGB(texBuf, w, h); break;
+		}
+
+		if (!textures[channel].handle() || textures[channel].format() != Texture::RGBA) {
+			textures[channel] = Texture(TEX_W, TEX_H, Texture::RGBA);
+		}
+		textures[channel].modify(0, 0, waveformBlockWidth_, TEX_H, texBuf);
+	}
+}
+
+void renderWaveformCQT(Texture* textures, WaveEdge* edgeBuf, int w, int h, int blockId)
+{
+	uchar* texBuf = waveformTextureBuffer_.begin();
+
+	auto& music = gMusic->getSamples();
+	double samplesPerSec = (double)music.getFrequency();
+	double samplesPerPixel = samplesPerSec / fabs(gView->getPixPerSec());
+	double samplesPerBlock = (double)TEX_H * samplesPerPixel;
+	int64_t samplePos = max((int64_t)0, (int64_t)(samplesPerBlock * (double)blockId));
+
+	double advance = samplesPerPixel * TEX_H / h;
+
+	memset(texBuf, 0, w * h * 4);
+
+	const int minNote = 21;
+	const int maxNote = 108;
+	const int numNotes = maxNote - minNote + 1;
+
+	for(int channel = 0; channel < 2; ++channel)
+	{
+		const auto& intensities = (channel == 0) ? waveformFilterCQT_->intensitiesL : waveformFilterCQT_->intensitiesR;
+		int numBlocks = intensities.empty() ? 0 : intensities[0].size();
+
+		for(int y = 0; y < h; ++y)
+		{
+			int64_t currentSample = samplePos + (int64_t)(y * advance);
+			int blockIndex = (int)(currentSample / waveformFilterCQT_->samplesPerBlock);
+
+			if (blockIndex < 0 || blockIndex >= numBlocks) continue;
+
+			int cx = w / 2;
+
+			for(int x = 0; x < cx; ++x)
+			{
+				float t = (float)x / cx; // 0..1
+				float noteFloat = minNote + t * (maxNote - minNote);
+				int note = (int)noteFloat;
+
+				if (note < minNote || note > maxNote) continue;
+				int noteIdx = note - minNote;
+				if (noteIdx >= numNotes) continue;
+
+				uchar intensity = intensities[noteIdx][blockIndex];
+
+				float chroma = fmod(noteFloat, 12.0f);
+				float hue = chroma * 30.0f;
+
+				float s = 0.8f;
+				float v = intensity / 255.0f;
+
+				float c = v * s;
+				float hh = hue / 60.0f;
+				float xx = c * (1 - fabs(fmod(hh, 2) - 1));
+				float r=0, g=0, b=0;
+
+				if (hh < 1) { r=c; g=xx; b=0; }
+				else if (hh < 2) { r=xx; g=c; b=0; }
+				else if (hh < 3) { r=0; g=c; b=xx; }
+				else if (hh < 4) { r=0; g=xx; b=c; }
+				else if (hh < 5) { r=xx; g=0; b=c; }
+				else { r=c; g=0; b=xx; }
+
+				uchar R = (uchar)(r * 255);
+				uchar G = (uchar)(g * 255);
+				uchar B = (uchar)(b * 255);
+
+				// Mirror
+				int l = cx - 1 - x;
+				int r_pos = cx + x;
+
+				if(l >= 0) {
+					texBuf[(y * w + l) * 4 + 0] = R;
+					texBuf[(y * w + l) * 4 + 1] = G;
+					texBuf[(y * w + l) * 4 + 2] = B;
+					texBuf[(y * w + l) * 4 + 3] = intensity;
+				}
+				if(r_pos < w) {
+					texBuf[(y * w + r_pos) * 4 + 0] = R;
+					texBuf[(y * w + r_pos) * 4 + 1] = G;
+					texBuf[(y * w + r_pos) * 4 + 2] = B;
+					texBuf[(y * w + r_pos) * 4 + 3] = intensity;
+				}
+			}
+		}
+
+		// Apply anti-aliasing
+		switch (waveformAntiAliasingMode_) {
+		case 1: antiAlias2xRGB(texBuf, w, h); break;
+		case 2: antiAlias3xRGB(texBuf, w, h); break;
+		case 3: antiAlias4xRGB(texBuf, w, h); break;
+		}
+
+		if (!textures[channel].handle() || textures[channel].format() != Texture::RGBA) {
+			textures[channel] = Texture(TEX_W, TEX_H, Texture::RGBA);
+		}
+		textures[channel].modify(0, 0, waveformBlockWidth_, TEX_H, texBuf);
+	}
+}
+
+void renderWaveformRGB(Texture* textures, WaveEdge* edgeBuf, int w, int h, int blockId)
+{
+	uchar* texBuf = waveformTextureBuffer_.begin();
+	for(int channel = 0; channel < 2; ++channel)
+	{
+		memset(texBuf, 0, w * h * 4); // RGBA
+
+		// Process edges for each band
+		// Band 0: Low -> Red (channel offset 0)
+		// Band 1: Mid -> Green (channel offset 1)
+		// Band 2: High -> Blue (channel offset 2)
+
+		for(int band = 0; band < 3; ++band) {
+			sampleEdgesRGB(edgeBuf, w, h, channel, blockId, band);
+
+			if (waveformLuminance_ == LL_UNIFORM) {
+				edgeLumUniform(edgeBuf, h);
+			}
+			else if (waveformLuminance_ == LL_AMPLITUDE) {
+				edgeLumAmplitude(edgeBuf, w, h);
+			}
+
+			if (waveformShape_ == WS_RECTIFIED) {
+				edgeShapeRectifiedRGB(texBuf, edgeBuf, w, h, band);
+			}
+			else if (waveformShape_ == WS_SIGNED) {
+				edgeShapeSignedRGB(texBuf, edgeBuf, w, h, band);
+			}
+		}
+
+		// Apply anti-aliasing (needs RGB support)
+		switch (waveformAntiAliasingMode_) {
+		case 1: antiAlias2xRGB(texBuf, w, h); break;
+		case 2: antiAlias3xRGB(texBuf, w, h); break;
+		case 3: antiAlias4xRGB(texBuf, w, h); break;
+		}
+
+		// Create or update texture
+		if (!textures[channel].handle() || textures[channel].format() != Texture::RGBA) {
+			textures[channel] = Texture(TEX_W, TEX_H, Texture::RGBA);
+		}
+		textures[channel].modify(0, 0, waveformBlockWidth_, TEX_H, texBuf);
+	}
+}
+
+void renderWaveformTempogram(Texture* textures, WaveEdge* edgeBuf, int w, int h, int blockId)
+{
+	uchar* texBuf = waveformTextureBuffer_.begin();
+
+	auto& music = gMusic->getSamples();
+	double samplesPerSec = (double)music.getFrequency();
+	double samplesPerPixel = samplesPerSec / fabs(gView->getPixPerSec());
+	double samplesPerBlock = (double)TEX_H * samplesPerPixel;
+	int64_t samplePos = max((int64_t)0, (int64_t)(samplesPerBlock * (double)blockId));
+
+	double advance = samplesPerPixel * TEX_H / h;
+
+	memset(texBuf, 0, w * h * 4);
+
+	for(int channel = 0; channel < 2; ++channel)
+	{
+		const auto& tempogram = (channel == 0) ? waveformFilterTempogram_->tempogramL : waveformFilterTempogram_->tempogramR;
+		int numBins = tempogram.size();
+		int numBlocks = (numBins > 0) ? tempogram[0].size() : 0;
+
+		for(int y = 0; y < h; ++y)
+		{
+			int64_t currentSample = samplePos + (int64_t)(y * advance);
+			int blockIndex = (int)(currentSample / waveformFilterTempogram_->samplesPerBlock);
+
+			if (blockIndex < 0 || blockIndex >= numBlocks) continue;
+
+			int cx = w / 2;
+
+			for(int x = 0; x < cx; ++x)
+			{
+				float t = (float)x / cx; // 0..1
+				int bin = (int)(t * numBins);
+				bin = clamp(bin, 0, numBins-1);
+
+				uchar intensity = tempogram[bin][blockIndex];
+
+				// Heatmap: Blue->Red->Yellow
+				uchar r, g, b;
+				if (intensity < 128) {
+					// Blue to Green
+					r = 0;
+					g = intensity * 2;
+					b = 255 - intensity * 2;
+				} else {
+					// Green to Red
+					r = (intensity - 128) * 2;
+					g = 255 - (intensity - 128) * 2;
+					b = 0;
+				}
+
+				int l = cx - 1 - x;
+				int r_pos = cx + x;
+
+				if(l >= 0) {
+					texBuf[(y * w + l) * 4 + 0] = r;
+					texBuf[(y * w + l) * 4 + 1] = g;
+					texBuf[(y * w + l) * 4 + 2] = b;
+					texBuf[(y * w + l) * 4 + 3] = intensity;
+				}
+				if(r_pos < w) {
+					texBuf[(y * w + r_pos) * 4 + 0] = r;
+					texBuf[(y * w + r_pos) * 4 + 1] = g;
+					texBuf[(y * w + r_pos) * 4 + 2] = b;
+					texBuf[(y * w + r_pos) * 4 + 3] = intensity;
+				}
+			}
+		}
+
+		switch (waveformAntiAliasingMode_) {
+		case 1: antiAlias2xRGB(texBuf, w, h); break;
+		case 2: antiAlias3xRGB(texBuf, w, h); break;
+		case 3: antiAlias4xRGB(texBuf, w, h); break;
+		}
+
+		if (!textures[channel].handle() || textures[channel].format() != Texture::RGBA) {
+			textures[channel] = Texture(TEX_W, TEX_H, Texture::RGBA);
+		}
+		textures[channel].modify(0, 0, waveformBlockWidth_, TEX_H, texBuf);
+	}
+}
+
+void renderWaveformHPSS(Texture* textures, WaveEdge* edgeBuf, int w, int h, int blockId, bool harmonic)
+{
+	uchar* texBuf = waveformTextureBuffer_.begin();
+
+	auto& music = gMusic->getSamples();
+	double samplesPerSec = (double)music.getFrequency();
+	double samplesPerPixel = samplesPerSec / fabs(gView->getPixPerSec());
+	double samplesPerBlock = (double)TEX_H * samplesPerPixel;
+	int64_t samplePos = max((int64_t)0, (int64_t)(samplesPerBlock * (double)blockId));
+
+	double advance = samplesPerPixel * TEX_H / h;
+
+	memset(texBuf, 0, w * h * 4);
+
+	for(int channel = 0; channel < 2; ++channel)
+	{
+		const auto& spec = harmonic ? waveformFilterHPSS_->specH[channel] : waveformFilterHPSS_->specP[channel];
+		if (spec.width == 0) continue;
+
+		for(int y = 0; y < h; ++y)
+		{
+			int64_t currentSample = samplePos + (int64_t)(y * advance);
+			// Calculate time index in spectrogram
+			int t = (int)(currentSample / waveformFilterHPSS_->samplesPerBlock);
+			if (t < 0 || t >= spec.width) continue;
+
+			int cx = w / 2;
+			int numBins = spec.height;
+
+			for(int x = 0; x < cx; ++x)
+			{
+				float u = (float)x / cx;
+				// Linear mapping for now to match spectrogram
+				int bin = (int)(u * u * numBins);
+				bin = clamp(bin, 0, numBins-1);
+
+				uchar intensity = spec.get(t, bin);
+
+				// Color map
+				// Harmonic: Blue/Greenish? Percussive: Red/Orange?
+				uchar r, g, b;
+				if (harmonic) {
+					// Cyan/Blue
+					r = 0;
+					g = intensity;
+					b = (intensity > 128) ? 255 : intensity * 2;
+				} else {
+					// Red/Orange
+					r = intensity;
+					g = (intensity > 128) ? (intensity - 128) * 2 : 0;
+					b = 0;
+				}
+
+				// Mirror
+				int l = cx - 1 - x;
+				int r_pos = cx + x;
+
+				if(l >= 0) {
+					texBuf[(y * w + l) * 4 + 0] = r;
+					texBuf[(y * w + l) * 4 + 1] = g;
+					texBuf[(y * w + l) * 4 + 2] = b;
+					texBuf[(y * w + l) * 4 + 3] = intensity;
+				}
+				if(r_pos < w) {
+					texBuf[(y * w + r_pos) * 4 + 0] = r;
+					texBuf[(y * w + r_pos) * 4 + 1] = g;
+					texBuf[(y * w + r_pos) * 4 + 2] = b;
+					texBuf[(y * w + r_pos) * 4 + 3] = intensity;
+				}
+			}
+		}
+
+		// Apply anti-aliasing
+		switch (waveformAntiAliasingMode_) {
+		case 1: antiAlias2xRGB(texBuf, w, h); break;
+		case 2: antiAlias3xRGB(texBuf, w, h); break;
+		case 3: antiAlias4xRGB(texBuf, w, h); break;
+		}
+
+		if (!textures[channel].handle() || textures[channel].format() != Texture::RGBA) {
+			textures[channel] = Texture(TEX_W, TEX_H, Texture::RGBA);
+		}
+		textures[channel].modify(0, 0, waveformBlockWidth_, TEX_H, texBuf);
+	}
+}
+
+void renderBlock(WaveBlock* block)
+{
+	int w = waveformBlockWidth_ * (waveformAntiAliasingMode_ + 1);
+	int h = TEX_H * (waveformAntiAliasingMode_ + 1);
+	waveformTextureBuffer_.resize(w * h * 4); // Resize for RGBA
+
+	Vector<WaveEdge> edges;
+	edges.resize(h);
+
+	if(waveformColorMode_ == CM_RGB)
+	{
+		// Update RGB filter if needed (might have been lazy loaded)
+		waveformFilterRGB_->update(waveformRGBLow_, waveformRGBHigh_);
+		renderWaveformRGB(block->tex, edges.begin(), w, h, block->id);
+	}
+	else if(waveformColorMode_ == CM_SPECTRAL)
+	{
+		waveformFilterSpectral_->update();
+		renderWaveformColored(block->tex, edges.begin(), w, h, block->id, waveformFilterSpectral_);
+	}
+	else if(waveformColorMode_ == CM_SPECTROGRAM)
+	{
+		waveformFilterSpectral_->update();
+		renderWaveformSpectrogram(block->tex, edges.begin(), w, h, block->id);
+	}
+	else if(waveformColorMode_ == CM_PITCH)
+	{
+		waveformFilterPitch_->update();
+		renderWaveformColored(block->tex, edges.begin(), w, h, block->id, waveformFilterPitch_);
+	}
+	else if(waveformColorMode_ == CM_CQT)
+	{
+		waveformFilterCQT_->update(waveformSpectrogramGain_);
+		renderWaveformCQT(block->tex, edges.begin(), w, h, block->id);
+	}
+	else if(waveformColorMode_ == CM_CHROMAGRAM)
+	{
+		waveformFilterChromagram_->update(waveformSpectrogramGain_);
+		renderWaveformChromagram(block->tex, edges.begin(), w, h, block->id);
+	}
+	else if(waveformColorMode_ == CM_NOVELTY)
+	{
+		waveformFilterNovelty_->update(waveformSpectrogramGain_);
+		renderWaveformNovelty(block->tex, edges.begin(), w, h, block->id);
+	}
+	else if(waveformColorMode_ == CM_TEMPOGRAM)
+	{
+		waveformFilterTempogram_->update(waveformSpectrogramGain_);
+		renderWaveformTempogram(block->tex, edges.begin(), w, h, block->id);
+	}
+	else if(waveformColorMode_ == CM_PERCUSSION)
+	{
+		waveformFilterHPSS_->update(waveformSpectrogramGain_);
+		renderWaveformHPSS(block->tex, edges.begin(), w, h, block->id, false);
+	}
+	else if(waveformColorMode_ == CM_HARMONIC)
+	{
+		waveformFilterHPSS_->update(waveformSpectrogramGain_);
+		renderWaveformHPSS(block->tex, edges.begin(), w, h, block->id, true);
+	}
+	else if(waveformFilter_)
+	{
+		if(waveformOverlayFilter_)
+		{
+			renderWaveform(block->tex + 0, edges.begin(), w, h, block->id, false);
+			renderWaveform(block->tex + 2, edges.begin(), w, h, block->id, true);
+		}
+		else
+		{
+			renderWaveform(block->tex, edges.begin(), w, h, block->id, true);
+		}
+	}
+	else
+	{
+		renderWaveform(block->tex, edges.begin(), w, h, block->id, false);
+	}
+}
+
+WaveBlock* getBlock(int id)
 {
 	uchar* texBuf = waveformTextureBuffer_.begin();
 
@@ -2765,6 +5330,63 @@ void drawPeaks()
 		auto& music = gMusic->getSamples();
 		double samplesPerSec = (double)music.getFrequency();
 		int viewH = gView->getHeight();
+
+		for(const auto& onset : waveformOnsets_)
+		{
+			double time = (double)onset.pos / samplesPerSec;
+			int y = gView->timeToY(time);
+
+			if (y >= -2 && y <= viewH + 2)
+			{
+				Draw::fill({xl - pw, y, pw * 2 + border * 2 + pw * 2, 1}, RGBAtoColor32(255, 50, 50, 200));
+			}
+		}
+	}
+
+	// Draw BPM and Section markers
+	if (gTempo)
+	{
+		const SegmentGroup* segs = gTempo->getSegments();
+		if (segs)
+		{
+			int viewH = gView->getHeight();
+
+			// Draw BPM changes (Cyan)
+			const auto& bpms = segs->get<BpmChange>();
+			for(const auto& bpm : bpms)
+			{
+				double time = gTempo->rowToTime(bpm.row);
+				int y = gView->timeToY(time);
+				if (y >= -2 && y <= viewH + 2)
+				{
+					// Draw a distinct line for BPM change
+					Draw::fill({xl - pw, y, pw * 2 + border * 2 + pw * 2, 2}, RGBAtoColor32(0, 255, 255, 200));
+				}
+			}
+
+			// Draw Stops (Red zone)
+			const auto& stops = segs->get<Stop>();
+			for(const auto& stop : stops)
+			{
+				double time = gTempo->rowToTime(stop.row);
+				int y1 = gView->timeToY(time);
+				// Stop freezes the time, so on the waveform (time-based) it corresponds to a duration?
+				// Actually, in ArrowVortex time-based view, stops are gaps?
+				// Or does the waveform skip the stop duration?
+				// Usually waveform is strictly linear with audio time.
+				// Stops pause the chart scrolling relative to audio.
+				// So a stop happens at a specific audio time.
+				// But visually in the chart, it takes up 0 space?
+				// Wait, if I'm drawing on the waveform texture, the texture is Time vs Amplitude.
+				// A Stop doesn't affect the audio file itself.
+				// But we want to see WHERE the stop is.
+				// So just a line is fine.
+				if (y1 >= -2 && y1 <= viewH + 2)
+				{
+					Draw::fill({xl - pw, y1, pw * 2 + border * 2 + pw * 2, 2}, RGBAtoColor32(255, 0, 0, 200));
+				}
+			}
+
 
 		for(const auto& onset : waveformOnsets_)
 		{
