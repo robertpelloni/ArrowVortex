@@ -49,7 +49,6 @@ double myZoomLevel, myScaleLevel;
 bool myIsDraggingReceptors;
 bool myIsDraggingBeat;
 int myDraggedBeatRow;
-double myDraggedBeatTime;
 int myHoveredBeatRow;
 bool myUseTimeBasedView;
 bool myUseReverseScroll;
@@ -82,7 +81,6 @@ ViewImpl()
 	, myIsDraggingReceptors(false)
 	, myIsDraggingBeat(false)
 	, myDraggedBeatRow(-1)
-	, myDraggedBeatTime(-1.0)
 	, myHoveredBeatRow(-1)
 	, myPixPerSec(32)
 	, myPixPerRow(16 * BEATS_PER_ROW)
@@ -203,8 +201,6 @@ void onMouseRelease(MouseRelease& evt) override
 		bool ripple = (gSystem->getKeyboardState() & Keyflag::SHIFT) != 0;
 		gTempo->moveBeat(myDraggedBeatRow, time, ripple);
 		gTempo->injectBoundingBpmChange(myDraggedBeatRow);
-		//gTempo->moveBeat(myDraggedBeatRow, myDraggedBeatTime);
-		//myDraggedBeatTime = -1.0;
 	}
 }
 
@@ -392,7 +388,6 @@ void tick()
 		const double time = offsetToTime(yToOffset(gSystem->getMousePos().y));
 		bool ripple = (gSystem->getKeyboardState() & Keyflag::SHIFT) != 0;
 		gTempo->updateDragBeat(myDraggedBeatRow, time, ripple);
-		//gTempo->moveBeat(myDraggedBeatRow, time, ripple);
 	}
 
 	// Set cursor to arrows when hovering over/dragging the receptors.
