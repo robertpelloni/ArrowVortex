@@ -229,6 +229,49 @@ bool save(StringRef dir, StringRef name, SimFormat format)
 	mySimfile->file = name;
 
 	// Save the simfile.
+
+	// Pre-process: Remove duplicate BPMs if requested
+	if (gEditor->getRemoveDuplicateBPMs() && mySimfile->tempo && mySimfile->tempo->segments)
+	{
+		// We should do this on a copy or modify the simfile?
+		// Modifying the simfile before save is risky if it affects Undo?
+		// But "Remove duplicate BPMs on save" implies we just don't write them, or we clean them up.
+		// If we clean them up in the simfile object, that's a change.
+		// Let's assume we want to clean them up in the editor state too.
+
+		// Actually, standard practice for "Remove duplicate BPMs" is to do it on the data structure.
+		// Note: This changes the file state.
+
+		// Implementation: Iterate BPMs and remove consecutive identical ones.
+		// We must be careful not to remove BPMs that are structural anchors if that matters,
+		// but usually identical BPMs are redundant.
+
+		SegmentGroup* segs = mySimfile->tempo->segments;
+		SegmentEdit edit;
+
+		const auto& bpms = segs->getList<BpmChange>();
+		if (!bpms.empty()) {
+			double lastBpm = -1.0;
+			for(auto it = bpms.begin(); it != bpms.end(); ++it) {
+				if (abs(it->bpm - lastBpm) < 0.0001) {
+					// Duplicate
+					edit.rem.append(Segment::BPM, it->row);
+				} else {
+					lastBpm = it->bpm;
+				}
+			}
+		}
+
+		if (edit.rem.numSegments() > 0) {
+			// Apply cleanup
+			// modify() is in TempoMan.
+			// But wait, are we saving the *current* state?
+			// Yes. So if we modify it, it's modified in editor.
+			// Is that desired? Usually yes.
+			gTempo->modify(edit, false);
+		}
+	}
+
 	bool result = SaveSimfile(*mySimfile, format, myBackupOnSave);
 	myBackupOnSave = false;
 

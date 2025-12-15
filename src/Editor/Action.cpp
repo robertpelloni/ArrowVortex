@@ -95,6 +95,8 @@ void Action::perform(Type action)
 		gEditor->openDialog(DIALOG_LYRICS_EDITOR);
 	CASE(OPEN_DIALOG_BG_CHANGES)
 		gEditor->openDialog(DIALOG_BG_CHANGES);
+	CASE(OPEN_DIALOG_PREFERENCES)
+		gEditor->openDialog(DIALOG_PREFERENCES);
 
 	CASE(EDIT_UNDO)
 		gSystem->getEvents().addKeyPress(Key::Z, Keyflag::CTRL, false);
