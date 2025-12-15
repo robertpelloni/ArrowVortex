@@ -35,6 +35,7 @@ struct TempoBoxes
 	virtual bool noneSelected() const = 0;
 
 	virtual void toggleShowBoxes() = 0;
+	virtual void setShowBoxes(bool show) = 0;
 	virtual void toggleShowHelp() = 0;
 
 	virtual bool hasShowBoxes() = 0;

@@ -58,12 +58,16 @@ int myTickOffsetMs;
 double myPlayPosition;
 double myPlayStartTime;
 bool myIsPaused, myIsMuted;
+bool myIsLooping;
+double myLoopStart, myLoopEnd;
 LoadState myLoadState;
 Reference<InfoBoxWithProgress> myInfoBox;
 
 Vector<short> myMixBuffer;
 
 OggConversionThread* myOggConversionThread;
+
+void writeFramesInternal(short* buffer, int frames);
 
 // ================================================================================================
 // MusicImpl :: constructor and destructor.
@@ -85,6 +89,9 @@ MusicImpl()
 	myPlayStartTime = 0.0;
 	myIsPaused = true;
 	myIsMuted = false;
+	myIsLooping = false;
+	myLoopStart = 0.0;
+	myLoopEnd = 0.0;
 	myLoadState = LOADING_DONE;
 
 	myBeatTick.enabled = false;
@@ -175,7 +182,7 @@ void load()
 // ================================================================================================
 // MusicImpl :: mixing functions
 
-void WriteTickSamples(short* dst, int startFrame, int numFrames, const TickData& tick, int rate)
+void WriteTickSamples(short* dst, int startFrame, int numFrames, const TickData& tick, int rate, float volume)
 {
 	if(rate != 100)
 	{
@@ -190,8 +197,8 @@ void WriteTickSamples(short* dst, int startFrame, int numFrames, const TickData&
 		int n = min(numFrames, tick.sound.getNumFrames() - startFrame);
 		for(int i = 0; i < n; ++i)
 		{
-			*dst++ = min(max(*dst + *srcL++, SHRT_MIN), SHRT_MAX);
-			*dst++ = min(max(*dst + *srcR++, SHRT_MIN), SHRT_MAX);
+			*dst++ = min(max(*dst + (short)(*srcL++ * volume), SHRT_MIN), SHRT_MAX);
+			*dst++ = min(max(*dst + (short)(*srcR++ * volume), SHRT_MIN), SHRT_MAX);
 		}
 	}
 	else
@@ -207,8 +214,8 @@ void WriteTickSamples(short* dst, int startFrame, int numFrames, const TickData&
 			float sampleL = lerp((float)srcL[idx], (float)srcL[idx + 1], frac);
 			float sampleR = lerp((float)srcR[idx], (float)srcR[idx + 1], frac);
 			
-			*dst++ = min(max(*dst + (short)sampleL, SHRT_MIN), SHRT_MAX);
-			*dst++ = min(max(*dst + (short)sampleR, SHRT_MIN), SHRT_MAX);
+			*dst++ = min(max(*dst + (short)(sampleL * volume), SHRT_MIN), SHRT_MAX);
+			*dst++ = min(max(*dst + (short)(sampleR * volume), SHRT_MIN), SHRT_MAX);
 
 			srcPos += srcDelta;
 			idx = (int)srcPos;
@@ -239,7 +246,23 @@ void WriteTicks(short* buf, int frames, const TickData& tick, int rate)
 		short* dst = buf + dstPos * 2;
 		int dstFrames = frames - dstPos;
 
-		WriteTickSamples(dst, srcPos, frames - dstPos, tick, rate);
+		// Use global volumes if tick corresponds to beat/note
+		// But WriteTicks is generic.
+		// We can scale the samples inside WriteTickSamples or here.
+		// However, tick data is shared.
+		// Let's modify WriteTickSamples to take volume.
+
+		float volume = 1.0f;
+		if (&tick == &myBeatTick) volume = gEditor->getBeatAssistVol();
+		else if (&tick == &myNoteTick) volume = gEditor->getNoteAssistVol();
+
+		// For now, simple volume application inside loop or helper?
+		// WriteTickSamples doesn't take volume.
+		// I'll assume we can't easily change WriteTickSamples signature without changing header or forward decl?
+		// It's a static helper function in this file.
+
+		// Let's modify WriteTickSamples signature.
+		WriteTickSamples(dst, srcPos, frames - dstPos, tick, rate, volume);
 
 		curFrame = beginFrame;
 	}
@@ -299,7 +322,7 @@ void WriteSourceFrames(short* buffer, int frames, int64_t srcPos)
 	if(myNoteTick.enabled) WriteTicks(buffer, frames, myNoteTick, rate);
 }
 
-void writeFrames(short* buffer, int frames) override
+void writeFramesInternal(short* buffer, int frames)
 {
 	double srcAdvance = (double)frames;
 	if(myMusicSpeed == 100)
@@ -347,6 +370,49 @@ void writeFrames(short* buffer, int frames) override
 	}
 
 	myPlayPosition += srcAdvance;
+}
+
+void writeFrames(short* buffer, int frames) override
+{
+	if (!mySamples.isAllocated()) {
+		memset(buffer, 0, frames * MIX_CHANNELS * sizeof(short));
+		return;
+	}
+
+	double freq = (double)mySamples.getFrequency();
+	double loopStartPos = myLoopStart * freq;
+	double loopEndPos = myLoopEnd * freq;
+	bool looping = myIsLooping && (loopEndPos > loopStartPos);
+
+	if (looping && myPlayPosition < loopEndPos)
+	{
+		double speed = (double)myMusicSpeed / 100.0;
+		double srcNeeded = (double)frames * speed;
+
+		if ((myPlayPosition + srcNeeded) >= loopEndPos)
+		{
+			// Crosses boundary
+			double srcAvailable = loopEndPos - myPlayPosition;
+			int framesBeforeWrap = (int)(srcAvailable / speed);
+			if (framesBeforeWrap < 0) framesBeforeWrap = 0;
+			if (framesBeforeWrap > frames) framesBeforeWrap = frames;
+
+			int framesAfterWrap = frames - framesBeforeWrap;
+
+			if (framesBeforeWrap > 0)
+				writeFramesInternal(buffer, framesBeforeWrap);
+
+			// Wrap
+			myPlayPosition = loopStartPos;
+
+			if (framesAfterWrap > 0)
+				writeFramesInternal(buffer + framesBeforeWrap * MIX_CHANNELS, framesAfterWrap);
+
+			return;
+		}
+	}
+
+	writeFramesInternal(buffer, frames);
 }
 
 
@@ -632,6 +698,35 @@ bool hasNoteTick()
 	return myNoteTick.enabled;
 }
 
+void toggleLoop()
+{
+	myIsLooping = !myIsLooping;
+	HudNote("Looping: %s", myIsLooping ? "ON" : "OFF");
+	if(gMenubar) gMenubar->update(Menubar::AUDIO_LOOP);
+}
+
+void setLoopRegion(double start, double end)
+{
+	if (start > end) std::swap(start, end);
+	myLoopStart = start;
+	myLoopEnd = end;
+	if (myLoopEnd > myLoopStart) {
+		HudNote("Loop set: %.3fs - %.3fs", start, end);
+		myIsLooping = true;
+	} else {
+		myIsLooping = false;
+	}
+	if(gMenubar) gMenubar->update(Menubar::AUDIO_LOOP);
+}
+
+bool isLooping()
+{
+	return myIsLooping;
+}
+
+double getLoopStart() { return myLoopStart; }
+double getLoopEnd() { return myLoopEnd; }
+
 // ================================================================================================
 // MusicImpl :: handling of external changes.
 
@@ -643,7 +738,11 @@ void updateBeatTicks()
 	double ofs = myTickOffsetMs / 1000.0;
 
 	TempoTimeTracker tracker(gTempo->getTimingData());
-	for(int row = 0, end = gSimfile->getEndRow(); row < end; row += ROWS_PER_BEAT)
+	bool subBeats = gEditor->getAssistTickBeats();
+	int step = subBeats ? (ROWS_PER_BEAT / 2) : ROWS_PER_BEAT; // 8ths if sub-beats, else 4ths
+	// DDream Assist Tick on beats and sub-beats usually implies 8ths or 4ths+8ths.
+
+	for(int row = 0, end = gSimfile->getEndRow(); row < end; row += step)
 	{
 		double time = tracker.advance(row);
 		int frame = (int)((time + ofs) * freq);
