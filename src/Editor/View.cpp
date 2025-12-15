@@ -171,6 +171,7 @@ void onMousePress(MousePress& evt) override
 	{
 		myIsDraggingBeat = true;
 		myDraggedBeatRow = myHoveredBeatRow;
+		gTempo->startTweakingDrag();
 		evt.setHandled();
 	}
 
@@ -193,8 +194,17 @@ void onMouseRelease(MouseRelease& evt) override
 	if (evt.button == Mouse::LMB && myIsDraggingBeat)
 	{
 		myIsDraggingBeat = false;
-		gTempo->moveBeat(myDraggedBeatRow, myDraggedBeatTime);
-		myDraggedBeatTime = -1.0;
+
+		// Commit drag
+		gTempo->stopTweaking(false); // Clear tweak mode
+
+		// Apply final move
+		const double time = offsetToTime(yToOffset(gSystem->getMousePos().y));
+		bool ripple = (gSystem->getKeyboardState() & Keyflag::SHIFT) != 0;
+		gTempo->moveBeat(myDraggedBeatRow, time, ripple);
+		gTempo->injectBoundingBpmChange(myDraggedBeatRow);
+		//gTempo->moveBeat(myDraggedBeatRow, myDraggedBeatTime);
+		//myDraggedBeatTime = -1.0;
 	}
 }
 
@@ -381,7 +391,8 @@ void tick()
 	{
 		const double time = offsetToTime(yToOffset(gSystem->getMousePos().y));
 		bool ripple = (gSystem->getKeyboardState() & Keyflag::SHIFT) != 0;
-		gTempo->moveBeat(myDraggedBeatRow, time, ripple);
+		gTempo->updateDragBeat(myDraggedBeatRow, time, ripple);
+		//gTempo->moveBeat(myDraggedBeatRow, time, ripple);
 	}
 
 	// Set cursor to arrows when hovering over/dragging the receptors.

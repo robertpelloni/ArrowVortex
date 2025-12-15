@@ -27,6 +27,7 @@ struct TempoMan
 		TWEAK_OFFSET, ///< The music offset is being tweaked.
 		TWEAK_BPM,    ///< The BPM at the tweak row is being tweaked.
 		TWEAK_STOP,   ///< The stop at the tweak row is being tweaked.
+		TWEAK_DRAG,   ///< The tempo is being manipulated via drag.
 	};
 
 	/// Determines how the start and end value in selectRange are interpreted.
@@ -90,6 +91,12 @@ struct TempoMan
 
 	/// Start tweaking the stop value at the given row.
 	virtual void startTweakingStop(int row) = 0;
+
+	/// Start a visual-only drag operation (using tweak tempo).
+	virtual void startTweakingDrag() = 0;
+
+	/// Updates the drag operation.
+	virtual void updateDragBeat(int row, double time, bool ripple) = 0;
 
 	/// Sets a new tweak value, if tweaking is currently active.
 	virtual void setTweakValue(double value) = 0;
