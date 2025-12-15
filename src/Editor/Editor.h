@@ -116,6 +116,24 @@ struct Editor
 
 	virtual bool getDontShowFPS() const = 0;
 	virtual void setDontShowFPS(bool b) = 0;
+
+	// Practice Mode
+	virtual bool isPracticeMode() const = 0;
+	virtual void setPracticeMode(bool b) = 0;
+
+	struct PracticeSetup {
+		float windowMarvelous;
+		float windowPerfect;
+		float windowGreat;
+		float windowGood;
+		float windowBoo;
+		float windowMiss; // Usually implicitly outside Boo? Or explicitly defined?
+		float windowMine;
+		float windowFreeze; // Freeze OK
+		// Scale?
+	};
+	virtual const PracticeSetup& getPracticeSetup() const = 0;
+	virtual void setPracticeSetup(const PracticeSetup& s) = 0;
 };
 
 extern Editor* gEditor;

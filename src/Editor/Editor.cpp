@@ -165,6 +165,10 @@ bool mySelectPasted;
 bool myBackupSaves;
 bool myDontShowFPS;
 
+// Practice Mode
+bool myPracticeMode;
+Editor::PracticeSetup myPracticeSetup;
+
 // ================================================================================================
 // EditorImpl :: constructor and destructor.
 
@@ -208,6 +212,17 @@ EditorImpl()
 	mySelectPasted = true;
 	myBackupSaves = false;
 	myDontShowFPS = false;
+
+	myPracticeMode = false;
+	// Default windows (ms) based on screenshot
+	myPracticeSetup.windowMarvelous = 0.0225f; // 22.5ms = 0.0225s
+	myPracticeSetup.windowPerfect = 0.045f;
+	myPracticeSetup.windowGreat = 0.090f;
+	myPracticeSetup.windowGood = 0.135f;
+	myPracticeSetup.windowBoo = 0.180f;
+	myPracticeSetup.windowMine = 0.090f;
+	myPracticeSetup.windowFreeze = 0.250f;
+	myPracticeSetup.windowMiss = 0.180f; // Outside Boo
 
 	myFontPath = "assets/NotoSansJP-Medium.ttf";
 	myFontSize = 13;
@@ -365,6 +380,18 @@ void loadSettings(XmrDoc& settings)
 		general->get("dontShowFPS", &myDontShowFPS);
 	}
 
+	XmrNode* practice = settings.child("practice");
+	if (practice) {
+		practice->get("enabled", &myPracticeMode);
+		practice->get("windowMarvelous", &myPracticeSetup.windowMarvelous);
+		practice->get("windowPerfect", &myPracticeSetup.windowPerfect);
+		practice->get("windowGreat", &myPracticeSetup.windowGreat);
+		practice->get("windowGood", &myPracticeSetup.windowGood);
+		practice->get("windowBoo", &myPracticeSetup.windowBoo);
+		practice->get("windowFreeze", &myPracticeSetup.windowFreeze);
+		practice->get("windowMine", &myPracticeSetup.windowMine);
+	}
+
 	XmrNode* view = settings.child("view");
 	if(view)
 	{
@@ -403,6 +430,16 @@ void saveGeneralSettings(XmrNode& settings)
 	general->addAttrib("selectPasted", mySelectPasted);
 	general->addAttrib("backupSaves", myBackupSaves);
 	general->addAttrib("dontShowFPS", myDontShowFPS);
+
+	XmrNode* practice = settings.addChild("practice");
+	practice->addAttrib("enabled", myPracticeMode);
+	practice->addAttrib("windowMarvelous", myPracticeSetup.windowMarvelous);
+	practice->addAttrib("windowPerfect", myPracticeSetup.windowPerfect);
+	practice->addAttrib("windowGreat", myPracticeSetup.windowGreat);
+	practice->addAttrib("windowGood", myPracticeSetup.windowGood);
+	practice->addAttrib("windowBoo", myPracticeSetup.windowBoo);
+	practice->addAttrib("windowFreeze", myPracticeSetup.windowFreeze);
+	practice->addAttrib("windowMine", myPracticeSetup.windowMine);
 
 	XmrNode* view = settings.addChild("view");
 
@@ -1188,6 +1225,12 @@ void setBackupSaves(bool b) { myBackupSaves = b; }
 
 bool getDontShowFPS() const { return myDontShowFPS; }
 void setDontShowFPS(bool b) { myDontShowFPS = b; }
+
+bool isPracticeMode() const { return myPracticeMode; }
+void setPracticeMode(bool b) { myPracticeMode = b; }
+
+const PracticeSetup& getPracticeSetup() const { return myPracticeSetup; }
+void setPracticeSetup(const PracticeSetup& s) { myPracticeSetup = s; }
 
 GuiContext* getGui() const
 {

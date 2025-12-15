@@ -118,6 +118,30 @@ void DialogPreferences::myCreateWidgets()
 
 	auto cbPractice = myLayout.add<WgCheckbox>("Enable Practice Mode");
 	cbPractice->value.bind(&myEnablePracticeMode);
+	cbPractice->onChange.bind(this, &DialogPreferences::onPracticeEnabledChanged);
+	cbPractice->setTooltip("Uncheck: AutoPlay (Inputs handled by Editor logic)");
+
+	// Timing windows (Milliseconds)
+	// UI layout: Label | Input (Spinner) | Unit
+
+	auto addRow = [&](const char* label, double* val, void (DialogPreferences::*cb)()) {
+		myLayout.row().col(150).col(100).col(50);
+		myLayout.add<WgLabel>()->text.set(label);
+		auto spin = myLayout.add<WgSpinner>();
+		spin->setRange(0.0, 500.0);
+		spin->setStep(1.0);
+		spin->value.bind(val);
+		spin->onChange.bind(this, cb);
+		myLayout.add<WgLabel>()->text.set("ms");
+	};
+
+	addRow("Marvelous: +/-", &myWindowMarvelous, &DialogPreferences::onWindowMarvelousChanged);
+	addRow("Perfect: +/-", &myWindowPerfect, &DialogPreferences::onWindowPerfectChanged);
+	addRow("Great: +/-", &myWindowGreat, &DialogPreferences::onWindowGreatChanged);
+	addRow("Good: +/-", &myWindowGood, &DialogPreferences::onWindowGoodChanged);
+	addRow("Boo: +/-", &myWindowBoo, &DialogPreferences::onWindowBooChanged);
+	addRow("Freeze OK: +/-", &myWindowFreeze, &DialogPreferences::onWindowFreezeChanged);
+	addRow("Mine: +/-", &myWindowMine, &DialogPreferences::onWindowMineChanged);
 }
 
 void DialogPreferences::myUpdateWidgets()
@@ -137,6 +161,18 @@ void DialogPreferences::myUpdateWidgets()
 	mySelectPasted = gEditor->getSelectPasted();
 	myBackupSaves = gEditor->getBackupSaves();
 	myDontShowFPS = gEditor->getDontShowFPS();
+
+	myEnablePracticeMode = gEditor->isPracticeMode();
+	myPracticeSetup = gEditor->getPracticeSetup();
+
+	// Convert seconds to ms for UI
+	myWindowMarvelous = myPracticeSetup.windowMarvelous * 1000.0;
+	myWindowPerfect = myPracticeSetup.windowPerfect * 1000.0;
+	myWindowGreat = myPracticeSetup.windowGreat * 1000.0;
+	myWindowGood = myPracticeSetup.windowGood * 1000.0;
+	myWindowBoo = myPracticeSetup.windowBoo * 1000.0;
+	myWindowFreeze = myPracticeSetup.windowFreeze * 1000.0;
+	myWindowMine = myPracticeSetup.windowMine * 1000.0;
 }
 
 void DialogPreferences::onChanges(int changes)
@@ -144,7 +180,7 @@ void DialogPreferences::onChanges(int changes)
 	// If needed
 }
 
-// Callbacks - Read from member variables as they are bound to the widget state
+// Callbacks - Use bound member variables (which are updated by widget before callback)
 void DialogPreferences::onNudgeChanged() { gEditor->setNudgeBasedOnZoom(myNudgeBasedOnZoom); }
 void DialogPreferences::onAssistTickChanged() { gEditor->setAssistTickBeats(myAssistTickBeats); }
 void DialogPreferences::onDedupChanged() { gEditor->setRemoveDuplicateBPMs(myRemoveDuplicateBPMs); }
@@ -159,5 +195,21 @@ void DialogPreferences::onPasteOverwritesChanged() { gEditor->setPasteOverwrites
 void DialogPreferences::onSelectPastedChanged() { gEditor->setSelectPasted(mySelectPasted); }
 void DialogPreferences::onBackupSavesChanged() { gEditor->setBackupSaves(myBackupSaves); }
 void DialogPreferences::onDontShowFPSChanged() { gEditor->setDontShowFPS(myDontShowFPS); }
+
+void DialogPreferences::onPracticeEnabledChanged() { gEditor->setPracticeMode(myEnablePracticeMode); }
+
+// Helper to update struct
+#define UPDATE_SETUP(field, memberVar) \
+	myPracticeSetup = gEditor->getPracticeSetup(); \
+	myPracticeSetup.field = (float)(memberVar / 1000.0); \
+	gEditor->setPracticeSetup(myPracticeSetup);
+
+void DialogPreferences::onWindowMarvelousChanged() { UPDATE_SETUP(windowMarvelous, myWindowMarvelous); }
+void DialogPreferences::onWindowPerfectChanged() { UPDATE_SETUP(windowPerfect, myWindowPerfect); }
+void DialogPreferences::onWindowGreatChanged() { UPDATE_SETUP(windowGreat, myWindowGreat); }
+void DialogPreferences::onWindowGoodChanged() { UPDATE_SETUP(windowGood, myWindowGood); }
+void DialogPreferences::onWindowBooChanged() { UPDATE_SETUP(windowBoo, myWindowBoo); }
+void DialogPreferences::onWindowFreezeChanged() { UPDATE_SETUP(windowFreeze, myWindowFreeze); }
+void DialogPreferences::onWindowMineChanged() { UPDATE_SETUP(windowMine, myWindowMine); }
 
 }; // namespace Vortex
