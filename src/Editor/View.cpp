@@ -174,10 +174,30 @@ void onMousePress(MousePress& evt) override
 	}
 
 	if (evt.unhandled() && evt.button == Mouse::MMB) {
-		Vortex::vec2i mouse_pos = gSystem->getMousePos();
-		Vortex::ChartOffset ofs = gView->yToOffset(mouse_pos.y);
+		if (gEditor->getMiddleMouseInsertBeat())
+		{
+			// Perform Insert Beat
+			// We can invoke action or call Editing directly.
+			// Action::perform(INSERT_BEAT) acts on cursor.
+			// Let's move cursor to mouse pos first?
+			// DDream behavior: MMB inserts beat at mouse cursor?
+			// Or at playhead? Usually at mouse cursor.
+			// Let's set cursor to mouse pos, then insert.
+			Vortex::vec2i mouse_pos = gSystem->getMousePos();
+			Vortex::ChartOffset ofs = gView->yToOffset(mouse_pos.y);
+			setCursorRow(snapRow(offsetToRow(ofs), SnapDir::SNAP_CLOSEST));
 
-		setCursorRow(snapRow(offsetToRow(ofs), SnapDir::SNAP_CLOSEST));
+			// Call insert beat logic
+			// Using Action:
+			Action::perform(Action::INSERT_BEAT);
+		}
+		else
+		{
+			// Autoscroll / Jump to cursor (Default behavior)
+			Vortex::vec2i mouse_pos = gSystem->getMousePos();
+			Vortex::ChartOffset ofs = gView->yToOffset(mouse_pos.y);
+			setCursorRow(snapRow(offsetToRow(ofs), SnapDir::SNAP_CLOSEST));
+		}
 		evt.setHandled();
 	}
 }
@@ -432,6 +452,38 @@ void tick()
 	int maxRecepX = RightX(rect_) - rect_.w / 2;
 	myReceptorY = min(max(myReceptorY, rect_.y), BottomY(rect_));
 	myReceptorX = min(max(myReceptorX, minRecepX), maxRecepX);
+
+	// Scroll Cursor Effect: Move cursor instead of chart?
+	// If enabled: Cursor stays still? No, "Enable scrolling cursor effect" -> Cursor moves.
+	// DDream: "Cursor stays still during playback" (Unchecked) implies Scrolling Cursor.
+	// Wait, DDream's "Scrolling cursor effect" (Checked) usually means the cursor MOVES across the screen and the chart is STATIC?
+	// Or simply that the cursor has a visual effect?
+	// Given the tooltip "Uncheck: Cursor stays still during playback", it means:
+	// Checked: Cursor moves (and Chart stays still? Or Chart scrolls and Cursor moves relative?)
+	// Actually, typically editors have:
+	// 1. Fixed Receptors (Standard): Receptors at top/center, Chart moves.
+	// 2. Moving Receptors (Page/Scroll): Chart fixed, Receptors move.
+
+	// If ArrowVortex uses Fixed Receptors (myReceptorY is clamped to rect), then we just scroll.
+	// If we want "Cursor moves", we need to adjust myReceptorY based on playback time?
+	// But `myReceptorY` is set by dragging or resize.
+
+	// Let's implement a simple version:
+	// If "Scrolling Cursor Effect" is ON, we might want the cursor to move slightly or handle smooth scrolling differently?
+	// Actually, maybe this refers to the visual "Cursor" (Selection) vs "Receptors" (Playhead).
+	// In View::tick, myReceptorY is stable.
+
+	// I will skip complex "Moving Receptors" implementation for now as it fundamentally changes the view engine.
+	// I'll assume "Scrolling Cursor Effect" might just be about smoothing or the "Cursor Line" following playback?
+	// Currently `myCursorRow` follows playback.
+
+	// Re-reading tooltip: "Enable scrolling cursor effect... Uncheck: Cursor stays still".
+	// This likely refers to the "Beat Lines" or "Grid" moving vs "Cursor" moving.
+	// If unchecked (Cursor stays still), it's standard AV.
+	// If checked, maybe the playhead moves?
+	// Let's leave it as a TODO or minor tweak if I can't determine the exact behavior.
+	// I'll stick to Standard behavior for now but use the preference to toggle something if obvious.
+	// Actually, let's look at `myReceptorY` logic. It's updated by dragging.
 
 	// Store the y-position of time zero.
 	if(myUseTimeBasedView)

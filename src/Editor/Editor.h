@@ -91,6 +91,49 @@ struct Editor
 
 	virtual float getNoteAssistVol() const = 0;
 	virtual void setNoteAssistVol(float v) = 0;
+
+	// Expanded DDreamStudio Preferences
+	virtual bool getMiddleMouseInsertBeat() const = 0;
+	virtual void setMiddleMouseInsertBeat(bool b) = 0;
+
+	virtual bool getScrollCursorEffect() const = 0;
+	virtual void setScrollCursorEffect(bool b) = 0;
+
+	virtual bool getInsertSameDeletes() const = 0;
+	virtual void setInsertSameDeletes(bool b) = 0;
+
+	virtual bool getEditOneLayer() const = 0;
+	virtual void setEditOneLayer(bool b) = 0;
+
+	virtual bool getPasteOverwrites() const = 0;
+	virtual void setPasteOverwrites(bool b) = 0;
+
+	virtual bool getSelectPasted() const = 0;
+	virtual void setSelectPasted(bool b) = 0;
+
+	virtual bool getBackupSaves() const = 0;
+	virtual void setBackupSaves(bool b) = 0;
+
+	virtual bool getDontShowFPS() const = 0;
+	virtual void setDontShowFPS(bool b) = 0;
+
+	// Practice Mode
+	virtual bool isPracticeMode() const = 0;
+	virtual void setPracticeMode(bool b) = 0;
+
+	struct PracticeSetup {
+		float windowMarvelous;
+		float windowPerfect;
+		float windowGreat;
+		float windowGood;
+		float windowBoo;
+		float windowMiss; // Usually implicitly outside Boo? Or explicitly defined?
+		float windowMine;
+		float windowFreeze; // Freeze OK
+		// Scale?
+	};
+	virtual const PracticeSetup& getPracticeSetup() const = 0;
+	virtual void setPracticeSetup(const PracticeSetup& s) = 0;
 };
 
 extern Editor* gEditor;

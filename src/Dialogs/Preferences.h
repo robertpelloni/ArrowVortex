@@ -1,6 +1,7 @@
 #pragma once
 
 #include <Dialogs/Dialog.h>
+#include <Editor/Editor.h>
 
 namespace Vortex {
 
@@ -41,13 +42,43 @@ private:
 
 	// Practice Mode Settings
 	bool myEnablePracticeMode;
+	Editor::PracticeSetup myPracticeSetup;
 
-	// Callback wrappers
+	// Intermediate doubles for UI binding (milliseconds)
+	double myWindowMarvelous;
+	double myWindowPerfect;
+	double myWindowGreat;
+	double myWindowGood;
+	double myWindowBoo;
+	double myWindowFreeze;
+	double myWindowMine;
+
+	// Callback wrappers (All void because Wg*::onChange is void)
 	void onNudgeChanged();
 	void onAssistTickChanged();
 	void onDedupChanged();
-	void onBeatVolChanged();
+
+	void onMiddleMouseChanged();
+	void onScrollCursorChanged();
+	void onInsertSameChanged();
+	void onEditOneLayerChanged();
+	void onPasteOverwritesChanged();
+	void onSelectPastedChanged();
+	void onBackupSavesChanged();
+	void onDontShowFPSChanged();
+
+	void onPracticeEnabledChanged();
+
+	void onBeatVolChanged(); // Changed to void, reads myBeatAssistVol
 	void onNoteVolChanged();
+
+	void onWindowMarvelousChanged();
+	void onWindowPerfectChanged();
+	void onWindowGreatChanged();
+	void onWindowGoodChanged();
+	void onWindowBooChanged();
+	void onWindowFreezeChanged();
+	void onWindowMineChanged();
 };
 
 }; // namespace Vortex

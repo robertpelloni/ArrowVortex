@@ -156,6 +156,19 @@ bool myRemoveDuplicateBPMs;
 float myBeatAssistVol;
 float myNoteAssistVol;
 
+bool myMiddleMouseInsertBeat;
+bool myScrollCursorEffect;
+bool myInsertSameDeletes;
+bool myEditOneLayer;
+bool myPasteOverwrites;
+bool mySelectPasted;
+bool myBackupSaves;
+bool myDontShowFPS;
+
+// Practice Mode
+bool myPracticeMode;
+Editor::PracticeSetup myPracticeSetup;
+
 // ================================================================================================
 // EditorImpl :: constructor and destructor.
 
@@ -189,6 +202,27 @@ EditorImpl()
 	myRemoveDuplicateBPMs = true;
 	myBeatAssistVol = 1.0f;
 	myNoteAssistVol = 1.0f;
+
+	// Defaults based on DDream or typical usage
+	myMiddleMouseInsertBeat = false; // Default: Autoscroll
+	myScrollCursorEffect = true; // Default: Cursor moves?
+	myInsertSameDeletes = true;
+	myEditOneLayer = true;
+	myPasteOverwrites = true;
+	mySelectPasted = true;
+	myBackupSaves = false;
+	myDontShowFPS = false;
+
+	myPracticeMode = false;
+	// Default windows (ms) based on screenshot
+	myPracticeSetup.windowMarvelous = 0.0225f; // 22.5ms = 0.0225s
+	myPracticeSetup.windowPerfect = 0.045f;
+	myPracticeSetup.windowGreat = 0.090f;
+	myPracticeSetup.windowGood = 0.135f;
+	myPracticeSetup.windowBoo = 0.180f;
+	myPracticeSetup.windowMine = 0.090f;
+	myPracticeSetup.windowFreeze = 0.250f;
+	myPracticeSetup.windowMiss = 0.180f; // Outside Boo
 
 	myFontPath = "assets/NotoSansJP-Medium.ttf";
 	myFontSize = 13;
@@ -335,6 +369,27 @@ void loadSettings(XmrDoc& settings)
 		general->get("nudgeBasedOnZoom", &myNudgeBasedOnZoom);
 		general->get("assistTickBeats", &myAssistTickBeats);
 		general->get("removeDuplicateBPMs", &myRemoveDuplicateBPMs);
+
+		general->get("middleMouseInsertBeat", &myMiddleMouseInsertBeat);
+		general->get("scrollCursorEffect", &myScrollCursorEffect);
+		general->get("insertSameDeletes", &myInsertSameDeletes);
+		general->get("editOneLayer", &myEditOneLayer);
+		general->get("pasteOverwrites", &myPasteOverwrites);
+		general->get("selectPasted", &mySelectPasted);
+		general->get("backupSaves", &myBackupSaves);
+		general->get("dontShowFPS", &myDontShowFPS);
+	}
+
+	XmrNode* practice = settings.child("practice");
+	if (practice) {
+		practice->get("enabled", &myPracticeMode);
+		practice->get("windowMarvelous", &myPracticeSetup.windowMarvelous);
+		practice->get("windowPerfect", &myPracticeSetup.windowPerfect);
+		practice->get("windowGreat", &myPracticeSetup.windowGreat);
+		practice->get("windowGood", &myPracticeSetup.windowGood);
+		practice->get("windowBoo", &myPracticeSetup.windowBoo);
+		practice->get("windowFreeze", &myPracticeSetup.windowFreeze);
+		practice->get("windowMine", &myPracticeSetup.windowMine);
 	}
 
 	XmrNode* view = settings.child("view");
@@ -366,6 +421,25 @@ void saveGeneralSettings(XmrNode& settings)
 	general->addAttrib("nudgeBasedOnZoom", myNudgeBasedOnZoom);
 	general->addAttrib("assistTickBeats", myAssistTickBeats);
 	general->addAttrib("removeDuplicateBPMs", myRemoveDuplicateBPMs);
+
+	general->addAttrib("middleMouseInsertBeat", myMiddleMouseInsertBeat);
+	general->addAttrib("scrollCursorEffect", myScrollCursorEffect);
+	general->addAttrib("insertSameDeletes", myInsertSameDeletes);
+	general->addAttrib("editOneLayer", myEditOneLayer);
+	general->addAttrib("pasteOverwrites", myPasteOverwrites);
+	general->addAttrib("selectPasted", mySelectPasted);
+	general->addAttrib("backupSaves", myBackupSaves);
+	general->addAttrib("dontShowFPS", myDontShowFPS);
+
+	XmrNode* practice = settings.addChild("practice");
+	practice->addAttrib("enabled", myPracticeMode);
+	practice->addAttrib("windowMarvelous", myPracticeSetup.windowMarvelous);
+	practice->addAttrib("windowPerfect", myPracticeSetup.windowPerfect);
+	practice->addAttrib("windowGreat", myPracticeSetup.windowGreat);
+	practice->addAttrib("windowGood", myPracticeSetup.windowGood);
+	practice->addAttrib("windowBoo", myPracticeSetup.windowBoo);
+	practice->addAttrib("windowFreeze", myPracticeSetup.windowFreeze);
+	practice->addAttrib("windowMine", myPracticeSetup.windowMine);
 
 	XmrNode* view = settings.addChild("view");
 
@@ -1127,6 +1201,36 @@ void setBeatAssistVol(float v) { myBeatAssistVol = v; }
 
 float getNoteAssistVol() const { return myNoteAssistVol; }
 void setNoteAssistVol(float v) { myNoteAssistVol = v; }
+
+bool getMiddleMouseInsertBeat() const { return myMiddleMouseInsertBeat; }
+void setMiddleMouseInsertBeat(bool b) { myMiddleMouseInsertBeat = b; }
+
+bool getScrollCursorEffect() const { return myScrollCursorEffect; }
+void setScrollCursorEffect(bool b) { myScrollCursorEffect = b; }
+
+bool getInsertSameDeletes() const { return myInsertSameDeletes; }
+void setInsertSameDeletes(bool b) { myInsertSameDeletes = b; }
+
+bool getEditOneLayer() const { return myEditOneLayer; }
+void setEditOneLayer(bool b) { myEditOneLayer = b; }
+
+bool getPasteOverwrites() const { return myPasteOverwrites; }
+void setPasteOverwrites(bool b) { myPasteOverwrites = b; }
+
+bool getSelectPasted() const { return mySelectPasted; }
+void setSelectPasted(bool b) { mySelectPasted = b; }
+
+bool getBackupSaves() const { return myBackupSaves; }
+void setBackupSaves(bool b) { myBackupSaves = b; }
+
+bool getDontShowFPS() const { return myDontShowFPS; }
+void setDontShowFPS(bool b) { myDontShowFPS = b; }
+
+bool isPracticeMode() const { return myPracticeMode; }
+void setPracticeMode(bool b) { myPracticeMode = b; }
+
+const PracticeSetup& getPracticeSetup() const { return myPracticeSetup; }
+void setPracticeSetup(const PracticeSetup& s) { myPracticeSetup = s; }
 
 GuiContext* getGui() const
 {

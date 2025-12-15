@@ -230,6 +230,18 @@ bool save(StringRef dir, StringRef name, SimFormat format)
 
 	// Save the simfile.
 
+	// Backup if requested
+	if (gEditor->getBackupSaves()) {
+		// Just copy existing file to .old or .bak?
+		// Or let SaveSimfile handle it?
+		// SaveSimfile has `bool backup` param.
+		// `SimfileManImpl` has `myBackupOnSave` initialized to true for existing files.
+		// If preference is enabled, we should ensure `myBackupOnSave` is true?
+		// Or always backup?
+		// DDream "Backup all saves".
+		myBackupOnSave = true;
+	}
+
 	// Pre-process: Remove duplicate BPMs if requested
 	if (gEditor->getRemoveDuplicateBPMs() && mySimfile->tempo && mySimfile->tempo->segments)
 	{
