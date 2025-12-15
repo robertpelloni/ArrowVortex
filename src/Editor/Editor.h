@@ -74,6 +74,23 @@ struct Editor
 
 	/// Returns the tags export mode set in the editor settings.
 	virtual int getDefaultSaveFormat() const = 0;
+
+	// DDreamStudio-like Preferences
+	virtual bool getNudgeBasedOnZoom() const = 0;
+	virtual void setNudgeBasedOnZoom(bool b) = 0;
+
+	virtual bool getAssistTickBeats() const = 0;
+	virtual void setAssistTickBeats(bool b) = 0;
+
+	virtual bool getRemoveDuplicateBPMs() const = 0;
+	virtual void setRemoveDuplicateBPMs(bool b) = 0;
+
+	// Volume for Assist Ticks (0.0 to 1.0)
+	virtual float getBeatAssistVol() const = 0;
+	virtual void setBeatAssistVol(float v) = 0;
+
+	virtual float getNoteAssistVol() const = 0;
+	virtual void setNoteAssistVol(float v) = 0;
 };
 
 extern Editor* gEditor;

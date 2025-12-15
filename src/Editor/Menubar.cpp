@@ -137,6 +137,7 @@ void init(Item* menu)
 	add(hEdit, EDIT_DELETE, "Delete\tDelete");
 	sep(hEdit);
 	add(hEdit, OPEN_DIALOG_GO_TO, "Go to...\tCtrl+G");
+	add(hEdit, OPEN_DIALOG_PREFERENCES, "Preferences...");
 	sep(hEdit);
 	add(hEdit, INSERT_MEASURE, "Insert measure");
 	add(hEdit, DELETE_MEASURE, "Delete measure");

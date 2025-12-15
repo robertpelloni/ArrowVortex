@@ -57,6 +57,7 @@
 #include <Dialogs/LyricsEditor.h>
 #include <Dialogs/BgChanges.h>
 #include <Dialogs/ChartStatistics.h>
+#include <Dialogs/Preferences.h>
 
 namespace Vortex {
 
@@ -148,6 +149,13 @@ double myLastAutosaveTime;
 BackgroundStyle myBackgroundStyle;
 SimFormat myDefaultSaveFormat;
 
+// Preferences
+bool myNudgeBasedOnZoom;
+bool myAssistTickBeats;
+bool myRemoveDuplicateBPMs;
+float myBeatAssistVol;
+float myNoteAssistVol;
+
 // ================================================================================================
 // EditorImpl :: constructor and destructor.
 
@@ -174,6 +182,13 @@ EditorImpl()
 
 	myBackgroundStyle = BG_STYLE_STRETCH;
 	myDefaultSaveFormat = SIM_SM;
+
+	// Defaults matching typical workflow or DDream
+	myNudgeBasedOnZoom = true;
+	myAssistTickBeats = true;
+	myRemoveDuplicateBPMs = true;
+	myBeatAssistVol = 1.0f;
+	myNoteAssistVol = 1.0f;
 
 	myFontPath = "assets/NotoSansJP-Medium.ttf";
 	myFontSize = 13;
@@ -316,6 +331,10 @@ void loadSettings(XmrDoc& settings)
 
 		const char* saveFormat = general->get("defaultSaveFormat");
 		if(saveFormat) myDefaultSaveFormat = ToSimFormat(saveFormat);
+
+		general->get("nudgeBasedOnZoom", &myNudgeBasedOnZoom);
+		general->get("assistTickBeats", &myAssistTickBeats);
+		general->get("removeDuplicateBPMs", &myRemoveDuplicateBPMs);
 	}
 
 	XmrNode* view = settings.child("view");
@@ -343,6 +362,10 @@ void saveGeneralSettings(XmrNode& settings)
 	general->addAttrib("useMultithreading", myUseMultithreading);
 	general->addAttrib("useVerticalSync", myUseVerticalSync);
 	general->addAttrib("defaultSaveFormat", ToString(myDefaultSaveFormat));
+
+	general->addAttrib("nudgeBasedOnZoom", myNudgeBasedOnZoom);
+	general->addAttrib("assistTickBeats", myAssistTickBeats);
+	general->addAttrib("removeDuplicateBPMs", myRemoveDuplicateBPMs);
 
 	XmrNode* view = settings.addChild("view");
 
@@ -772,6 +795,8 @@ void handleDialogOpening(DialogId id, recti rect)
 		dlg = new DialogBgChanges; break;
 	case DIALOG_CHART_STATISTICS:
 		dlg = new DialogChartStatistics; break;
+	case DIALOG_PREFERENCES:
+		dlg = new DialogPreferences; break;
 	};
 
 	dlg->setId(id);
@@ -1087,6 +1112,21 @@ int getDefaultSaveFormat() const
 {
 	return myDefaultSaveFormat;
 }
+
+bool getNudgeBasedOnZoom() const { return myNudgeBasedOnZoom; }
+void setNudgeBasedOnZoom(bool b) { myNudgeBasedOnZoom = b; }
+
+bool getAssistTickBeats() const { return myAssistTickBeats; }
+void setAssistTickBeats(bool b) { myAssistTickBeats = b; }
+
+bool getRemoveDuplicateBPMs() const { return myRemoveDuplicateBPMs; }
+void setRemoveDuplicateBPMs(bool b) { myRemoveDuplicateBPMs = b; }
+
+float getBeatAssistVol() const { return myBeatAssistVol; }
+void setBeatAssistVol(float v) { myBeatAssistVol = v; }
+
+float getNoteAssistVol() const { return myNoteAssistVol; }
+void setNoteAssistVol(float v) { myNoteAssistVol = v; }
 
 GuiContext* getGui() const
 {

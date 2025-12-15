@@ -915,6 +915,13 @@ void moveBeat(int row, double time, bool ripple)
 	if (!myTempo)
 		return;
 
+	// Check Zoom-based nudge logic if ripple is set to a default (e.g. from Drag behavior)
+	// But moveBeat is explicit.
+	// However, if we are calling this from UI, we might want to respect the pref.
+	// But `moveBeat` is an API. The caller should decide.
+	// In the DDream implementation plan, `updateDragBeat` is called by View.
+	// View should check the preference.
+
 	if (ripple)
 		destructiveShiftRowToTime(row, time);
 	else

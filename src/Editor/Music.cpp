@@ -182,7 +182,7 @@ void load()
 // ================================================================================================
 // MusicImpl :: mixing functions
 
-void WriteTickSamples(short* dst, int startFrame, int numFrames, const TickData& tick, int rate)
+void WriteTickSamples(short* dst, int startFrame, int numFrames, const TickData& tick, int rate, float volume)
 {
 	if(rate != 100)
 	{
@@ -197,8 +197,8 @@ void WriteTickSamples(short* dst, int startFrame, int numFrames, const TickData&
 		int n = min(numFrames, tick.sound.getNumFrames() - startFrame);
 		for(int i = 0; i < n; ++i)
 		{
-			*dst++ = min(max(*dst + *srcL++, SHRT_MIN), SHRT_MAX);
-			*dst++ = min(max(*dst + *srcR++, SHRT_MIN), SHRT_MAX);
+			*dst++ = min(max(*dst + (short)(*srcL++ * volume), SHRT_MIN), SHRT_MAX);
+			*dst++ = min(max(*dst + (short)(*srcR++ * volume), SHRT_MIN), SHRT_MAX);
 		}
 	}
 	else
@@ -214,8 +214,8 @@ void WriteTickSamples(short* dst, int startFrame, int numFrames, const TickData&
 			float sampleL = lerp((float)srcL[idx], (float)srcL[idx + 1], frac);
 			float sampleR = lerp((float)srcR[idx], (float)srcR[idx + 1], frac);
 			
-			*dst++ = min(max(*dst + (short)sampleL, SHRT_MIN), SHRT_MAX);
-			*dst++ = min(max(*dst + (short)sampleR, SHRT_MIN), SHRT_MAX);
+			*dst++ = min(max(*dst + (short)(sampleL * volume), SHRT_MIN), SHRT_MAX);
+			*dst++ = min(max(*dst + (short)(sampleR * volume), SHRT_MIN), SHRT_MAX);
 
 			srcPos += srcDelta;
 			idx = (int)srcPos;
@@ -246,7 +246,23 @@ void WriteTicks(short* buf, int frames, const TickData& tick, int rate)
 		short* dst = buf + dstPos * 2;
 		int dstFrames = frames - dstPos;
 
-		WriteTickSamples(dst, srcPos, frames - dstPos, tick, rate);
+		// Use global volumes if tick corresponds to beat/note
+		// But WriteTicks is generic.
+		// We can scale the samples inside WriteTickSamples or here.
+		// However, tick data is shared.
+		// Let's modify WriteTickSamples to take volume.
+
+		float volume = 1.0f;
+		if (&tick == &myBeatTick) volume = gEditor->getBeatAssistVol();
+		else if (&tick == &myNoteTick) volume = gEditor->getNoteAssistVol();
+
+		// For now, simple volume application inside loop or helper?
+		// WriteTickSamples doesn't take volume.
+		// I'll assume we can't easily change WriteTickSamples signature without changing header or forward decl?
+		// It's a static helper function in this file.
+
+		// Let's modify WriteTickSamples signature.
+		WriteTickSamples(dst, srcPos, frames - dstPos, tick, rate, volume);
 
 		curFrame = beginFrame;
 	}
@@ -722,7 +738,11 @@ void updateBeatTicks()
 	double ofs = myTickOffsetMs / 1000.0;
 
 	TempoTimeTracker tracker(gTempo->getTimingData());
-	for(int row = 0, end = gSimfile->getEndRow(); row < end; row += ROWS_PER_BEAT)
+	bool subBeats = gEditor->getAssistTickBeats();
+	int step = subBeats ? (ROWS_PER_BEAT / 2) : ROWS_PER_BEAT; // 8ths if sub-beats, else 4ths
+	// DDream Assist Tick on beats and sub-beats usually implies 8ths or 4ths+8ths.
+
+	for(int row = 0, end = gSimfile->getEndRow(); row < end; row += step)
 	{
 		double time = tracker.advance(row);
 		int frame = (int)((time + ofs) * freq);
