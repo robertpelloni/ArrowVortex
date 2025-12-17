@@ -4,6 +4,7 @@
 #include <Core/Widgets.h>
 #include <Core/WidgetsLayout.h>
 #include <Managers/LyricsMan.h>
+#include <Core/Widgets.h>
 
 namespace Vortex {
 
@@ -24,9 +25,10 @@ private:
 	void onRemove();
 	void onSetTime();
 	void onSelectLine(int index);
+	void onSelectLineWrapper() { onSelectLine(mySelectedIndex); }
 	void onTextChange(String& val);
 
-	WgList* myLyricList;
+	WgSelectList* myLyricList;
 	WgLineEdit* myTextInput;
 	WgLabel* myTimeLabel;
 

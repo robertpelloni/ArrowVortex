@@ -35,9 +35,10 @@ void DialogBgChanges::myCreateWidgets()
 
 	// List
 	myLayout.row().col(400);
-	myChangeList = myLayout.add<WgList>();
+	myChangeList = myLayout.add<WgSelectList>();
 	myChangeList->setHeight(300);
-	myChangeList->onSelect.bind(this, &DialogBgChanges::onSelectLine);
+	myChangeList->onChange.bind(this, &DialogBgChanges::onSelectLineWrapper);
+	myChangeList->value.bind(&mySelectedIndex);
 
 	// Edit Area
 	myLayout.row().col(100).col(300);

@@ -28,30 +28,6 @@ public:
 		write(val, S);
 	}
 
-	template <>
-	inline void writeSz<1>(const void* val)
-	{
-		write8(val);
-	}
-
-	template <>
-	inline void writeSz<2>(const void* val)
-	{
-		write16(val);
-	}
-
-	template <>
-	inline void writeSz<4>(const void* val)
-	{
-		write32(val);
-	}
-
-	template <>
-	inline void writeSz<8>(const void* val)
-	{
-		write64(val);
-	}
-
 	template <typename T>
 	inline void write(const T& val)
 	{
@@ -100,30 +76,6 @@ public:
 		read(out, S);
 	}
 
-	template <>
-	inline void readSz<1>(void* out)
-	{
-		read8(out);
-	}
-
-	template <>
-	inline void readSz<2>(void* out)
-	{
-		read16(out);
-	}
-
-	template <>
-	inline void readSz<4>(void* out)
-	{
-		read32(out);
-	}
-
-	template <>
-	inline void readSz<8>(void* out)
-	{
-		read64(out);
-	}
-
 	template <typename T>
 	inline void read(T& out)
 	{
@@ -154,5 +106,53 @@ private:
 	const uchar* read_position_, *end_position_;
 	bool is_read_successful_;
 };
+
+template <>
+inline void WriteStream::writeSz<1>(const void* val)
+{
+	write8(val);
+}
+
+template <>
+inline void WriteStream::writeSz<2>(const void* val)
+{
+	write16(val);
+}
+
+template <>
+inline void WriteStream::writeSz<4>(const void* val)
+{
+	write32(val);
+}
+
+template <>
+inline void WriteStream::writeSz<8>(const void* val)
+{
+	write64(val);
+}
+
+template <>
+inline void ReadStream::readSz<1>(void* out)
+{
+	read8(out);
+}
+
+template <>
+inline void ReadStream::readSz<2>(void* out)
+{
+	read16(out);
+}
+
+template <>
+inline void ReadStream::readSz<4>(void* out)
+{
+	read32(out);
+}
+
+template <>
+inline void ReadStream::readSz<8>(void* out)
+{
+	read64(out);
+}
 
 }; // namespace Vortex

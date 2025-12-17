@@ -2,6 +2,7 @@
 
 #include <Core/Draw.h>
 #include <Core/Vector.h>
+#include <Editor/FindOnsets.h>
 
 namespace Vortex {
 

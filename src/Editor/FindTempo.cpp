@@ -6,6 +6,7 @@
 #include <math.h>
 #include <algorithm>
 #include <map>
+#include <vector>
 
 namespace Vortex {
 

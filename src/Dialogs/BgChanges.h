@@ -4,6 +4,7 @@
 #include <Core/Widgets.h>
 #include <Core/WidgetsLayout.h>
 #include <Managers/MetadataMan.h>
+#include <Core/Widgets.h>
 
 namespace Vortex {
 
@@ -24,13 +25,14 @@ private:
 	void onRemove();
 	void onSetBeat();
 	void onSelectLine(int index);
+	void onSelectLineWrapper() { onSelectLine(mySelectedIndex); }
 	void onFileChange(String& val);
 	void onRateChange(double val);
 	void onBrowseFile();
 
 	void onLayerChanged(int layer);
 
-	WgList* myChangeList;
+	WgSelectList* myChangeList;
 	WgLineEdit* myFile;
 	WgSpinner* myRate;
 	WgCycleButton* myLayerCycle; // Layer 1, Layer 2, Foreground

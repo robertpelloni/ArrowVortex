@@ -12,8 +12,13 @@ struct TempoResult
 	double confidence;
 };
 
+struct ReferenceCounted {
+    virtual ~ReferenceCounted() {}
+};
+
 struct TempoDetector : public ReferenceCounted
 {
+	virtual ~TempoDetector() {}
 	static TempoDetector* New(double startTime, double length);
 
 	virtual bool hasResult() = 0;

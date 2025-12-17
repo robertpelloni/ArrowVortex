@@ -23,9 +23,12 @@ void DialogLyricsEditor::myCreateWidgets()
 {
 	// List of lyrics
 	myLayout.row().col(400);
-	myLyricList = myLayout.add<WgList>();
+	myLyricList = myLayout.add<WgSelectList>();
 	myLyricList->setHeight(300);
-	myLyricList->onSelect.bind(this, &DialogLyricsEditor::onSelectLine);
+	// WgSelectList doesn't have onSelect? It has onChange.
+	// And value binds to int index.
+	myLyricList->onChange.bind(this, &DialogLyricsEditor::onSelectLineWrapper);
+	myLyricList->value.bind(&mySelectedIndex);
 
 	// Edit Area
 	myLayout.row().col(80).col(240).col(80);
