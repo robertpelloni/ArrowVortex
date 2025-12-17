@@ -1,6 +1,7 @@
 #pragma once
 
 #include <Simfile/Tempo.h>
+#include <Simfile/SegmentGroup.h>
 
 namespace Vortex {
 
@@ -27,6 +28,7 @@ struct TempoMan
 		TWEAK_OFFSET, ///< The music offset is being tweaked.
 		TWEAK_BPM,    ///< The BPM at the tweak row is being tweaked.
 		TWEAK_STOP,   ///< The stop at the tweak row is being tweaked.
+		TWEAK_DRAG,   ///< The tempo is being manipulated via drag.
 	};
 
 	/// Determines how the start and end value in selectRange are interpreted.
@@ -52,7 +54,9 @@ struct TempoMan
 	virtual double beatToTime(double beat) const = 0;
 
 	/// Moves the beat at the given row to the given time.
-	virtual void moveBeat(int row, double time) = 0;
+	/// If ripple is true, subsequent beats are shifted (destructive).
+	/// If ripple is false, surrounding segments are warped (non-destructive).
+	virtual void moveBeat(int row, double time, bool ripple) = 0;
 
 	/// Converts a beat offset to a measure offset.
 	virtual double beatToMeasure(double beat) const = 0;
@@ -88,6 +92,12 @@ struct TempoMan
 
 	/// Start tweaking the stop value at the given row.
 	virtual void startTweakingStop(int row) = 0;
+
+	/// Start a visual-only drag operation (using tweak tempo).
+	virtual void startTweakingDrag() = 0;
+
+	/// Updates the drag operation.
+	virtual void updateDragBeat(int row, double time, bool ripple) = 0;
 
 	/// Sets a new tweak value, if tweaking is currently active.
 	virtual void setTweakValue(double value) = 0;

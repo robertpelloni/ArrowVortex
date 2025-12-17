@@ -74,6 +74,66 @@ struct Editor
 
 	/// Returns the tags export mode set in the editor settings.
 	virtual int getDefaultSaveFormat() const = 0;
+
+	// DDreamStudio-like Preferences
+	virtual bool getNudgeBasedOnZoom() const = 0;
+	virtual void setNudgeBasedOnZoom(bool b) = 0;
+
+	virtual bool getAssistTickBeats() const = 0;
+	virtual void setAssistTickBeats(bool b) = 0;
+
+	virtual bool getRemoveDuplicateBPMs() const = 0;
+	virtual void setRemoveDuplicateBPMs(bool b) = 0;
+
+	// Volume for Assist Ticks (0.0 to 1.0)
+	virtual float getBeatAssistVol() const = 0;
+	virtual void setBeatAssistVol(float v) = 0;
+
+	virtual float getNoteAssistVol() const = 0;
+	virtual void setNoteAssistVol(float v) = 0;
+
+	// Expanded DDreamStudio Preferences
+	virtual bool getMiddleMouseInsertBeat() const = 0;
+	virtual void setMiddleMouseInsertBeat(bool b) = 0;
+
+	virtual bool getScrollCursorEffect() const = 0;
+	virtual void setScrollCursorEffect(bool b) = 0;
+
+	virtual bool getInsertSameDeletes() const = 0;
+	virtual void setInsertSameDeletes(bool b) = 0;
+
+	virtual bool getEditOneLayer() const = 0;
+	virtual void setEditOneLayer(bool b) = 0;
+
+	virtual bool getPasteOverwrites() const = 0;
+	virtual void setPasteOverwrites(bool b) = 0;
+
+	virtual bool getSelectPasted() const = 0;
+	virtual void setSelectPasted(bool b) = 0;
+
+	virtual bool getBackupSaves() const = 0;
+	virtual void setBackupSaves(bool b) = 0;
+
+	virtual bool getDontShowFPS() const = 0;
+	virtual void setDontShowFPS(bool b) = 0;
+
+	// Practice Mode
+	virtual bool isPracticeMode() const = 0;
+	virtual void setPracticeMode(bool b) = 0;
+
+	struct PracticeSetup {
+		float windowMarvelous;
+		float windowPerfect;
+		float windowGreat;
+		float windowGood;
+		float windowBoo;
+		float windowMiss; // Usually implicitly outside Boo? Or explicitly defined?
+		float windowMine;
+		float windowFreeze; // Freeze OK
+		// Scale?
+	};
+	virtual const PracticeSetup& getPracticeSetup() const = 0;
+	virtual void setPracticeSetup(const PracticeSetup& s) = 0;
 };
 
 extern Editor* gEditor;

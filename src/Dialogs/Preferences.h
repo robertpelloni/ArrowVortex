@@ -1,0 +1,84 @@
+#pragma once
+
+#include <Dialogs/Dialog.h>
+#include <Editor/Editor.h>
+
+namespace Vortex {
+
+class DialogPreferences : public EditorDialog
+{
+public:
+	DialogPreferences();
+
+	void onChanges(int changes) override;
+
+private:
+	void myCreateWidgets();
+	void myUpdateWidgets();
+	void myRefreshLayout();
+
+	// Tab switching
+	enum Tab {
+		TAB_EDITOR,
+		TAB_PRACTICE
+	};
+	Tab myActiveTab;
+	void mySetTab(Tab tab);
+
+	// Editor Settings (Member copies for binding)
+	bool myMiddleMouseInsertBeat;
+	bool myScrollCursorEffect;
+	bool myInsertSameDeletes;
+	bool myEditOneLayer;
+	bool myPasteOverwrites;
+	bool mySelectPasted;
+	bool myNudgeBasedOnZoom;
+	bool myAssistTickBeats;
+	bool myRemoveDuplicateBPMs;
+	float myBeatAssistVol;
+	float myNoteAssistVol;
+	bool myBackupSaves;
+	bool myDontShowFPS;
+
+	// Practice Mode Settings
+	bool myEnablePracticeMode;
+	Editor::PracticeSetup myPracticeSetup;
+
+	// Intermediate doubles for UI binding (milliseconds)
+	double myWindowMarvelous;
+	double myWindowPerfect;
+	double myWindowGreat;
+	double myWindowGood;
+	double myWindowBoo;
+	double myWindowFreeze;
+	double myWindowMine;
+
+	// Callback wrappers (All void because Wg*::onChange is void)
+	void onNudgeChanged();
+	void onAssistTickChanged();
+	void onDedupChanged();
+
+	void onMiddleMouseChanged();
+	void onScrollCursorChanged();
+	void onInsertSameChanged();
+	void onEditOneLayerChanged();
+	void onPasteOverwritesChanged();
+	void onSelectPastedChanged();
+	void onBackupSavesChanged();
+	void onDontShowFPSChanged();
+
+	void onPracticeEnabledChanged();
+
+	void onBeatVolChanged(); // Changed to void, reads myBeatAssistVol
+	void onNoteVolChanged();
+
+	void onWindowMarvelousChanged();
+	void onWindowPerfectChanged();
+	void onWindowGreatChanged();
+	void onWindowGoodChanged();
+	void onWindowBooChanged();
+	void onWindowFreezeChanged();
+	void onWindowMineChanged();
+};
+
+}; // namespace Vortex

@@ -1,6 +1,8 @@
 #include <Managers/TempoMan.h>
 
 #include <math.h>
+#include <climits>
+#include <cfloat>
 
 #include <Core/Utils.h>
 #include <Core/StringUtils.h>
@@ -145,6 +147,18 @@ void myFinishEdit(Tempo* tempo)
 
 void myQueueSegments(const SegmentEdit& edit, bool clearRegion)
 {
+	if(myTweakMode == TWEAK_DRAG)
+	{
+		// Apply to Tweak Tempo without history
+		SegmentEditResult result;
+		myTweakTempo->segments->prepareEdit(edit, result, clearRegion);
+		myTweakTempo->segments->remove(result.rem);
+		myTweakTempo->segments->insert(result.add);
+		myTweakTempo->sanitize();
+		myUpdateTimingData();
+		return;
+	}
+
 	stopTweaking(false);
 	SegmentEditResult result;
 	myTempo->segments->prepareEdit(edit, result, clearRegion);
@@ -631,6 +645,30 @@ void pasteFromClipboard(bool insert)
 // ================================================================================================
 // TempoManImpl :: tweak functions.
 
+void startTweakingDrag()
+{
+	if (myTweakMode == TWEAK_DRAG || !myTempo) return;
+	stopTweaking(false);
+	myTweakTempo = new Tempo;
+	myTweakTempo->copy(myTempo);
+	myTweakMode = TWEAK_DRAG;
+}
+
+void updateDragBeat(int row, double time, bool ripple)
+{
+	if (myTweakMode != TWEAK_DRAG) return;
+
+	// Reset to base state
+	myTweakTempo->copy(myTempo);
+
+	// Apply visual shift (uses modify(), which will now check for TWEAK_DRAG)
+	// Important: 'ripple' logic must call modify() which will now target myTweakTempo
+	if (ripple)
+		destructiveShiftRowToTime(row, time);
+	else
+		nonDestructiveShiftRowToTime(row, time);
+}
+
 void startTweakingOffset()
 {
 	if(myTweakMode == TWEAK_OFFSET || !myTempo) return;
@@ -719,6 +757,15 @@ void stopTweaking(bool apply)
 		else if(mode == TWEAK_STOP)
 		{
 			addSegment(Stop(row, value));
+		}
+		else if(mode == TWEAK_DRAG)
+		{
+			// The caller (View) is expected to call moveBeat() properly on release.
+			// Just clearing tweak mode is enough, as myTweakTempo is deleted.
+			// However, to be safe, if we wanted to commit the drag state:
+			// But moveBeat() logic is complex.
+			// The contract is: View calls updateDragBeat during drag, then moveBeat on release.
+			// So here we just discard the tweak state.
 		}
 	}
 
@@ -863,12 +910,22 @@ const SegmentGroup* getSegments() const
 	return nullptr;
 }
 
-void moveBeat(int row, double time)
+void moveBeat(int row, double time, bool ripple)
 {
 	if (!myTempo)
 		return;
 
-	nonDestructiveShiftRowToTime(row, time);
+	// Check Zoom-based nudge logic if ripple is set to a default (e.g. from Drag behavior)
+	// But moveBeat is explicit.
+	// However, if we are calling this from UI, we might want to respect the pref.
+	// But `moveBeat` is an API. The caller should decide.
+	// In the DDream implementation plan, `updateDragBeat` is called by View.
+	// View should check the preference.
+
+	if (ripple)
+		destructiveShiftRowToTime(row, time);
+	else
+		nonDestructiveShiftRowToTime(row, time);
 }
 
 // ================================================================================================
@@ -878,6 +935,8 @@ void injectBoundingBpmChange(const int target_row) {
 	if (target_row <= 0) {
 		return;
 	}
+
+	if (!myTempo) return;
 
 	const BpmChange cur_bpm = this->myTempo->segments->getRecent<BpmChange>(target_row);
 
@@ -897,7 +956,11 @@ void destructiveShiftRowToTime(const int target_row, const double target_time) {
 		return;
 	}
 
-	const BpmChange prev_bpm_change = this->myTempo->segments->getRecent<BpmChange>(target_row - 1);
+	// Use Tweak Tempo if dragging
+	const Tempo* sourceTempo = (myTweakMode == TWEAK_DRAG) ? myTweakTempo : myTempo;
+	if (!sourceTempo) return;
+
+	const BpmChange prev_bpm_change = sourceTempo->segments->getRecent<BpmChange>(target_row - 1);
 	const int prev_bpm_row = prev_bpm_change.row;
 	const double prev_bpm_time = rowToTime(prev_bpm_row);
 	const double beat_delta = (target_row - prev_bpm_row) / 48.0;
@@ -922,8 +985,9 @@ void nonDestructiveShiftRowToTime(const int target_row, const double target_time
 	bool has_next = false;
 	
 	{
-		auto it = this->myTempo->segments->begin<BpmChange>();
-		decltype(it) end = this->myTempo->segments->end<BpmChange>();
+		const Tempo* sourceTempo = (myTweakMode == TWEAK_DRAG) ? myTweakTempo : myTempo;
+		auto it = sourceTempo->segments->begin<BpmChange>();
+		decltype(it) end = sourceTempo->segments->end<BpmChange>();
 
 		for (; it != end; ++it) {
 			if (it->row < target_row) {

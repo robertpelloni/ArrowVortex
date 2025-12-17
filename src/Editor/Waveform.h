@@ -2,6 +2,7 @@
 
 #include <Core/Draw.h>
 #include <Core/Vector.h>
+#include <Editor/FindOnsets.h>
 
 namespace Vortex {
 
@@ -13,6 +14,7 @@ public:
 	enum Preset { PRESET_VORTEX, PRESET_DDREAM };
 	enum WaveShape { WS_RECTIFIED, WS_SIGNED };
 	enum Luminance { LL_UNIFORM, LL_AMPLITUDE };
+	enum ColorMode { CM_FLAT, CM_RGB, CM_SPECTRAL, CM_PITCH, CM_SPECTROGRAM, CM_CQT, CM_PERCUSSION, CM_HARMONIC, CM_CHROMAGRAM, CM_NOVELTY, CM_TEMPOGRAM };
 	enum FilterType { FT_HIGH_PASS, FT_LOW_PASS };
 
 	static void create(XmrNode& settings);
@@ -41,11 +43,29 @@ public:
 	virtual void setLuminance(Luminance lum) = 0;
 	virtual Luminance getLuminance() = 0;
 
+	virtual void setColorMode(ColorMode mode) = 0;
+	virtual ColorMode getColorMode() = 0;
+
 	virtual void setWaveShape(WaveShape style) = 0;
 	virtual WaveShape getWaveShape() = 0;
 
 	virtual void setAntiAliasing(int level) = 0;
 	virtual int getAntiAliasing() = 0;
+
+	virtual void setShowOnsets(bool show) = 0;
+	virtual bool hasShowOnsets() = 0;
+
+	virtual void setOnsetThreshold(float threshold) = 0;
+	virtual float getOnsetThreshold() = 0;
+
+	virtual void setSpectrogramGain(float gain) = 0;
+	virtual float getSpectrogramGain() = 0;
+
+	virtual void setRGBCrossovers(float low, float high) = 0;
+	virtual float getRGBLowHigh(bool high) = 0;
+
+	virtual void updateOnsets() = 0;
+	virtual const Vector<Onset>& getOnsets() = 0;
 
 	virtual int getWidth() = 0;
 

@@ -13,6 +13,15 @@ struct Editing : public InputHandler
 		MIRROR_H,
 		MIRROR_V,
 		MIRROR_HV,
+		MIRROR_LR, // For DDream "Mirror (L-R)" - likely horizontal (left/right) flip? No, standard Mirror H is L-R.
+		// Wait, DDream has "Mirror (Full)", "Mirror (L-R)", "Mirror (U-D)".
+		// StepMania usually has Mirror (reverses columns) and Flip (reverses Up/Down?).
+		// MIRROR_H usually means reversing the column order 0..N -> N..0. This is "Mirror".
+		// MIRROR_V usually means swapping Up with Down?
+		// MIRROR_HV is both.
+		// Let's assume MIRROR_H maps to "Mirror (L-R)" and MIRROR_V to "Mirror (U-D)".
+		// And MIRROR_HV to "Mirror (Full)".
+		// I'll check the implementation in Editing.cpp.
 	};
 	
 	enum class VisualSyncAnchor
@@ -44,9 +53,12 @@ struct Editing : public InputHandler
 	virtual void changePlayerNumber() = 0;
 
 	virtual void mirrorNotes(MirrorType type) = 0;
+	virtual void shuffleNotes(bool perRow) = 0;
+	virtual void turnNotes(bool right) = 0;
 	virtual void scaleNotes(int numerator, int denominator) = 0;
 
 	virtual void insertRows(int row, int numRows, bool curChartOnly) = 0;
+	virtual void quantizeSelection(int snap) = 0;
 
 	virtual void convertCouplesToRoutine() = 0;
 	virtual void convertRoutineToCouples() = 0;
@@ -61,6 +73,9 @@ struct Editing : public InputHandler
 
 	virtual void toggleTimeBasedCopy() = 0;
 	virtual bool hasTimeBasedCopy() = 0;
+
+	virtual void toggleRecordMode() = 0;
+	virtual bool isRecordMode() = 0;
 
 	virtual void setVisualSyncAnchor(VisualSyncAnchor anchor) = 0;
 	virtual VisualSyncAnchor getVisualSyncMode() = 0;
