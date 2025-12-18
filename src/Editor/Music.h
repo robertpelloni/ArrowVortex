@@ -55,6 +55,13 @@ struct Music
 	/// Enables/disables the note tick sound.
 	virtual void toggleNoteTick() = 0;
 
+	/// Loops playback between start and end times.
+	virtual void setLoopRegion(double start, double end) = 0;
+	virtual void toggleLoop() = 0;
+	virtual bool isLooping() = 0;
+	virtual double getLoopStart() = 0;
+	virtual double getLoopEnd() = 0;
+
 	/// Starts a thread that converts the current music to ogg-vorbis. If the music was loaded from
 	/// an ogg-vorbis file, nothing happens. When conversion is completed, the thread is terminated
 	/// and the ogg-vorbis file is saved.

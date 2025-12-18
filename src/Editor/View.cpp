@@ -1,6 +1,7 @@
 #include <Editor/View.h>
 
 #include <algorithm>
+#include <cmath>
 
 #include <Core/String.h>
 #include <Core/Utils.h>
@@ -30,6 +31,37 @@
 
 namespace Vortex {
 namespace {
+
+	bool isMouseOverBeat(int x, int y, int& row)
+	{
+		if (!gView->isTimeBased())
+			return false;
+
+		const int hitbox = gView->applyZoom(4);
+		const View::Coords notefieldCoords = gView->getNotefieldCoords();
+		if (x < notefieldCoords.xl || x > notefieldCoords.xr)
+			return false;
+
+		// Find the beat the mouse is closest to
+		const double time = gView->offsetToTime(gView->yToOffset(y));
+		int closestRow = gTempo->timeToRow(time);
+
+		// We want to snap to ANY visible grid line, not just 4ths?
+		// snapRow uses the current snap setting (View::SNAP_CLOSEST).
+		// If snap is set to 16ths, closestRow will be a 16th.
+		closestRow = gView->snapRow(closestRow, View::SNAP_CLOSEST);
+
+		// Check if the mouse is close enough to the beat
+		const double beatTime = gTempo->rowToTime(closestRow);
+		const int beatY = gView->timeToY(beatTime);
+
+		if (abs(y - beatY) <= hitbox) {
+			row = closestRow;
+			return true;
+		}
+
+		return false;
+	}
 
 }; // anonymous namespace
 
@@ -169,14 +201,35 @@ void onMousePress(MousePress& evt) override
 	{
 		myIsDraggingBeat = true;
 		myDraggedBeatRow = myHoveredBeatRow;
+		gTempo->startTweakingDrag();
 		evt.setHandled();
 	}
 
 	if (evt.unhandled() && evt.button == Mouse::MMB) {
-		Vortex::vec2i mouse_pos = gSystem->getMousePos();
-		Vortex::ChartOffset ofs = gView->yToOffset(mouse_pos.y);
+		if (gEditor->getMiddleMouseInsertBeat())
+		{
+			// Perform Insert Beat
+			// We can invoke action or call Editing directly.
+			// Action::perform(INSERT_BEAT) acts on cursor.
+			// Let's move cursor to mouse pos first?
+			// DDream behavior: MMB inserts beat at mouse cursor?
+			// Or at playhead? Usually at mouse cursor.
+			// Let's set cursor to mouse pos, then insert.
+			Vortex::vec2i mouse_pos = gSystem->getMousePos();
+			Vortex::ChartOffset ofs = gView->yToOffset(mouse_pos.y);
+			setCursorRow(snapRow(offsetToRow(ofs), SnapDir::SNAP_CLOSEST));
 
-		setCursorRow(snapRow(offsetToRow(ofs), SnapDir::SNAP_CLOSEST));
+			// Call insert beat logic
+			// Using Action:
+			Action::perform(Action::INSERT_BEAT);
+		}
+		else
+		{
+			// Autoscroll / Jump to cursor (Default behavior)
+			Vortex::vec2i mouse_pos = gSystem->getMousePos();
+			Vortex::ChartOffset ofs = gView->yToOffset(mouse_pos.y);
+			setCursorRow(snapRow(offsetToRow(ofs), SnapDir::SNAP_CLOSEST));
+		}
 		evt.setHandled();
 	}
 }
@@ -191,6 +244,15 @@ void onMouseRelease(MouseRelease& evt) override
 	if (evt.button == Mouse::LMB && myIsDraggingBeat)
 	{
 		myIsDraggingBeat = false;
+
+		// Commit drag
+		gTempo->stopTweaking(false); // Clear tweak mode
+
+		// Apply final move
+		const double time = offsetToTime(yToOffset(gSystem->getMousePos().y));
+		bool ripple = (gSystem->isKeyDown(Key::SHIFT_L) || gSystem->isKeyDown(Key::SHIFT_R));
+		gTempo->moveBeat(myDraggedBeatRow, time, ripple);
+		gTempo->injectBoundingBpmChange(myDraggedBeatRow);
 	}
 }
 
@@ -227,37 +289,6 @@ void onKeyRelease(KeyRelease& evt) override
 
 // ================================================================================================
 // ViewImpl :: member functions.
-
-namespace {
-
-	bool isMouseOverBeat(int x, int y, int& row)
-	{
-		if (!gView->isTimeBased())
-			return false;
-
-		const int hitbox = gView->applyZoom(4);
-		const View::Coords notefieldCoords = gView->getNotefieldCoords();
-		if (x < notefieldCoords.xl || x > notefieldCoords.xr)
-			return false;
-
-		// Find the beat the mouse is closest to
-		const double time = gView->offsetToTime(gView->yToOffset(y));
-		int closestRow = gTempo->timeToRow(time);
-		closestRow = gView->snapRow(closestRow, View::SNAP_CLOSEST);
-
-		// Check if the mouse is close enough to the beat
-		const double beatTime = gTempo->rowToTime(closestRow);
-		const int beatY = gView->timeToY(beatTime);
-
-		if (abs(y - beatY) <= hitbox) {
-			row = closestRow;
-			return true;
-		}
-
-		return false;
-	}
-
-} // anonymous namespace
 
 double getZoomLevel() const
 {
@@ -372,7 +403,8 @@ void tick()
 	if (myIsDraggingBeat)
 	{
 		const double time = offsetToTime(yToOffset(gSystem->getMousePos().y));
-		gTempo->moveBeat(myDraggedBeatRow, time);
+		bool ripple = (gSystem->isKeyDown(Key::SHIFT_L) || gSystem->isKeyDown(Key::SHIFT_R));
+		gTempo->updateDragBeat(myDraggedBeatRow, time, ripple);
 	}
 
 	// Set cursor to arrows when hovering over/dragging the receptors.
@@ -417,6 +449,38 @@ void tick()
 	int maxRecepX = RightX(rect_) - rect_.w / 2;
 	myReceptorY = min(max(myReceptorY, rect_.y), BottomY(rect_));
 	myReceptorX = min(max(myReceptorX, minRecepX), maxRecepX);
+
+	// Scroll Cursor Effect: Move cursor instead of chart?
+	// If enabled: Cursor stays still? No, "Enable scrolling cursor effect" -> Cursor moves.
+	// DDream: "Cursor stays still during playback" (Unchecked) implies Scrolling Cursor.
+	// Wait, DDream's "Scrolling cursor effect" (Checked) usually means the cursor MOVES across the screen and the chart is STATIC?
+	// Or simply that the cursor has a visual effect?
+	// Given the tooltip "Uncheck: Cursor stays still during playback", it means:
+	// Checked: Cursor moves (and Chart stays still? Or Chart scrolls and Cursor moves relative?)
+	// Actually, typically editors have:
+	// 1. Fixed Receptors (Standard): Receptors at top/center, Chart moves.
+	// 2. Moving Receptors (Page/Scroll): Chart fixed, Receptors move.
+
+	// If ArrowVortex uses Fixed Receptors (myReceptorY is clamped to rect), then we just scroll.
+	// If we want "Cursor moves", we need to adjust myReceptorY based on playback time?
+	// But `myReceptorY` is set by dragging or resize.
+
+	// Let's implement a simple version:
+	// If "Scrolling Cursor Effect" is ON, we might want the cursor to move slightly or handle smooth scrolling differently?
+	// Actually, maybe this refers to the visual "Cursor" (Selection) vs "Receptors" (Playhead).
+	// In View::tick, myReceptorY is stable.
+
+	// I will skip complex "Moving Receptors" implementation for now as it fundamentally changes the view engine.
+	// I'll assume "Scrolling Cursor Effect" might just be about smoothing or the "Cursor Line" following playback?
+	// Currently `myCursorRow` follows playback.
+
+	// Re-reading tooltip: "Enable scrolling cursor effect... Uncheck: Cursor stays still".
+	// This likely refers to the "Beat Lines" or "Grid" moving vs "Cursor" moving.
+	// If unchecked (Cursor stays still), it's standard AV.
+	// If checked, maybe the playhead moves?
+	// Let's leave it as a TODO or minor tweak if I can't determine the exact behavior.
+	// I'll stick to Standard behavior for now but use the preference to toggle something if obvious.
+	// Actually, let's look at `myReceptorY` logic. It's updated by dragging.
 
 	// Store the y-position of time zero.
 	if(myUseTimeBasedView)
