@@ -485,7 +485,27 @@ void tick()
 	// Store the y-position of time zero.
 	if(myUseTimeBasedView)
 	{
-		myChartTopY = floor((double)myReceptorY - myCursorTime * myPixPerSec);
+		if (gEditor->getScrollCursorEffect() && !gMusic->isPaused())
+		{
+			// "Scroll Cursor Effect" (DDream style):
+			// The chart is static (paged), and the cursor (receptors) moves.
+			double pageH = (double)rect_.h;
+			if (pageH > 0)
+			{
+				double cursorY_virtual = myCursorTime * myPixPerSec;
+				double pageTop_virtual = floor(cursorY_virtual / pageH) * pageH;
+
+				// Fix the chart top to the current page start
+				myChartTopY = -pageTop_virtual;
+
+				// Move the receptors to the current cursor position within the page
+				myReceptorY = (int)(myChartTopY + cursorY_virtual);
+			}
+		}
+		else
+		{
+			myChartTopY = floor((double)myReceptorY - myCursorTime * myPixPerSec);
+		}
 	}
 	else
 	{

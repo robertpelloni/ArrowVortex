@@ -173,6 +173,48 @@ void onKeyPress(KeyPress& evt) override
 			{
 				gView->setCursorRow(row);
 			}
+			else if (gEditor->isPracticeMode())
+			{
+				// Practice Mode Logic: Judge input instead of editing
+				auto setup = gEditor->getPracticeSetup();
+				double hitTime = gMusic->getPlayTime();
+				// Use largest window for search limit (Miss/Boo)
+				double limit = max(setup.windowBoo, setup.windowMiss);
+				if (limit <= 0) limit = 0.2;
+
+				const ExpandedNote* bestNote = nullptr;
+				double minDiff = 1000.0;
+
+				// Linear search for nearest note in column (optimization possible)
+				for(auto it = gNotes->begin(); it != gNotes->end(); ++it) {
+					if (it->col != col || it->type == NOTE_MINE) continue;
+					double t = gTempo->rowToTime(it->row);
+					double diff = fabs(t - hitTime);
+
+					if (diff < minDiff) {
+						minDiff = diff;
+						bestNote = it;
+					}
+					// If we passed the window, stop
+					if (t > hitTime + limit) break;
+				}
+
+				if (bestNote && minDiff <= limit) {
+					String judge;
+					if (minDiff <= setup.windowMarvelous) judge = "Marvelous!!";
+					else if (minDiff <= setup.windowPerfect) judge = "Perfect!";
+					else if (minDiff <= setup.windowGreat) judge = "Great";
+					else if (minDiff <= setup.windowGood) judge = "Good";
+					else if (minDiff <= setup.windowBoo) judge = "Boo";
+					else judge = "Miss";
+
+					double ms = (gTempo->rowToTime(bestNote->row) - hitTime) * 1000.0;
+					HudNote("%s (%+.0f ms)", judge.str(), ms);
+				}
+
+				evt.handled = true;
+				return;
+			}
 			else if (!myIsRecordMode)
 			{
 				evt.handled = true;
