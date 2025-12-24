@@ -151,6 +151,7 @@ void init(Item* menu)
 	add(hEdit, TOGGLE_UNDO_REDO_JUMP, "Enable undo/redo jump");
 	add(hEdit, TOGGLE_TIME_BASED_COPY, "Enable time-based copy");
 	add(hEdit, TOGGLE_RECORD_MODE, "Enable record mode");
+	add(hEdit, TOGGLE_PRACTICE_MODE, "Enable practice mode");
 
 	// Chart > Convert menu.
 	Item* hChartConvert = newMenu();
@@ -507,6 +508,10 @@ void registerUpdateFunctions()
 	myUpdateFunctions[USE_RECORD_MODE] = []
 	{
 		MENU->myEditMenu->setChecked(TOGGLE_RECORD_MODE, gEditing->isRecordMode());
+	};
+	myUpdateFunctions[USE_PRACTICE_MODE] = []
+	{
+		MENU->myEditMenu->setChecked(TOGGLE_PRACTICE_MODE, gEditor->isPracticeMode());
 	};
 	myUpdateFunctions[VISUAL_SYNC_ANCHOR] = []
 	{

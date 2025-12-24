@@ -135,6 +135,13 @@ void Action::perform(Type action)
 		gEditing->toggleTimeBasedCopy();
 	CASE(TOGGLE_RECORD_MODE)
 		gEditing->toggleRecordMode();
+	CASE(TOGGLE_PRACTICE_MODE)
+		{
+			bool enabled = !gEditor->isPracticeMode();
+			gEditor->setPracticeMode(enabled);
+			HudNote("Practice Mode: %s", enabled ? "ON" : "OFF");
+			gMenubar->update(Menubar::USE_PRACTICE_MODE);
+		}
 
 	CASE(SET_VISUAL_SYNC_CURSOR_ANCHOR)
 		gEditing->setVisualSyncAnchor(Editing::VisualSyncAnchor::CURSOR);
