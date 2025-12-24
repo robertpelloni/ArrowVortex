@@ -29,11 +29,7 @@ void DialogPreferences::myRefreshLayout()
 
 void DialogPreferences::myCreateWidgets()
 {
-	// Only create once.
-	static bool created = false;
-	if (created) return;
-	created = true;
-
+	// Create layout
 	myLayout.row().col(400); // Approximate width
 
 	// --- EDITOR SETTINGS ---
