@@ -578,35 +578,24 @@ void Action::perform(Type action)
 							msg.arg(bpm).arg(offset);
 							int res = gSystem->showMessageDlg("Auto Sync", msg, System::T_YES_NO, System::I_INFO);
 							if (res == System::R_YES) {
-								SegmentEdit edit;
-								// Remove all existing BPM/Stops
-								edit.rem.append(Segment::BPM, 0); // Placeholder to trigger clear if implemented?
-								// modify(edit, true) clears region?
-								// Actually, we want to replace everything.
-								// Just insert new and assume user can undo.
-								// But modify(edit) adds to existing.
-								// Let's manually clear.
-								// Or better:
+								gHistory->startChain();
+
+								// Clear existing timing data
+								const auto* segs = gTempo->getSegments();
+								if (segs) {
+									SegmentEdit clearEdit;
+									for (auto& list : *segs) {
+										for (const auto& s : list) {
+											clearEdit.rem.append(list.type(), s.row);
+										}
+									}
+									gTempo->modify(clearEdit);
+								}
+
 								gTempo->setOffset(offset);
-								gTempo->modify(SegmentEdit(), true); // Clears? No.
-								// gTempo->modify has clearRegion.
-								// I'll iterate segments and remove?
-								// Simpler:
-								gTempo->setCustomBpm(BpmRange{bpm, bpm}); // Sets display?
-								// Let's use a hack: modify with clearRegion for whole song.
-								// But modify takes SegmentEdit.
-								// Actually, I can use `gSimfile->get()->tempo->segments->clear()`.
-								// But I should use TempoMan to be safe with Undo.
-								// `TempoMan::removeSelectedSegments`?
-								// I'll just insert the BPM at 0.
 								gTempo->addSegment(BpmChange(0, bpm));
-								// This overwrites BPM at 0.
-								// User can delete others.
-								// Ideally, I should clear the map.
-								// TempoMan doesn't expose "Clear All".
-								// But `modify(edit, true)` clears the region covered by the edit?
-								// If I add a BPM at 0, it clears nothing?
-								// Let's just apply BPM and Offset.
+
+								gHistory->finishChain("Auto Sync Song");
 							}
 						} else {
 							HudError("Could not detect BPM.");

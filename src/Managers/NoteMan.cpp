@@ -839,8 +839,20 @@ void pasteFromClipboard(bool insert)
 
 	// Perform the changes.
 	static const NotesMan::EditDescription desc = {"Pasted %1 note", "Pasted %1 notes"};
-	modify(edit, !insert, &desc);
-	select(SELECT_SET, edit.add.begin(), edit.add.size());
+
+	// Respect "Paste Overwrites" preference.
+	// If Insert is True, we shift notes, so overwriting isn't relevant (empty space created).
+	// If Insert is False, we merge or overwrite based on preference.
+	// modify()'s second arg is 'clearRegion'.
+	bool overwrite = !insert && gEditor->getPasteOverwrites();
+
+	modify(edit, overwrite, &desc);
+
+	// Respect "Select Pasted" preference.
+	if (gEditor->getSelectPasted())
+	{
+		select(SELECT_SET, edit.add.begin(), edit.add.size());
+	}
 }
 
 // ================================================================================================
