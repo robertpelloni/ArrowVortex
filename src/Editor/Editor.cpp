@@ -1140,8 +1140,13 @@ void tick()
 		// However, I can try to use `TextOverlay`'s infrastructure or a simple HUD message.
 		// But those fade.
 
-		// I will leave this block as "Logic Implemented, Rendering Pending"
-		// to avoid breaking the build with unknown Font objects.
+		TextStyle style;
+		style.textColor = Colors::white;
+		style.shadowColor = RGBAtoColor32(0,0,0,255);
+		style.fontSize = 12;
+
+		Text::arrange(Text::TR, style, fpsStr.str());
+		Text::draw(vec2i{size.x - 4, 4});
 	}
 
 	GuiMain::frameEnd();

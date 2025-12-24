@@ -23,6 +23,8 @@ DialogWaveformSettings::DialogWaveformSettings()
 	isShowingOnsets_ = gWaveform->hasShowOnsets();
 	onsetThreshold_ = gWaveform->getOnsetThreshold();
 	spectrogramGain_ = gWaveform->getSpectrogramGain() / 100.0f;
+	rgbLow_ = gWaveform->getRGBLowHigh(false) / 1000.0f;
+	rgbHigh_ = gWaveform->getRGBLowHigh(true) / 10000.0f;
 
 	filterType_ = Waveform::FT_HIGH_PASS;
 	filterStrength_ = 0.75f;
