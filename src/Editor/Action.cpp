@@ -348,6 +348,8 @@ void Action::perform(Type action)
 		gMinimap->setMode(Minimap::NOTES);
 	CASE(MINIMAP_SET_DENSITY)
 		gMinimap->setMode(Minimap::DENSITY);
+	CASE(MINIMAP_SET_WAVEFORM)
+		gMinimap->setMode(Minimap::WAVEFORM);
 
 	CASE(BACKGROUND_HIDE)
 		gNotefield->setBgAlpha(0);

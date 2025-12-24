@@ -245,6 +245,78 @@ void renderDensity(SetPixelData& spd, const int* colx)
 	}
 }
 
+static void SetWaveformRow(uint* pixels, int y, float amp)
+{
+	int w = clamp((int)(amp * MAP_WIDTH), 1, MAP_WIDTH);
+	// Center
+	int cx = MAP_WIDTH / 2;
+	int half = w / 2;
+	uint* dst = pixels + y * MAP_WIDTH + cx - half;
+	uint col = RGBAtoColor32(0, 255, 0, 255);
+	for(int i=0; i<w; ++i) *dst++ = col;
+}
+
+void renderWaveform(SetPixelData& spd)
+{
+	auto& music = gMusic->getSamples();
+	if (!music.isCompleted()) return;
+
+	const short* samples = music.samplesL();
+	int numFrames = music.getNumFrames();
+	double sampleRate = (double)music.getFrequency();
+
+	if (gView->isTimeBased())
+	{
+		double sec = myChartBeginOfs;
+		double secPerPix = (double)(myChartEndOfs - myChartBeginOfs) / (double)myNotesH;
+		int samplesPerPix = (int)(secPerPix * sampleRate);
+		if (samplesPerPix < 1) samplesPerPix = 1;
+
+		for(int y = 0; y < myNotesH; ++y)
+		{
+			int frame = (int)(sec * sampleRate);
+			int maxAmp = 0;
+			int limit = min(numFrames, frame + samplesPerPix);
+			if (frame >= 0 && frame < numFrames) {
+				for(int k=frame; k<limit; k+=max(1, samplesPerPix/16)) {
+					int s = abs(samples[k]);
+					if (s > maxAmp) maxAmp = s;
+				}
+			}
+			SetWaveformRow(spd.pixels, y, (float)maxAmp / 32768.0f);
+			sec += secPerPix;
+		}
+	}
+	else
+	{
+		double row = myChartBeginOfs;
+		double rowPerPix = (double)(myChartEndOfs - myChartBeginOfs) / (double)myNotesH;
+
+		for(int y = 0; y < myNotesH; ++y)
+		{
+			double t = gTempo->rowToTime((int)row);
+			int frame = (int)(t * sampleRate);
+			// For row based, duration depends on BPM.
+			// Let's sample a small window around t.
+			// Or calculate next row time.
+			double t_next = gTempo->rowToTime((int)(row + rowPerPix));
+			int samplesPerPix = (int)((t_next - t) * sampleRate);
+			if (samplesPerPix < 1) samplesPerPix = 100; // Fallback
+
+			int maxAmp = 0;
+			int limit = min(numFrames, frame + samplesPerPix);
+			if (frame >= 0 && frame < numFrames) {
+				for(int k=frame; k<limit; k+=max(1, samplesPerPix/16)) {
+					int s = abs(samples[k]);
+					if (s > maxAmp) maxAmp = s;
+				}
+			}
+			SetWaveformRow(spd.pixels, y, (float)maxAmp / 32768.0f);
+			row += rowPerPix;
+		}
+	}
+}
+
 // ================================================================================================
 // MinimapImpl :: member functions.
 
@@ -333,6 +405,10 @@ void onChanges(int changes)
 		if(myMode == DENSITY)
 		{
 			renderDensity(spd, colx);
+		}
+		else if (myMode == WAVEFORM)
+		{
+			renderWaveform(spd);
 		}
 		else
 		{

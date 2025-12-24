@@ -332,6 +332,7 @@ void init(Item* menu)
 	Item* hViewMm = myMinimapMenu = newMenu();
 	add(hViewMm, MINIMAP_SET_NOTES, "Notes");
 	add(hViewMm, MINIMAP_SET_DENSITY, "Density");
+	add(hViewMm, MINIMAP_SET_WAVEFORM, "Waveform");
 	
 	// View > Background menu.
 	Item* hViewBg = myBgStyleMenu = newMenu();
@@ -530,6 +531,7 @@ void registerUpdateFunctions()
 		auto mode = gMinimap->getMode();
 		MENU->myMinimapMenu->setChecked(MINIMAP_SET_NOTES, mode == Minimap::NOTES);
 		MENU->myMinimapMenu->setChecked(MINIMAP_SET_DENSITY, mode == Minimap::DENSITY);
+		MENU->myMinimapMenu->setChecked(MINIMAP_SET_WAVEFORM, mode == Minimap::WAVEFORM);
 	};
 	myUpdateFunctions[VIEW_BACKGROUND] = []
 	{

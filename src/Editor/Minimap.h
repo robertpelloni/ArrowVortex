@@ -6,7 +6,7 @@ namespace Vortex {
 
 struct Minimap : public InputHandler
 {
-	enum Mode { NOTES, DENSITY };
+	enum Mode { NOTES, DENSITY, WAVEFORM };
 
 	static void create();
 	static void destroy();
