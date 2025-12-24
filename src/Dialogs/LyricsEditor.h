@@ -26,13 +26,14 @@ private:
 	void onSetTime();
 	void onSelectLine(int index);
 	void onSelectLineWrapper() { onSelectLine(mySelectedIndex); }
-	void onTextChange(String& val);
+	void onTextChange();
 
 	WgSelectList* myLyricList;
 	WgLineEdit* myTextInput;
 	WgLabel* myTimeLabel;
 
 	int mySelectedIndex;
+	String myCurrentText;
 	Vector<LyricLine> myLyrics;
 };
 

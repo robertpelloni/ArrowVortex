@@ -26,8 +26,8 @@ private:
 	void onSetBeat();
 	void onSelectLine(int index);
 	void onSelectLineWrapper() { onSelectLine(mySelectedIndex); }
-	void onFileChange(String& val);
-	void onRateChange(double val);
+	void onFileChange();
+	void onRateChange();
 	void onBrowseFile();
 
 	void onLayerChanged(int layer);
@@ -38,6 +38,8 @@ private:
 	WgCycleButton* myLayerCycle; // Layer 1, Layer 2, Foreground
 
 	int mySelectedIndex;
+	String myCurrentFile;
+	double myCurrentRate;
 	int myCurrentLayer; // 0=BG1, 1=BG2, 2=FG
 	Vector<BgChange> myChanges;
 };

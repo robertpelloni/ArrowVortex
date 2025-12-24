@@ -36,8 +36,7 @@ void DialogLyricsEditor::myCreateWidgets()
 	timeBtn->onPress.bind(this, &DialogLyricsEditor::onSetTime);
 
 	myTextInput = myLayout.add<WgLineEdit>("Text");
-	String dummy;
-	myTextInput->text.bind(&dummy); // Manual handling
+	myTextInput->text.bind(&myCurrentText);
 	myTextInput->onChange.bind(this, &DialogLyricsEditor::onTextChange);
 
 	myTimeLabel = myLayout.add<WgLabel>("0.000");
@@ -134,23 +133,11 @@ void DialogLyricsEditor::onSetTime()
 	}
 }
 
-void DialogLyricsEditor::onTextChange(String& val)
+void DialogLyricsEditor::onTextChange()
 {
 	if (mySelectedIndex >= 0 && mySelectedIndex < myLyrics.size()) {
-		myLyrics[mySelectedIndex].text = val;
-		// We avoid full setLyrics on every keypress for performance if list is huge?
-		// But for simple text it's fine.
+		myLyrics[mySelectedIndex].text = myCurrentText;
 		gLyrics->setLyrics(myLyrics);
-		// Update list item text only?
-		// myLyricList->setItemText... if available.
-		// For now refresh all.
-		// Optimize: don't refresh list if only text changed?
-		// Just update the item string.
-		// But WgList API might not expose direct update.
-		// Let's defer full refresh to focus loss or Enter?
-		// No, usually immediate.
-		// But refreshing re-builds widgets.
-		// Let's just update backend.
 	}
 }
 
