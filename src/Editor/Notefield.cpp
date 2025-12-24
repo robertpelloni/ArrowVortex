@@ -276,9 +276,9 @@ void draw()
 	// Draw stuff.
 	drawBackground();
 
+	if(drawWaveform) gWaveform->drawPeaks();
 	if(myShowBeatLines) drawBeatLines();
 	if (gView->isTimeBased()) drawBeats();
-	if(drawWaveform) gWaveform->drawPeaks();
 	if(gTempoBoxes->hasShowBoxes()) drawStopsAndWarps();
 
 	drawReceptors();
