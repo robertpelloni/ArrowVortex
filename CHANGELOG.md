@@ -1,29 +1,33 @@
 # Changelog
 
-All notable changes to this project will be documented in this file.
-
-## [1.1.0] - 2025-12-25
+## [1.2.0] - 2025-12-25
 
 ### Added
-- **DDreamStudio Features Integration**:
-    - **Visual Sync**: Beat dragging (Shift+Click+Drag) on the grid to align beats with audio.
-    - **Advanced Waveforms**: Spectrogram, CQT, and other visualization modes.
-    - **Auto-Sync**: Tools for automatic BPM detection and grid alignment (`AUTO_SYNC_SONG`, `QUANTIZE_TO_AUDIO`).
-    - **Preferences Dialog**: New dialog for editor settings and practice mode configuration.
-- **osu! Support**: Added support for loading `.osu` simfiles.
-- **Lyrics Editor**: New dialog for editing lyrics.
-- **Background Changes**: New dialog for managing background changes.
-- **Go To**: New dialog for jumping to specific times or measures.
+- **Batch DDC Generation**: Integrated Dance Dance Convolution (DDC) for auto-charting.
+  - Added `lib/ddc` submodule.
+  - Added Batch DDC Dialog (`File -> Batch DDC Generation...`).
+  - Added support for processing entire folders recursively.
+  - Added integration with FFR Difficulty Model for chart rating.
+  - Added Python Path preference in Settings.
+- **Practice Mode**:
+  - Added Practice Mode toggle in Preferences.
+  - Implemented timing windows (Marvelous, Perfect, Great, Good, Boo, Miss, etc.).
+  - Added visual feedback for judgments.
+  - Added logic to handle looping/seeking (resetting judgments).
+- **FPS Counter**: Added optional FPS display (toggle in Preferences).
+- **osu! Support**: Added basic support for loading `.osu` files.
+- **Scroll Cursor Effect**: Added option to enable/disable cursor scrolling effect.
 
 ### Changed
-- Updated `ArrowVortex` version to 1.1.0.
-- Improved `SimfileMan` to handle new file formats.
-- Refactored `ByteStream` for better template support.
+- **Auto-Sync**:
+  - Refined `AUTO_SYNC_SONG` to clear existing tempo map before applying new sync.
+  - Refined `QUANTIZE_TO_AUDIO` to snap notes to onsets instead of warping grid.
+- **Preferences**:
+  - Reorganized Preferences dialog with tabs (Editor, Practice).
+  - Added tooltips for settings.
 
 ### Fixed
-- Resolved conflicts in `ByteStream.h` and `SimfileMan.cpp`.
-- Fixed submodule references.
+- **Practice Mode**: Fixed issue where looping audio would not reset judged notes.
 
-## [1.0.1] - Previous Release
-- Initial open source release.
-- Restored functionality from 2017 release.
+## [1.1.0] - Previous Release
+- Initial DDreamStudio feature integration.

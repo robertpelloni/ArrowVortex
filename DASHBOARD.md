@@ -61,3 +61,22 @@ The ArrowVortex project is organized as follows:
     *   **Download Data**: Run `lib/ddc/download_data.ps1` (PowerShell) to fetch training data.
     *   **Train Models**: Run `python lib/ddc/scripts/train_all.py <packs_dir> <work_dir>` to generate models.
     *   **Configure**: Point the Batch DDC dialog to the generated models directory.
+
+## Batch DDC Generation
+
+The Batch DDC Generation tool (`File -> Batch DDC Generation...`) allows you to automatically generate charts for multiple songs or entire folders.
+
+### Features
+*   **Batch Processing**: Add individual audio files or entire folders.
+*   **Recursive Search**: Automatically finds all `.mp3`, `.ogg`, and `.wav` files in added folders.
+*   **Difficulty Rating**: Uses the FFR Difficulty Model to estimate chart difficulty.
+*   **Custom Models**: Specify custom paths for DDC and FFR models.
+
+### Usage
+1.  Open `File -> Batch DDC Generation...`.
+2.  Click **Add Files...** or **Add Folder...** to select input audio.
+3.  Set the **Output Directory** for the generated simfiles.
+4.  Set the **DDC Models Directory** (e.g., `lib/ddc/models`).
+5.  Set the **FFR Models Directory** (e.g., `lib/ddc/ffr_models`).
+6.  Click **GENERATE CHARTS**.
+7.  Check the log output for progress and errors.

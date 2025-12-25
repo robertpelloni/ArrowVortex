@@ -17,6 +17,7 @@ DialogBatchDDC::DialogBatchDDC()
 	// Default paths
 	myOutDir = "output";
 	myModelDir = "lib/ddc/models"; 
+	myFFRModelDir = "lib/ddc/ffr_models";
 
 	myCreateWidgets();
 }
@@ -31,15 +32,17 @@ void DialogBatchDDC::myCreateWidgets()
 	myFileList = myLayout.add<WgListbox>();
 	
 	// File Buttons
-	myLayout.row().col(145).col(10).col(145);
+	myLayout.row().col(95).col(10).col(95).col(10).col(90);
 	WgButton* addBtn = myLayout.add<WgButton>();
 	addBtn->text.set("Add Files...");
 	addBtn->onPress.bind(this, &DialogBatchDDC::myAddFiles);
-	
-	myLayout.addBlank();
+
+	WgButton* addFolderBtn = myLayout.add<WgButton>();
+	addFolderBtn->text.set("Add Folder...");
+	addFolderBtn->onPress.bind(this, &DialogBatchDDC::myAddFolder);
 	
 	WgButton* remBtn = myLayout.add<WgButton>();
-	remBtn->text.set("Remove Selected");
+	remBtn->text.set("Remove");
 	remBtn->onPress.bind(this, &DialogBatchDDC::myRemoveFiles);
 
 	// Output Dir
@@ -58,7 +61,7 @@ void DialogBatchDDC::myCreateWidgets()
 	// Model Dir
 	myLayout.row().col(300);
 	WgLabel* l2 = myLayout.add<WgLabel>();
-	l2->text.set("Models Directory:");
+	l2->text.set("DDC Models Directory:");
 	
 	myLayout.row().col(270).col(30);
 	myModelDirBox = myLayout.add<WgTextbox>();
@@ -67,6 +70,19 @@ void DialogBatchDDC::myCreateWidgets()
 	WgButton* modelBtn = myLayout.add<WgButton>();
 	modelBtn->text.set("...");
 	modelBtn->onPress.bind(this, &DialogBatchDDC::mySelectModelDir);
+
+	// FFR Model Dir
+	myLayout.row().col(300);
+	WgLabel* l3 = myLayout.add<WgLabel>();
+	l3->text.set("FFR Models Directory:");
+	
+	myLayout.row().col(270).col(30);
+	myFFRModelDirBox = myLayout.add<WgTextbox>();
+	myFFRModelDirBox->text.bind(&myFFRModelDir);
+	
+	WgButton* ffrModelBtn = myLayout.add<WgButton>();
+	ffrModelBtn->text.set("...");
+	ffrModelBtn->onPress.bind(this, &DialogBatchDDC::mySelectFFRModelDir);
 
 	// Generate
 	myLayout.row().col(300).h(30);
@@ -90,6 +106,17 @@ void DialogBatchDDC::myAddFiles()
 	if(path.len()) {
 		myFiles.push_back(path);
 		myFileList->addItem(path);
+	}
+}
+
+void DialogBatchDDC::myAddFolder()
+{
+	String path = gSystem->openFileDlg("Select Folder (Select any file inside)", "");
+	if(path.len()) {
+		Path p(path);
+		String dir = p.dir();
+		myFiles.push_back(dir);
+		myFileList->addItem(dir);
 	}
 }
 
@@ -121,6 +148,15 @@ void DialogBatchDDC::mySelectModelDir()
 	}
 }
 
+void DialogBatchDDC::mySelectFFRModelDir()
+{
+	String path = gSystem->openFileDlg("Select FFR Models Directory (Select any file inside)", myFFRModelDir);
+	if(path.len()) {
+		Path p(path);
+		myFFRModelDir = p.dir();
+	}
+}
+
 void DialogBatchDDC::myGenerate()
 {
 	if(myFiles.empty()) {
@@ -133,11 +169,6 @@ void DialogBatchDDC::myGenerate()
 	// Construct command
 	String cmd = gEditor->getPythonPath();
 	cmd += " lib/ddc/autochart.py";
-	for(const auto& f : myFiles) {
-		cmd += " \"";
-		cmd += f;
-		cmd += "\"";
-	}
 	
 	cmd += " --out_dir \"";
 	cmd += myOutDir;
@@ -146,6 +177,19 @@ void DialogBatchDDC::myGenerate()
 	cmd += " --models_dir \"";
 	cmd += myModelDir;
 	cmd += "\"";
+
+	if(myFFRModelDir.len()) {
+		cmd += " --ffr_dir \"";
+		cmd += myFFRModelDir;
+		cmd += "\"";
+	}
+
+	// Add files/folders at the end (positional args)
+	for(const auto& f : myFiles) {
+		cmd += " \"";
+		cmd += f;
+		cmd += "\"";
+	}
 
 	// Redirect output to log file
 	cmd += " > ddc_log.txt 2>&1";
