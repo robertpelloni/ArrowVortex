@@ -357,6 +357,7 @@
     <ClCompile Include="..\..\src\Dialogs\WaveformSettings.cpp" />
     <ClCompile Include="..\..\src\Dialogs\Zoom.cpp" />
     <ClCompile Include="..\..\src\Editor\Action.cpp" />
+    <ClCompile Include="..\..\src\Editor\AnalyzeKey.cpp" />
     <ClCompile Include="..\..\src\Editor\Aubio.cpp" />
     <ClCompile Include="..\..\src\Editor\Butterworth.cpp" />
     <ClCompile Include="..\..\src\Editor\Common.cpp" />
@@ -457,6 +458,38 @@
     <ClCompile Include="..\..\lib\libaca\src\ToolViterbi.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="..\..\lib\libaca\src\AcaAll.cpp" />
+    <ClCompile Include="..\..\lib\libaca\src\BeatHisto.cpp" />
+    <ClCompile Include="..\..\lib\libaca\src\Chord.cpp" />
+    <ClCompile Include="..\..\lib\libaca\src\ChordFromBlock.cpp" />
+    <ClCompile Include="..\..\lib\libaca\src\Feature.cpp" />
+    <ClCompile Include="..\..\lib\libaca\src\FeatureFromBlock.cpp" />
+    <ClCompile Include="..\..\lib\libaca\src\Fft.cpp" />
+    <ClCompile Include="..\..\lib\libaca\src\Key.cpp" />
+    <ClCompile Include="..\..\lib\libaca\src\KeyFromChroma.cpp" />
+    <ClCompile Include="..\..\lib\libaca\src\Novelty.cpp" />
+    <ClCompile Include="..\..\lib\libaca\src\NoveltyFromBlock.cpp" />
+    <ClCompile Include="..\..\lib\libaca\src\Pitch.cpp" />
+    <ClCompile Include="..\..\lib\libaca\src\PitchFromBlock.cpp" />
+    <ClCompile Include="..\..\lib\libaca\src\Spectrogram.cpp" />
+    <ClCompile Include="..\..\lib\libaca\src\SubFingerprint.cpp" />
+    <ClCompile Include="..\..\lib\libaca\src\ToolBlockAudio.cpp" />
+    <ClCompile Include="..\..\lib\libaca\src\ToolCcf.cpp" />
+    <ClCompile Include="..\..\lib\libaca\src\ToolConversion.cpp" />
+    <ClCompile Include="..\..\lib\libaca\src\ToolFingerprint.cpp" />
+    <ClCompile Include="..\..\lib\libaca\src\ToolGammatone.cpp" />
+    <ClCompile Include="..\..\lib\libaca\src\ToolGmm.cpp" />
+    <ClCompile Include="..\..\lib\libaca\src\ToolGmmClassifier.cpp" />
+    <ClCompile Include="..\..\lib\libaca\src\ToolLeaveOneOutCrossVal.cpp" />
+    <ClCompile Include="..\..\lib\libaca\src\ToolNmf.cpp" />
+    <ClCompile Include="..\..\lib\libaca\src\ToolPca.cpp" />
+    <ClCompile Include="..\..\lib\libaca\src\ToolSeqFeatureSel.cpp" />
+    <ClCompile Include="..\..\lib\libaca\src\ToolSimpleDtw.cpp" />
+    <ClCompile Include="..\..\lib\libaca\src\ToolSimpleKmeans.cpp" />
+    <ClCompile Include="..\..\lib\libaca\src\ToolSimpleKnn.cpp" />
+    <ClCompile Include="..\..\lib\libaca\src\ToolViterbi.cpp" />
+  </ItemGroup>
+  <ItemGroup>
     <ClInclude Include="..\..\src\Core\ByteStream.h" />
     <ClInclude Include="..\..\src\Core\Canvas.h" />
     <ClInclude Include="..\..\src\Core\Core.h" />
@@ -508,6 +541,7 @@
     <ClInclude Include="..\..\src\Dialogs\WaveformSettings.h" />
     <ClInclude Include="..\..\src\Dialogs\Zoom.h" />
     <ClInclude Include="..\..\src\Editor\Action.h" />
+    <ClInclude Include="..\..\src\Editor\AnalyzeKey.h" />
     <ClInclude Include="..\..\src\Editor\Aubio.h" />
     <ClInclude Include="..\..\src\Editor\Butterworth.h" />
     <ClInclude Include="..\..\src\Editor\Common.h" />

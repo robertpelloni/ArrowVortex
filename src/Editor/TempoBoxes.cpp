@@ -154,7 +154,7 @@ void toggleShowBoxes()
 	gMenubar->update(Menubar::SHOW_TEMPO_BOXES);
 }
 
-void TempoBoxesImpl::setShowBoxes(bool show)
+void setShowBoxes(bool show)
 {
 	if (myShowBoxes != show)
 	{
