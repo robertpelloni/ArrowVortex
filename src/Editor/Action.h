@@ -240,6 +240,9 @@ namespace Action {
 	CONVERT_REGION_TO_CONSTANT_BPM,
 	VERIFY_CHART_INTEGRITY,
 	SELECT_OFF_SYNC_NOTES,
+
+	NUDGE_BEAT_FORWARD,
+	NUDGE_BEAT_BACKWARD,
 	};
 
 	// Performs the action associated with the action type.

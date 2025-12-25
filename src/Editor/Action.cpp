@@ -1080,6 +1080,43 @@ void Action::perform(Type action)
 				HudNote("No off-sync (192nd) notes found.");
 			}
 		}
+
+	CASE(NUDGE_BEAT_FORWARD)
+		{
+			int row = gView->getCursorRow();
+			double currentTime = gTempo->rowToTime(row);
+			double delta = 0.002; // Default 2ms
+
+			if (gEditor->getNudgeBasedOnZoom()) {
+				// Zoom is pixels per second?
+				// gView->getPixPerSec()
+				double pps = gView->getPixPerSec();
+				if (pps > 1.0) {
+					// Nudge by 1 pixel?
+					delta = 1.0 / pps;
+				}
+			}
+
+			gTempo->moveBeat(row, currentTime + delta, true);
+			gTempo->injectBoundingBpmChange(row);
+		}
+
+	CASE(NUDGE_BEAT_BACKWARD)
+		{
+			int row = gView->getCursorRow();
+			double currentTime = gTempo->rowToTime(row);
+			double delta = 0.002; // Default 2ms
+
+			if (gEditor->getNudgeBasedOnZoom()) {
+				double pps = gView->getPixPerSec();
+				if (pps > 1.0) {
+					delta = 1.0 / pps;
+				}
+			}
+
+			gTempo->moveBeat(row, currentTime - delta, true);
+			gTempo->injectBoundingBpmChange(row);
+		}
 	}};
 
 	if(action >= FILE_OPEN_RECENT_BEGIN && action < FILE_OPEN_RECENT_END)
