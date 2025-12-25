@@ -1,0 +1,3 @@
+[submodule "lib/ddc"]
+	path = lib/ddc
+	url = https://github.com/robertpelloni/ddc
