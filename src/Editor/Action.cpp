@@ -18,6 +18,7 @@
 #include <Editor/StructureAnalyzer.h>
 #include <Editor/FindTempo.h>
 #include <Editor/FindOnsets.h>
+#include <Editor/AnalyzeKey.h>
 
 #include <vector>
 #include <algorithm>
@@ -1116,6 +1117,53 @@ void Action::perform(Type action)
 
 			gTempo->moveBeat(row, currentTime - delta, true);
 			gTempo->injectBoundingBpmChange(row);
+		}
+
+	CASE(DETECT_KEY)
+		{
+			auto& music = gMusic->getSamples();
+			if (music.isCompleted() && music.getNumFrames() > 0) {
+				// Use the whole song or selection?
+				// Let's use selection if active, else whole song.
+				auto region = gSelection->getSelectedRegion();
+				const float* samples = nullptr;
+				int numFrames = 0;
+				int samplerate = music.getFrequency();
+
+				std::vector<float> floatSamples;
+
+				// Convert to float (mono)
+				const short* src = music.samplesL();
+				int totalFrames = music.getNumFrames();
+
+				int startFrame = 0;
+				int endFrame = totalFrames;
+
+				if (region.beginRow != region.endRow) {
+					double t1 = gTempo->rowToTime(region.beginRow);
+					double t2 = gTempo->rowToTime(region.endRow);
+					startFrame = (int)(t1 * samplerate);
+					endFrame = (int)(t2 * samplerate);
+					startFrame = clamp(startFrame, 0, totalFrames);
+					endFrame = clamp(endFrame, 0, totalFrames);
+				}
+
+				numFrames = endFrame - startFrame;
+				if (numFrames <= 0) {
+					HudError("Invalid selection for key detection.");
+					break;
+				}
+
+				floatSamples.resize(numFrames);
+				for(int i=0; i<numFrames; ++i) {
+					floatSamples[i] = src[startFrame + i] / 32768.0f;
+				}
+
+				String key = DetectKey(floatSamples.data(), numFrames, samplerate);
+				gSystem->showMessageDlg("Key Detection", Str::fmt("Estimated Key: %s").arg(key), System::T_OK, System::I_INFO);
+			} else {
+				HudError("Music not loaded.");
+			}
 		}
 	}};
 

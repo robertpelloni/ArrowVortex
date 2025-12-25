@@ -243,6 +243,7 @@ namespace Action {
 
 	NUDGE_BEAT_FORWARD,
 	NUDGE_BEAT_BACKWARD,
+	DETECT_KEY,
 	};
 
 	// Performs the action associated with the action type.
