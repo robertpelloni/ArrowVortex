@@ -15,9 +15,7 @@ The ArrowVortex project is organized as follows:
     *   **`Simfile/`**: Simfile parsing and data structures.
     *   **`System/`**: OS-specific implementations (Windows).
 
-## Dependencies (Submodules & Vendored Libraries)
-
-The following libraries are included in the `lib/` directory. While they are not currently configured as git submodules, they are essential dependencies.
+## Submodules & Dependencies
 
 | Library | Version | Location | Description |
 | :--- | :--- | :--- | :--- |
@@ -28,31 +26,37 @@ The following libraries are included in the `lib/` directory. While they are not
 | **libvorbis** | 1.3.7 | `lib/libvorbis` | Ogg Vorbis audio codec. |
 | **Lua** | 5.4.3 | `lib/lua` | Scripting language. |
 | **ddc** | *Submodule* | `lib/ddc` | Dance Dance Convolution (Auto-charting). |
+| **ddc_onset** | *Submodule* | `lib/ddc/ddc_onset` | Onset detection model for DDC. |
+| **ffr-difficulty** | *Submodule* | `lib/ddc/ffr-difficulty-model` | Difficulty rating model for DDC. |
 
 ## Build Information
 
-*   **Version**: 1.1.0
+*   **Version**: 1.2.0
 *   **Build System**: Visual Studio 2022 (`build/VisualStudio/ArrowVortex.sln`)
 *   **Platform**: Windows (x64/x86)
 
-## Recent Updates
+## Feature Roadmap
 
-*   **DDreamStudio Features**: Integrated advanced audio analysis, visual sync, and auto-sync tools.
-*   **Auto-Sync Tools**: Refined `AUTO_SYNC_SONG` (Replace All) and `QUANTIZE_TO_AUDIO` (Note Snapping).
-*   **Batch DDC**: Integrated `ddc` (Dance Dance Convolution) submodule, added Batch Generation UI, and added "Python Path" preference.
-*   **Practice Mode**: Implemented gameplay logic with custom timing windows and visual feedback.
-*   **Scroll Cursor Effect**: Implemented receptor pulse toggle.
-*   **FPS Counter**: Added FPS display with toggle preference.
-*   **osu! Support**: Added support for loading `.osu` files.
-*   **Formatting**: Codebase formatting updates (pending integration).
+### Completed Features (v1.2.0)
+- [x] **Batch DDC Generation**: Integrated `ddc` submodule and UI.
+- [x] **Practice Mode**: Gameplay logic, timing windows, visual feedback.
+- [x] **Auto-Sync Refinement**: Improved `AUTO_SYNC_SONG` and `QUANTIZE_TO_AUDIO`.
+- [x] **FPS Counter**: Added FPS display.
+- [x] **osu! Support**: Basic `.osu` file loading.
 
-## Next Steps
+### Planned Features
+- [ ] **Advanced Waveform Analysis**: More detailed spectral analysis tools.
+- [ ] **Lua Scripting Integration**: Expose editor API to Lua for plugins.
+- [ ] **Multi-Platform Support**: Linux/macOS build configuration (CMake).
+- [ ] **Theme Support**: Allow custom editor themes.
+
+## DDC Setup Guide
 
 1.  **Build**: Open `build/VisualStudio/ArrowVortex.sln` and build the solution.
 2.  **Python Setup**:
     *   Install Python 3.x.
     *   Install dependencies: `pip install -r lib/ddc/requirements.txt`.
-    *   Configure Python Path in ArrowVortex (Edit -> Preferences).
+    *   Configure Python Path in ArrowVortex (`Edit -> Preferences`).
 3.  **DDC Models**:
     *   **Download Data**: Run `lib/ddc/download_data.ps1` (PowerShell) to fetch training data.
     *   **Train Models**: Run `python lib/ddc/scripts/train_all.py <packs_dir> <work_dir>` to generate models.
