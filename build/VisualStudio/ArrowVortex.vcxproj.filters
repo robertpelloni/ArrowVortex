@@ -71,8 +71,9 @@
     </ClCompile>
     <ClCompile Include="..\..\src\Dialogs\ChartList.cpp">
       <Filter>Dialogs</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\Dialogs\ChartProperties.cpp">
+    </ClCompile>    <ClCompile Include="..\..\src\Dialogs\BatchDDC.cpp">
+      <Filter>Dialogs</Filter>
+    </ClCompile>    <ClCompile Include="..\..\src\Dialogs\ChartProperties.cpp">
       <Filter>Dialogs</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\Dialogs\DancingBot.cpp">
@@ -397,8 +398,9 @@
     </ClInclude>
     <ClInclude Include="..\..\src\Dialogs\ChartList.h">
       <Filter>Dialogs</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\src\Dialogs\ChartProperties.h">
+    </ClInclude>    <ClInclude Include="..\..\src\Dialogs\BatchDDC.h">
+      <Filter>Dialogs</Filter>
+    </ClInclude>    <ClInclude Include="..\..\src\Dialogs\ChartProperties.h">
       <Filter>Dialogs</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\Dialogs\DancingBot.h">

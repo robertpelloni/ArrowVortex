@@ -39,6 +39,7 @@ private:
 	float myNoteAssistVol;
 	bool myBackupSaves;
 	bool myDontShowFPS;
+	String myPythonPath;
 
 	// Practice Mode Settings
 	bool myEnablePracticeMode;
@@ -66,6 +67,7 @@ private:
 	void onSelectPastedChanged();
 	void onBackupSavesChanged();
 	void onDontShowFPSChanged();
+	void onPythonPathChanged();
 
 	void onPracticeEnabledChanged();
 

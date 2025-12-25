@@ -94,6 +94,13 @@ void DialogPreferences::myCreateWidgets()
 	cbFPS->onChange.bind(this, &DialogPreferences::onDontShowFPSChanged);
 	cbFPS->setTooltip("Uncheck: Show FPS");
 
+	// Python Path
+	myLayout.row().col(100).col(300);
+	myLayout.add<WgLabel>()->text.set("Python Path:");
+	auto tbPython = myLayout.add<WgTextbox>();
+	tbPython->text.bind(&myPythonPath);
+	tbPython->onChange.bind(this, &DialogPreferences::onPythonPathChanged);
+
 	// Volumes
 	myLayout.row().col(190).col(20).col(190);
 	myLayout.add<WgLabel>()->text.set("Beat Assist Vol.");
@@ -161,6 +168,7 @@ void DialogPreferences::myUpdateWidgets()
 	mySelectPasted = gEditor->getSelectPasted();
 	myBackupSaves = gEditor->getBackupSaves();
 	myDontShowFPS = gEditor->getDontShowFPS();
+	myPythonPath = gEditor->getPythonPath();
 
 	myEnablePracticeMode = gEditor->isPracticeMode();
 	myPracticeSetup = gEditor->getPracticeSetup();
@@ -195,6 +203,7 @@ void DialogPreferences::onPasteOverwritesChanged() { gEditor->setPasteOverwrites
 void DialogPreferences::onSelectPastedChanged() { gEditor->setSelectPasted(mySelectPasted); }
 void DialogPreferences::onBackupSavesChanged() { gEditor->setBackupSaves(myBackupSaves); }
 void DialogPreferences::onDontShowFPSChanged() { gEditor->setDontShowFPS(myDontShowFPS); }
+void DialogPreferences::onPythonPathChanged() { gEditor->setPythonPath(myPythonPath); }
 
 void DialogPreferences::onPracticeEnabledChanged() { gEditor->setPracticeMode(myEnablePracticeMode); }
 

@@ -1,4 +1,5 @@
 #include <Dialogs/BatchDDC.h>
+#include <Editor/Editor.h>
 #include <Core/WidgetsLayout.h>
 #include <System/System.h>
 #include <System/File.h>
@@ -130,7 +131,8 @@ void DialogBatchDDC::myGenerate()
 	myUpdateLog("Starting generation...");
 
 	// Construct command
-	String cmd = "python lib/ddc/autochart.py";
+	String cmd = gEditor->getPythonPath();
+	cmd += " lib/ddc/autochart.py";
 	for(const auto& f : myFiles) {
 		cmd += " \"";
 		cmd += f;

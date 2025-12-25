@@ -168,6 +168,7 @@ bool myPasteOverwrites;
 bool mySelectPasted;
 bool myBackupSaves;
 bool myDontShowFPS;
+String myPythonPath;
 
 // Practice Mode
 bool myPracticeMode;
@@ -266,6 +267,7 @@ EditorImpl()
 	mySelectPasted = true;
 	myBackupSaves = false;
 	myDontShowFPS = false;
+	myPythonPath = "python";
 
 	myPracticeMode = false;
 	// Default windows (ms) based on screenshot
@@ -435,6 +437,9 @@ void loadSettings(XmrDoc& settings)
 		general->get("selectPasted", &mySelectPasted);
 		general->get("backupSaves", &myBackupSaves);
 		general->get("dontShowFPS", &myDontShowFPS);
+
+		const char* pyPath = general->get("pythonPath");
+		if (pyPath) myPythonPath = pyPath;
 	}
 
 	XmrNode* practice = settings.child("practice");
@@ -487,6 +492,7 @@ void saveGeneralSettings(XmrNode& settings)
 	general->addAttrib("selectPasted", mySelectPasted);
 	general->addAttrib("backupSaves", myBackupSaves);
 	general->addAttrib("dontShowFPS", myDontShowFPS);
+	general->addAttrib("pythonPath", myPythonPath.str());
 
 	XmrNode* practice = settings.addChild("practice");
 	practice->addAttrib("enabled", myPracticeMode);
@@ -1282,6 +1288,9 @@ void setBackupSaves(bool b) { myBackupSaves = b; }
 
 bool getDontShowFPS() const { return myDontShowFPS; }
 void setDontShowFPS(bool b) { myDontShowFPS = b; }
+StringRef getPythonPath() const { return myPythonPath; }
+void setPythonPath(StringRef path) { myPythonPath = path; }
+
 
 bool isPracticeMode() const { return myPracticeMode; }
 void setPracticeMode(bool b) { myPracticeMode = b; }

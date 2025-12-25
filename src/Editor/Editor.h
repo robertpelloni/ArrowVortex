@@ -117,6 +117,9 @@ struct Editor
 	virtual bool getDontShowFPS() const = 0;
 	virtual void setDontShowFPS(bool b) = 0;
 
+	virtual StringRef getPythonPath() const = 0;
+	virtual void setPythonPath(StringRef path) = 0;
+
 	// Practice Mode
 	virtual bool isPracticeMode() const = 0;
 	virtual void setPracticeMode(bool b) = 0;

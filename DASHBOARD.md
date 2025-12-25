@@ -39,9 +39,21 @@ The following libraries are included in the `lib/` directory. While they are not
 
 *   **DDreamStudio Features**: Integrated advanced audio analysis, visual sync, and auto-sync tools.
 *   **Auto-Sync Tools**: Refined `AUTO_SYNC_SONG` (Replace All) and `QUANTIZE_TO_AUDIO` (Note Snapping).
-*   **Batch DDC**: Integrated `ddc` (Dance Dance Convolution) submodule and added a Batch Generation UI.
+*   **Batch DDC**: Integrated `ddc` (Dance Dance Convolution) submodule, added Batch Generation UI, and added "Python Path" preference.
 *   **Practice Mode**: Implemented gameplay logic with custom timing windows and visual feedback.
 *   **Scroll Cursor Effect**: Implemented receptor pulse toggle.
 *   **FPS Counter**: Added FPS display with toggle preference.
 *   **osu! Support**: Added support for loading `.osu` files.
 *   **Formatting**: Codebase formatting updates (pending integration).
+
+## Next Steps
+
+1.  **Build**: Open `build/VisualStudio/ArrowVortex.sln` and build the solution.
+2.  **Python Setup**:
+    *   Install Python 3.x.
+    *   Install dependencies: `pip install -r lib/ddc/requirements.txt`.
+    *   Configure Python Path in ArrowVortex (Edit -> Preferences).
+3.  **DDC Models**:
+    *   **Download Data**: Run `lib/ddc/download_data.ps1` (PowerShell) to fetch training data.
+    *   **Train Models**: Run `python lib/ddc/scripts/train_all.py <packs_dir> <work_dir>` to generate models.
+    *   **Configure**: Point the Batch DDC dialog to the generated models directory.
