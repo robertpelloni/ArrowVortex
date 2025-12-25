@@ -37,6 +37,7 @@ The following libraries are included in the `lib/` directory. While they are not
 ## Recent Updates
 
 *   **DDreamStudio Features**: Integrated advanced audio analysis, visual sync, and auto-sync tools.
+*   **Auto-Sync Tools**: Refined `AUTO_SYNC_SONG` (Replace All) and `QUANTIZE_TO_AUDIO` (Note Snapping).
 *   **Practice Mode**: Implemented gameplay logic with custom timing windows and visual feedback.
 *   **Scroll Cursor Effect**: Implemented receptor pulse toggle.
 *   **FPS Counter**: Added FPS display with toggle preference.

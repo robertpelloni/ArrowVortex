@@ -172,7 +172,7 @@ bool myDontShowFPS;
 bool myPracticeMode;
 Editor::PracticeSetup myPracticeSetup;
 bool myWasPaused;
-std::set<std::pair<int, int>> myJudgedNotes;
+	double myLastTime;
 
 void handlePracticeInput(int col)
 {
@@ -278,6 +278,7 @@ EditorImpl()
 	myPracticeSetup.windowMiss = 0.180f; // Outside Boo
 
 	myWasPaused = true;
+	myLastTime = 0.0;
 
 	myFontPath = "assets/NotoSansJP-Medium.ttf";
 	myFontSize = 13;
@@ -1089,6 +1090,12 @@ void tick()
 		myJudgedNotes.clear();
 	}
 	myWasPaused = paused;
+
+	double time = gMusic->getPlayTime();
+	if (time < myLastTime) {
+		myJudgedNotes.clear();
+	}
+	myLastTime = time;
 
 	InputEvents& events = gSystem->getEvents();
 	handleInputs(events);

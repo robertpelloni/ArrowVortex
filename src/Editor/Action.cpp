@@ -18,6 +18,7 @@
 #include <Editor/StructureAnalyzer.h>
 #include <Editor/FindTempo.h>
 #include <Editor/FindOnsets.h>
+#include <Simfile/NoteList.h>
 
 #include <vector>
 #include <algorithm>
@@ -579,34 +580,38 @@ void Action::perform(Type action)
 							int res = gSystem->showMessageDlg("Auto Sync", msg, System::T_YES_NO, System::I_INFO);
 							if (res == System::R_YES) {
 								SegmentEdit edit;
-								// Remove all existing BPM/Stops
-								edit.rem.append(Segment::BPM, 0); // Placeholder to trigger clear if implemented?
-								// modify(edit, true) clears region?
-								// Actually, we want to replace everything.
-								// Just insert new and assume user can undo.
-								// But modify(edit) adds to existing.
-								// Let's manually clear.
-								// Or better:
+								// Remove all existing segments to ensure a clean slate
+								const SegmentGroup* segs = gTempo->getSegments();
+								if (segs) {
+									const auto& bpms = segs->getList<BpmChange>();
+									for(const auto& s : bpms) edit.rem.append(s);
+									const auto& stops = segs->getList<Stop>();
+									for(const auto& s : stops) edit.rem.append(s);
+									const auto& delays = segs->getList<Delay>();
+									for(const auto& s : delays) edit.rem.append(s);
+									const auto& warps = segs->getList<Warp>();
+									for(const auto& s : warps) edit.rem.append(s);
+									const auto& timesigs = segs->getList<TimeSig>();
+									for(const auto& s : timesigs) edit.rem.append(s);
+									const auto& ticks = segs->getList<TickCount>();
+									for(const auto& s : ticks) edit.rem.append(s);
+									const auto& combos = segs->getList<Combo>();
+									for(const auto& s : combos) edit.rem.append(s);
+									const auto& speeds = segs->getList<Speed>();
+									for(const auto& s : speeds) edit.rem.append(s);
+									const auto& scrolls = segs->getList<Scroll>();
+									for(const auto& s : scrolls) edit.rem.append(s);
+									const auto& fakes = segs->getList<Fake>();
+									for(const auto& s : fakes) edit.rem.append(s);
+									const auto& labels = segs->getList<Label>();
+									for(const auto& s : labels) edit.rem.append(s);
+								}
+								
+								// Add the new BPM
+								edit.add.append(BpmChange(0, bpm));
+								
 								gTempo->setOffset(offset);
-								gTempo->modify(SegmentEdit(), true); // Clears? No.
-								// gTempo->modify has clearRegion.
-								// I'll iterate segments and remove?
-								// Simpler:
-								gTempo->setCustomBpm(BpmRange{bpm, bpm}); // Sets display?
-								// Let's use a hack: modify with clearRegion for whole song.
-								// But modify takes SegmentEdit.
-								// Actually, I can use `gSimfile->get()->tempo->segments->clear()`.
-								// But I should use TempoMan to be safe with Undo.
-								// `TempoMan::removeSelectedSegments`?
-								// I'll just insert the BPM at 0.
-								gTempo->addSegment(BpmChange(0, bpm));
-								// This overwrites BPM at 0.
-								// User can delete others.
-								// Ideally, I should clear the map.
-								// TempoMan doesn't expose "Clear All".
-								// But `modify(edit, true)` clears the region covered by the edit?
-								// If I add a BPM at 0, it clears nothing?
-								// Let's just apply BPM and Offset.
+								gTempo->modify(edit);
 							}
 						} else {
 							HudError("Could not detect BPM.");
@@ -674,71 +679,57 @@ void Action::perform(Type action)
 					break;
 				}
 
-				Str::fmt msg("Quantize beats in range [%d, %d] to audio?");
+				Str::fmt msg("Quantize notes in range [%d, %d] to audio?");
 				msg.arg(startRow).arg(endRow);
 				int res = gSystem->showMessageDlg("Quantize to Audio", msg, System::T_YES_NO, System::I_INFO);
 				if (res != System::R_YES) break;
 
 				int samplerate = music.getFrequency();
+				double window = 0.05; // 50ms window
 
-				// Iterate beats
+				NoteEdit edit;
 				int count = 0;
-				// Use a threshold window (e.g. 100ms)
-				double window = 0.1;
 
-				// Use current snap settings
-				int step = gView->getSnapQuant();
-				if (step <= 0) step = ROWS_PER_BEAT;
-
-				// Note: moveBeat(ripple=true) changes the timing of subsequent rows.
-				// So we must recalculate row time in each iteration.
-				// Also, we should probably iterate from Left to Right.
-
-				gHistory->startChain();
-
-				for (int row = startRow; row <= endRow; row += step) {
-					double currentTime = gTempo->rowToTime(row);
-
-					// Find closest onset
-					double minDiff = window;
-					double bestTime = -1.0;
-
-					// Binary search or linear scan (linear is fine for onsets vector)
-					// Optimization: maintain index
-					for(const auto& onset : onsets) {
-						double t = (double)onset.pos / samplerate;
-						double diff = abs(t - currentTime);
-						if (diff < minDiff) {
-							minDiff = diff;
-							bestTime = t;
+				for(const auto* it = gNotes->begin(); it != gNotes->end(); ++it) {
+					if (it->row >= startRow && it->row <= endRow) {
+						double noteTime = gTempo->rowToTime(it->row);
+						
+						// Find closest onset
+						double minDiff = window;
+						double bestTime = -1.0;
+						
+						for(const auto& onset : onsets) {
+							double t = (double)onset.pos / samplerate;
+							double diff = abs(t - noteTime);
+							if (diff < minDiff) {
+								minDiff = diff;
+								bestTime = t;
+							}
+							if (t > noteTime + window) break;
 						}
-						if (t > currentTime + window) break;
-					}
-
-					if (bestTime > 0.0) {
-						// Found match.
-						// Apply ripple move.
-						// But wait, if we ripple move beat N, beat N+1 moves too.
-						// If beat N+1 was already aligned, it might move out of alignment?
-						// No, if we process left to right:
-						// 1. Align beat 1 -> shifts beats 2,3,4...
-						// 2. Beat 2 is now at new position. Check its alignment.
-						// 3. Align beat 2 -> shifts beats 3,4...
-						// This is correct. It propagates the "drift correction".
-
-						gTempo->moveBeat(row, bestTime, true);
-
-						// IMPORTANT: Insert a BPM anchor at this row.
-						// Otherwise, when we adjust the NEXT beat, we will be modifying
-						// the SAME BPM segment (starting from previous anchor), which
-						// will undo the alignment we just did for THIS beat.
-						gTempo->injectBoundingBpmChange(row);
-
-						count++;
+						
+						if (bestTime >= 0.0) {
+							int newRow = gTempo->timeToRow(bestTime);
+							if (newRow != it->row) {
+								edit.rem.append(CompressNote(*it));
+								
+								Note newNote = CompressNote(*it);
+								newNote.row = newRow;
+								newNote.endrow = newRow + (it->endrow - it->row);
+								edit.add.append(newNote);
+								
+								count++;
+							}
+						}
 					}
 				}
-				gHistory->finishChain("Quantize to Audio");
-				HudNote("Quantized %d beats.", count);
+				
+				if (count > 0) {
+					gNotes->modify(edit, false);
+					HudNote("Quantized %d notes to audio.", count);
+				} else {
+					HudNote("No notes needed quantization.");
+				}
 			}
 		}
 
