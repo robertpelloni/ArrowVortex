@@ -1,4 +1,5 @@
 #include <Editor/TextOverlay.h>
+#include <Version.h>
 
 #include <Core/Utils.h>
 #include <Core/StringUtils.h>
@@ -591,7 +592,7 @@ void drawAbout()
 {
 	vec2i size = gSystem->getWindowSize();
 
-	Text::arrange(Text::BC, "ArrowVortex release v1.0.1");
+	Text::arrange(Text::BC, "ArrowVortex release " ARROWVORTEX_VERSION);
 	Text::draw(vec2i{size.x / 2, size.y / 2 - 128});
 	String buildDate = "Build date: " + System::getBuildData();
 	Text::arrange(Text::TC, buildDate.str());

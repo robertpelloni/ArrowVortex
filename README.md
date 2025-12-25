@@ -6,6 +6,11 @@ This is a continuation of the original project by Bram 'Fietsemaker' van de Wete
 
 See the [About this project](#about-this-project) section below for more information about this repository.
 
+## Documentation
+
+*   [**Dashboard**](DASHBOARD.md): Overview of project structure, dependencies, and build info.
+*   [**Changelog**](CHANGELOG.md): History of changes and version updates.
+
 ## Features
 
 Some of the features that ArrowVortex has to offer include:
