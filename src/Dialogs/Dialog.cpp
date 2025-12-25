@@ -14,10 +14,17 @@ static const char* IdStrings[NUM_DIALOG_IDS] =
 	"generateNotes",
 	"newChart",
 	"songProperties",
+	"chartStatistics",
+	"contextMenu",
 	"tempoBreakdown",
 	"waveformSettings",
 	"zoom",
-	"customSnap"
+	"customSnap",
+	"goTo",
+	"lyricsEditor",
+	"bgChanges",
+	"preferences",
+	"batchDDC"
 };
 
 EditorDialog::~EditorDialog()

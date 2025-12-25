@@ -122,6 +122,7 @@ void init(Item* menu)
 	add(hFile, FILE_SAVE_AS, "Save as...");
 	sep(hFile);
 	add(hFile, OPEN_DIALOG_SONG_PROPERTIES, "Properties...");
+	add(hFile, OPEN_DIALOG_BATCH_DDC, "Batch DDC Generation...");
 	sep(hFile);
 	add(hFile, EXIT_PROGRAM, "Exit");
 	myFileMenu = hFile;

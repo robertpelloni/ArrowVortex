@@ -61,6 +61,7 @@
 #include <Dialogs/BgChanges.h>
 #include <Dialogs/ChartStatistics.h>
 #include <Dialogs/Preferences.h>
+#include <Dialogs/BatchDDC.h>
 
 namespace Vortex {
 
@@ -925,6 +926,8 @@ void handleDialogOpening(DialogId id, recti rect)
 		dlg = new DialogBgChanges; break;
 	case DIALOG_PREFERENCES:
 		dlg = new DialogPreferences; break;
+	case DIALOG_BATCH_DDC:
+		dlg = new DialogBatchDDC; break;
 	};
 
 	dlg->setId(id);
