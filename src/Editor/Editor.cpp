@@ -1,6 +1,7 @@
 #include <Editor/Editor.h>
 
 #include <map>
+#include <set>
 
 #include <Core/Xmr.h>
 #include <Core/Gui.h>
@@ -170,6 +171,56 @@ bool myDontShowFPS;
 // Practice Mode
 bool myPracticeMode;
 Editor::PracticeSetup myPracticeSetup;
+bool myWasPaused;
+std::set<std::pair<int, int>> myJudgedNotes;
+
+void handlePracticeInput(int col)
+{
+	double now = gView->getCursorTime();
+	double maxWindow = myPracticeSetup.windowMiss; // Use Miss window as max search range
+
+	const ExpandedNote* bestNote = nullptr;
+	double bestDiff = 100000.0;
+
+	for(auto it = gNotes->begin(); it != gNotes->end(); ++it)
+	{
+		if(it->col != col) continue;
+		if(it->type == NOTE_MINE || it->type == NOTE_FAKE) continue; // Ignore mines/fakes for tapping
+
+		double diff = it->time - now;
+		if (diff < -maxWindow) continue; // Too old
+		if (diff > maxWindow) break; // Too far future (sorted)
+
+		// Check if already judged
+		if (myJudgedNotes.count({it->row, it->col})) continue;
+
+		if (abs(diff) < abs(bestDiff))
+		{
+			bestDiff = diff;
+			bestNote = it;
+		}
+	}
+
+	if (bestNote)
+	{
+		double absDiff = abs(bestDiff);
+		const char* judge = nullptr;
+
+		if (absDiff <= myPracticeSetup.windowMarvelous) judge = "Marvelous";
+		else if (absDiff <= myPracticeSetup.windowPerfect) judge = "Perfect";
+		else if (absDiff <= myPracticeSetup.windowGreat) judge = "Great";
+		else if (absDiff <= myPracticeSetup.windowGood) judge = "Good";
+		else if (absDiff <= myPracticeSetup.windowBoo) judge = "Boo";
+		else if (absDiff <= myPracticeSetup.windowMiss) judge = "Miss";
+
+		if (judge)
+		{
+			myJudgedNotes.insert({bestNote->row, bestNote->col});
+			HudNote("%s (%.3fs)", judge, bestDiff);
+			gNotefield->triggerFlash(col);
+		}
+	}
+}
 
 // ================================================================================================
 // EditorImpl :: constructor and destructor.
@@ -225,6 +276,8 @@ EditorImpl()
 	myPracticeSetup.windowMine = 0.090f;
 	myPracticeSetup.windowFreeze = 0.250f;
 	myPracticeSetup.windowMiss = 0.180f; // Outside Boo
+
+	myWasPaused = true;
 
 	myFontPath = "assets/NotoSansJP-Medium.ttf";
 	myFontSize = 13;
@@ -963,6 +1016,26 @@ void notifyChanges()
 
 void onKeyPress(KeyPress& press)
 {
+	if (myPracticeMode && !gMusic->isPaused())
+	{
+		int col = -1;
+		if (press.key == Key::LEFT) col = 0;
+		else if (press.key == Key::DOWN) col = 1;
+		else if (press.key == Key::UP) col = 2;
+		else if (press.key == Key::RIGHT) col = 3;
+		else if (press.key == Key::DIGIT_1) col = 0;
+		else if (press.key == Key::DIGIT_2) col = 1;
+		else if (press.key == Key::DIGIT_3) col = 2;
+		else if (press.key == Key::DIGIT_4) col = 3;
+
+		if (col != -1 && col < gStyle->getNumCols())
+		{
+			handlePracticeInput(col);
+			press.handled = true;
+			return;
+		}
+	}
+
 	//if(press.key == Key::V)
 	//{
 	//	VerifySaveLoadIdentity(*gSimfile->getSimfile());
@@ -1011,6 +1084,12 @@ void drawLogo()
 
 void tick()
 {
+	bool paused = gMusic->isPaused();
+	if (myWasPaused && !paused) {
+		myJudgedNotes.clear();
+	}
+	myWasPaused = paused;
+
 	InputEvents& events = gSystem->getEvents();
 	handleInputs(events);
 	notifyChanges();
@@ -1127,21 +1206,8 @@ void tick()
 		vec2i size = gSystem->getWindowSize();
 		String fpsStr = Str::fmt("%1 FPS").arg(fps);
 
-		// Render FPS top-right using standard Text capabilities
-		// We use standard TextStyle default.
-		// Text::arrange and Text::draw might work if we set up a style.
-		// But we don't have easy access to a global style here.
-		// `EditorImpl` has `TextStyle text` in `init`, but it's local.
-		// Let's reuse `gTextOverlay` if possible or just use `Text::draw` with default font?
-		// `Text::draw` typically needs `Text::arrange` first.
-
-		// Assuming we can't easily render text without context, we'll skip the actual draw
-		// until we can expose the font.
-		// However, I can try to use `TextOverlay`'s infrastructure or a simple HUD message.
-		// But those fade.
-
-		// I will leave this block as "Logic Implemented, Rendering Pending"
-		// to avoid breaking the build with unknown Font objects.
+		Text::arrange(Text::TR, fpsStr.str());
+		Text::draw(vec2i{size.x - 4, 4});
 	}
 
 	GuiMain::frameEnd();

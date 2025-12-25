@@ -1,5 +1,6 @@
 #include <Editor/TextOverlay.h>
 #include <Version.h>
+#include <Editor/Editor.h>
 
 #include <Core/Utils.h>
 #include <Core/StringUtils.h>
@@ -627,9 +628,12 @@ void drawAbout()
 
 	DrawTitleText("ABOUT", "[ESC] close", nullptr);
 
-	auto fps = Str::fmt("%1 FPS").arg(1.0f / max(deltaTime.count(), 0.0001), 0, 0);
-	Text::arrange(Text::TR, fps);
-	Text::draw(vec2i{size.x - 4, 4});
+	if (!gEditor->getDontShowFPS())
+	{
+		auto fps = Str::fmt("%1 FPS").arg(1.0f / max(deltaTime.count(), 0.0001), 0, 0);
+		Text::arrange(Text::TR, fps);
+		Text::draw(vec2i{size.x - 4, 4});
+	}
 }
 
 }; // TextOverlayImpl

@@ -135,6 +135,7 @@ bool myShowWaveform;
 bool myShowBeatLines;
 bool myShowNotes;
 bool myShowSongPreview;
+float myFlashTimers[SIM_MAX_COLUMNS];
 
 // ================================================================================================
 // NotefieldImpl :: constructor and destructor.
@@ -152,6 +153,8 @@ NotefieldImpl()
 	myShowBeatLines = true;
 	myShowNotes = true;
 	myShowSongPreview = false;
+
+	for(int i=0; i<SIM_MAX_COLUMNS; ++i) myFlashTimers[i] = 0.0f;
 
 	mySelectionTex = Texture("assets/selection box.png", true);
 	mySnapIconsTex = Texture("assets/icons snap.png", false);
@@ -222,6 +225,12 @@ void setBgAlpha(int percent)
 int getBgAlpha()
 {
 	return myBgBrightness;
+}
+
+void triggerFlash(int col) override
+{
+	if(col >= 0 && col < SIM_MAX_COLUMNS)
+		myFlashTimers[col] = 1.0f;
 }
 
 // ================================================================================================
@@ -544,16 +553,27 @@ void drawReceptors()
 		Renderer::bindTexture(noteskin->recepTex.handle());
 	
 		// Calculate the beat pulse value for the receptors.
-		double beat = gTempo->timeToBeat(gView->getCursorTime());
-		float beatfrac = (float)(beat - floor(beat));
-		uchar beatpulse = (uchar)min(max((int)((2 - beatfrac * 4)*255), 0), 255);
+		uchar beatpulse = 0;
+		if (gEditor->getScrollCursorEffect())
+		{
+			double beat = gTempo->timeToBeat(gView->getCursorTime());
+			float beatfrac = (float)(beat - floor(beat));
+			beatpulse = (uchar)min(max((int)((2 - beatfrac * 4)*255), 0), 255);
+		}
 
 		// Draw the receptors.
 		auto batch = Renderer::batchTC();
 		for(int c = 0; c < cols; ++c)
 		{
+			if(myFlashTimers[c] > 0) {
+				myFlashTimers[c] -= 0.1f; // Decay
+				if(myFlashTimers[c] < 0) myFlashTimers[c] = 0;
+			}
+			uchar flash = (uchar)(myFlashTimers[c] * 255);
+			uchar brightness = max(beatpulse, flash);
+
 			noteskin->recepOff[c].draw(&batch, myColX[c], myY, (uchar)255);
-			noteskin->recepOn[c].draw(&batch, myColX[c], myY, beatpulse);
+			noteskin->recepOn[c].draw(&batch, myColX[c], myY, brightness);
 		}
 		batch.flush();
 	}

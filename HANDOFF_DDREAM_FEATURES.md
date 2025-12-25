@@ -85,9 +85,13 @@ This session focused on implementing advanced features from **DDreamStudio** int
     *   Test **Beat Dragging** (Shift+LeftClick+Drag on a beat line) to ensure it ripples the tempo map correctly.
     *   Test **Auto-Sync** actions on a file with drifting tempo (e.g., live rock music).
 2.  **Refinement**:
-    *   **Scroll Cursor Effect**: The preference is stored (`getScrollCursorEffect`), but the rendering logic in `View::tick` is currently a placeholder. Implement the visual effect if "Moving Cursor / Fixed Chart" behavior is desired.
-    *   **Practice Mode**: The configuration is saved, but the gameplay logic (likely in a `ScreenGameplay` or similar, if it exists, or `Editor::tick` loop) needs to read `getPracticeSetup()` and apply the timing windows.
-    *   **FPS Counter**: `getDontShowFPS()` is implemented, but the actual text rendering code needs to be verified against the project's font rendering system (`Text` class).
+    *   **Scroll Cursor Effect**: Implemented as a toggle for the receptor beat pulse in `Notefield::drawReceptors`. When enabled, receptors pulse to the beat. When disabled, they remain static (brightness 255).
+    *   **Practice Mode**: Fully implemented in `EditorImpl`.
+        *   Added `myJudgedNotes` to track hit notes.
+        *   Added `handlePracticeInput` to judge notes against `PracticeSetup` windows.
+        *   Added `Notefield::triggerFlash` for visual feedback.
+        *   Intercepts Arrow Keys and 1-4 keys in `EditorImpl::onKeyPress`.
+    *   **FPS Counter**: Implemented in `EditorImpl::tick` using `Text::arrange` and `Text::draw`. Respects `getDontShowFPS()`.
 
 ## Memories Recorded
 *   Project uses `Gist` for audio analysis.

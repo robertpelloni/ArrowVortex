@@ -20,6 +20,8 @@ struct Notefield
 
 	virtual void drawGhostNote(const Note& n) = 0;
 
+	virtual void triggerFlash(int col) = 0;
+
 	virtual void toggleShowWaveform() = 0;
 	virtual void setShowWaveform(bool show) = 0;
 	virtual void toggleShowBeatLines() = 0;
