@@ -24,6 +24,18 @@ struct LuaMan
 	/// Executes a Lua string.
 	virtual bool runString(StringRef script) = 0;
 
+	/// Refreshes the list of available scripts in the scripts/ directory.
+	virtual void refreshScripts() = 0;
+
+	/// Returns the number of available scripts.
+	virtual int getNumScripts() const = 0;
+
+	/// Returns the name of the script at the given index.
+	virtual StringRef getScriptName(int index) const = 0;
+
+	/// Returns the path of the script at the given index.
+	virtual StringRef getScriptPath(int index) const = 0;
+
 	/// Returns the Lua state.
 	virtual lua_State* getState() const = 0;
 };

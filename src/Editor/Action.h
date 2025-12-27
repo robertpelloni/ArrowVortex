@@ -241,6 +241,10 @@ namespace Action {
 	SELECT_OFF_SYNC_NOTES,
 
 	RUN_TEST_SCRIPT,
+	RUN_LUA_SCRIPT,
+
+	RUN_SCRIPT_BEGIN,
+	RUN_SCRIPT_END = RUN_SCRIPT_BEGIN + 99,
 	};
 
 	// Performs the action associated with the action type.

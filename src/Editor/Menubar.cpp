@@ -433,7 +433,15 @@ void init(Item* menu)
 
 	// Scripts menu.
 	Item* hScripts = newMenu();
-	add(hScripts, RUN_TEST_SCRIPT, "Run Test Script");
+	add(hScripts, RUN_LUA_SCRIPT, "Run Script...");
+	sep(hScripts);
+
+	int numScripts = gLua->getNumScripts();
+	for(int i = 0; i < numScripts; ++i)
+	{
+		if (i >= 99) break;
+		add(hScripts, RUN_SCRIPT_BEGIN + i, gLua->getScriptName(i).c_str());
+	}
 
 	// Top level menu.
 	sub(menu, hFile, "File");

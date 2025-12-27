@@ -1078,7 +1078,20 @@ void Action::perform(Type action)
 		}
 
 	CASE(RUN_TEST_SCRIPT)
+		gHistory->startChain("Run Lua Script");
 		gLua->runScript("scripts/test.lua");
+		gHistory->finishChain();
+
+	CASE(RUN_LUA_SCRIPT)
+		{
+			String path;
+			if (gSystem->openFileDlg(path, "Lua Script (*.lua)|*.lua", false))
+			{
+				gHistory->startChain("Run Lua Script");
+				gLua->runScript(path);
+				gHistory->finishChain();
+			}
+		}
 	}};
 
 	if(action >= FILE_OPEN_RECENT_BEGIN && action < FILE_OPEN_RECENT_END)

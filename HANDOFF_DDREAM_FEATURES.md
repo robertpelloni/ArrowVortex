@@ -64,8 +64,29 @@ This session focused on implementing advanced features from **DDreamStudio** int
         *   `log(msg)`: Print to HUD.
         *   `getSongTitle()`, `getSongArtist()`, `getSongDir()`: Simfile metadata.
         *   `getChartDifficulty()`, `getChartMeter()`: Chart metadata.
-    *   **UI:** Added a "Scripts" menu with a "Run Test Script" action.
+        *   `getNotes()`: Returns array of note objects `{row, col, type, endrow, player}`.
+        *   `addNote(row, col, type, [endrow], [player])`: Adds a note to the chart.
+        *   `deleteNote(row, col)`: Deletes the note at the specified position.
+        *   `clearChart()`: Removes all notes from the chart.
+        *   `getSelection()`: Returns `{beginRow, endRow}`.
+        *   `setSelection(start, end)`: Sets the selection range.
+        *   `getSelectedNotes()`: Returns array of notes within the selection.
+        *   `getBpmAt(row)`: Returns the BPM at the specified row.
+        *   `addBpm(row, bpm)`: Adds a BPM change.
+        *   `addStop(row, seconds)`: Adds a stop.
+        *   `getOffset()`, `setOffset(seconds)`: Global offset access.
+        *   `rowToTime(row)`, `timeToRow(time)`: Timing conversion.
+    *   **UI:** Added a "Scripts" menu with "Run Script..." and "Run Test Script" actions.
+    *   **Documentation:** Created `LUA_API.md` with full API reference.
     *   **Testing:** Created `scripts/test.lua` to verify functionality.
+    *   **Examples:** Added `scripts/quantize_4th.lua` and `scripts/chart_stats.lua` as usage examples.
+
+### 7. Batch DDC Generation
+*   **Description:** Integration with "Deep Dance Choreo" (DDC) for batch auto-generation of stepcharts using machine learning models.
+*   **Implementation:**
+    *   **Dialog:** `DialogBatchDDC` allows selecting input audio/folders, output directory, and model paths.
+    *   **Execution:** Constructs and executes a command line to run `lib/ddc/autochart.py` via the configured Python interpreter.
+    *   **Configuration:** Python path is configurable in Preferences.
 
 ## Technical Implementation Details
 
