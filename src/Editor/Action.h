@@ -249,6 +249,9 @@ namespace Action {
 
 	// Performs the action associated with the action type.
 	void perform(Type action);
+
+	// Called every frame to handle async actions.
+	void tick();
 };
 
 }; // namespace Vortex

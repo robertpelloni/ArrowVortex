@@ -38,7 +38,121 @@
 #include <Dialogs/ChartStatistics.h>
 #include <Core/Widgets.h>
 
+#include <atomic>
+#include <thread>
+#include <mutex>
+
 namespace Vortex {
+
+namespace {
+
+struct AsyncDetector
+{
+	std::thread worker;
+	std::atomic<bool> finished;
+	TempoDetector* detector;
+	bool success;
+	// Context for applying result
+	enum Type { SONG, SECTION, SELECTION };
+	Type type;
+	int startRow; // For selection/section
+	// Result data copy
+	std::vector<TempoResult> results;
+
+	AsyncDetector() : finished(false), detector(nullptr), success(false), type(SONG), startRow(0) {}
+
+	~AsyncDetector() {
+		if (worker.joinable()) worker.join();
+		delete detector;
+	}
+};
+
+std::vector<AsyncDetector*> activeDetectors;
+std::mutex detectorMutex;
+
+void StartAsyncDetection(TempoDetector* detector, AsyncDetector::Type type, int startRow)
+{
+	if (!detector) return;
+	AsyncDetector* ad = new AsyncDetector();
+	ad->detector = detector;
+	ad->type = type;
+	ad->startRow = startRow;
+
+	// Start thread to wait for result
+	ad->worker = std::thread([ad]() {
+		// Poll detector (it is internally threaded but we need to wait for result)
+		// Or if New() already started it, we just poll hasResult().
+		// Since we want to avoid sleep in main thread, we sleep here.
+		int timeout = 1000; // 10 seconds
+		while (!ad->detector->hasResult() && timeout > 0) {
+			std::this_thread::sleep_for(std::chrono::milliseconds(10));
+			timeout--;
+		}
+		if (ad->detector->hasResult()) {
+			ad->results = ad->detector->getResult();
+			ad->success = !ad->results.empty();
+		}
+		ad->finished = true;
+	});
+
+	std::lock_guard<std::mutex> lock(detectorMutex);
+	activeDetectors.push_back(ad);
+	HudNote("Analyzing audio...");
+}
+
+} // namespace
+
+void Action::tick()
+{
+	std::lock_guard<std::mutex> lock(detectorMutex);
+	for (auto it = activeDetectors.begin(); it != activeDetectors.end();) {
+		AsyncDetector* ad = *it;
+		if (ad->finished) {
+			if (ad->worker.joinable()) ad->worker.join();
+
+			if (ad->success && !ad->results.empty()) {
+				double bpm = ad->results[0].bpm;
+				double offset = -ad->results[0].offset;
+
+				if (ad->type == AsyncDetector::SONG) {
+					Str::fmt msg("Detected BPM: %.3f, Offset: %.3f. Apply (Replace All)?");
+					msg.arg(bpm).arg(offset);
+					int res = gSystem->showMessageDlg("Auto Sync", msg, System::T_YES_NO, System::I_INFO);
+					if (res == System::R_YES) {
+						gHistory->startChain();
+						const auto* segs = gTempo->getSegments();
+						if (segs) {
+							SegmentEdit clearEdit;
+							for (auto& list : *segs) {
+								for (const auto& s : list) {
+									clearEdit.rem.append(list.type(), s.row);
+								}
+							}
+							gTempo->modify(clearEdit);
+						}
+						gTempo->setOffset(offset);
+						gTempo->addSegment(BpmChange(0, bpm));
+						gHistory->finishChain("Auto Sync Song");
+					}
+				} else if (ad->type == AsyncDetector::SELECTION) {
+					Str::fmt msg("Estimated BPM: %.3f. Apply at row %d?");
+					msg.arg(bpm).arg(ad->startRow);
+					int res = gSystem->showMessageDlg("BPM Estimation", msg, System::T_YES_NO, System::I_INFO);
+					if (res == System::R_YES) {
+						gTempo->addSegment(BpmChange(ad->startRow, bpm));
+					}
+				}
+			} else {
+				HudError("Detection failed or timed out.");
+			}
+
+			delete ad;
+			it = activeDetectors.erase(it);
+		} else {
+			++it;
+		}
+	}
+}
 
 void Action::perform(Type action)
 {
@@ -540,28 +654,7 @@ void Action::perform(Type action)
 				double end = gTempo->rowToTime(region.endRow);
 				auto detector = TempoDetector::New(start, end - start);
 				if(detector) {
-					int timeout = 500; // 5 seconds
-					while(!detector->hasResult() && timeout > 0) {
-						std::this_thread::sleep_for(std::chrono::milliseconds(10));
-						timeout--;
-					}
-					if(detector->hasResult()) {
-						auto results = detector->getResult();
-						if(!results.empty()) {
-							double bpm = results[0].bpm;
-							Str::fmt msg("Estimated BPM: %.3f. Apply at row %d?");
-							msg.arg(bpm).arg(region.beginRow);
-							int res = gSystem->showMessageDlg("BPM Estimation", msg, System::T_YES_NO, System::I_INFO);
-							if (res == System::R_YES) {
-								gTempo->addSegment(BpmChange(region.beginRow, bpm));
-							}
-						} else {
-							HudError("Could not estimate BPM.");
-						}
-					} else {
-						HudError("BPM estimation timed out.");
-					}
-					delete detector;
+					StartAsyncDetection(detector, AsyncDetector::SELECTION, region.beginRow);
 				}
 			}
 		}
@@ -574,46 +667,7 @@ void Action::perform(Type action)
 			} else {
 				auto detector = TempoDetector::New(0, gMusic->getSongLength());
 				if (detector) {
-					int timeout = 1000; // 10 seconds
-					while(!detector->hasResult() && timeout > 0) {
-						std::this_thread::sleep_for(std::chrono::milliseconds(10));
-						timeout--;
-					}
-					if(detector->hasResult()) {
-						auto results = detector->getResult();
-						if(!results.empty()) {
-							double bpm = results[0].bpm;
-							double offset = -results[0].offset; // detector offset is sample time of first beat
-							Str::fmt msg("Detected BPM: %.3f, Offset: %.3f. Apply (Replace All)?");
-							msg.arg(bpm).arg(offset);
-							int res = gSystem->showMessageDlg("Auto Sync", msg, System::T_YES_NO, System::I_INFO);
-							if (res == System::R_YES) {
-								gHistory->startChain();
-
-								// Clear existing timing data
-								const auto* segs = gTempo->getSegments();
-								if (segs) {
-									SegmentEdit clearEdit;
-									for (auto& list : *segs) {
-										for (const auto& s : list) {
-											clearEdit.rem.append(list.type(), s.row);
-										}
-									}
-									gTempo->modify(clearEdit);
-								}
-
-								gTempo->setOffset(offset);
-								gTempo->addSegment(BpmChange(0, bpm));
-
-								gHistory->finishChain("Auto Sync Song");
-							}
-						} else {
-							HudError("Could not detect BPM.");
-						}
-					} else {
-						HudError("Auto Sync timed out.");
-					}
-					delete detector;
+					StartAsyncDetection(detector, AsyncDetector::SONG, 0);
 				}
 			}
 		}

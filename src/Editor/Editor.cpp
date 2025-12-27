@@ -1062,6 +1062,8 @@ void tick()
 
 	gTextOverlay->tick();
 
+	Action::tick();
+
 	if (gSystem->getElapsedTime() - myLastAutosaveTime > 300.0) {
 		myLastAutosaveTime = gSystem->getElapsedTime();
 		if (gSimfile->isOpen() && gHistory->hasUnsavedChanges()) {

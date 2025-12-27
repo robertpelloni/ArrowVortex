@@ -308,10 +308,10 @@ void update()
 		spectrumR[i].resize(numBlocks);
 	}
 
-	Gist<float> gist(frameSize, samplerate);
 	std::vector<float> audioFrame(frameSize);
 
 	for(int channel=0; channel<2; ++channel) {
+		Gist<float> gist(frameSize, samplerate);
 		const short* samples = (channel == 0) ? music.samplesL() : music.samplesR();
 		auto& spectrumOut = (channel == 0) ? spectrumL : spectrumR;
 
@@ -376,10 +376,10 @@ void update()
 		chromaR[i].resize(numBlocks);
 	}
 
-	Gist<float> gist(frameSize, samplerate);
 	std::vector<float> audioFrame(frameSize);
 
 	for(int channel=0; channel<2; ++channel) {
+		Gist<float> gist(frameSize, samplerate);
 		const short* samples = (channel == 0) ? music.samplesL() : music.samplesR();
 		auto& chroma = (channel == 0) ? chromaL : chromaR;
 
@@ -452,10 +452,10 @@ void update()
 	fluxL.resize(numBlocks);
 	fluxR.resize(numBlocks);
 
-	Gist<float> gist(frameSize, samplerate);
 	std::vector<float> audioFrame(frameSize);
 
 	for(int channel=0; channel<2; ++channel) {
+		Gist<float> gist(frameSize, samplerate);
 		const short* samples = (channel == 0) ? music.samplesL() : music.samplesR();
 		auto& flux = (channel == 0) ? fluxL : fluxR;
 
@@ -626,12 +626,12 @@ void update()
 	int numBlocks = (numFrames - frameSize) / hopSize;
 	if (numBlocks <= 0) return;
 
-	Gist<float> gist(frameSize, samplerate);
 	std::vector<float> audioFrame(frameSize);
 
 	int numBins = frameSize / 2;
 
 	for(int channel=0; channel<2; ++channel) {
+		Gist<float> gist(frameSize, samplerate);
 		const short* samples = (channel == 0) ? music.samplesL() : music.samplesR();
 		spec[channel].resize(numBlocks, numBins);
 
@@ -688,13 +688,13 @@ void update()
 	int numBlocks = (numFrames - frameSize) / hopSize;
 	if (numBlocks <= 0) return;
 
-	Gist<float> gist(frameSize, samplerate);
 	std::vector<float> audioFrame(frameSize);
 
 	int numBins = frameSize / 2;
 	std::vector<std::vector<float>> S(numBlocks, std::vector<float>(numBins));
 
 	for(int channel=0; channel<2; ++channel) {
+		Gist<float> gist(frameSize, samplerate);
 		const short* samples = (channel == 0) ? music.samplesL() : music.samplesR();
 
 		// 1. Compute Spectrogram
