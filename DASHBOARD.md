@@ -31,13 +31,15 @@ The ArrowVortex project is organized as follows:
 
 ## Build Information
 
-*   **Version**: 1.2.0
+*   **Version**: v1.3.0
 *   **Build System**: Visual Studio 2022 (`build/VisualStudio/ArrowVortex.sln`)
 *   **Platform**: Windows (x64/x86)
 
 ## Feature Roadmap
 
-### Completed Features (v1.2.0)
+### Completed Features (v1.3.0)
+- [x] **Lua Scripting Engine**: Integrated Lua 5.x, `LuaMan`, and `Scripts` menu.
+- [x] **Visual Sync (Beat Dragging)**: "Ripple" editing logic for waveform alignment.
 - [x] **Batch DDC Generation**: Integrated `ddc` submodule and UI.
 - [x] **Practice Mode**: Gameplay logic, timing windows, visual feedback.
 - [x] **Auto-Sync Refinement**: Improved `AUTO_SYNC_SONG` and `QUANTIZE_TO_AUDIO`.
@@ -46,9 +48,10 @@ The ArrowVortex project is organized as follows:
 
 ### Planned Features
 - [ ] **Advanced Waveform Analysis**: More detailed spectral analysis tools.
-- [ ] **Lua Scripting Integration**: Expose editor API to Lua for plugins.
 - [ ] **Multi-Platform Support**: Linux/macOS build configuration (CMake).
 - [ ] **Theme Support**: Allow custom editor themes.
+- [ ] **Undo/Redo for Batch DDC**: Currently Batch DDC is a destructive/external process.
+- [ ] **Lua API Expansion**: Expose more internal systems (Graphics, Audio) to Lua.
 
 ## DDC Setup Guide
 

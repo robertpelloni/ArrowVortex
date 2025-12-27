@@ -22,17 +22,24 @@ ArrowVortex is a C++ simfile editor for rhythm games (StepMania, osu!, etc.). It
 *   **Memory**: Manual memory management is common in older parts; newer parts use smart pointers or `Vector` container.
 
 ## Versioning
-*   **Version File**: `VERSION` (root) contains the current version string (e.g., `1.1.0`).
-*   **Header**: `src/Version.h` defines `ARROWVORTEX_VERSION`.
+*   **Version File**: `VERSION` (root) contains the current version string (e.g., `v1.3.0`).
+*   **Header**: `src/Version.h` defines `ARROWVORTEX_VERSION`. Ensure this matches `VERSION`.
 *   **Changelog**: Update `CHANGELOG.md` for every feature or fix.
+*   **Protocol**: When bumping version:
+    1.  Update `VERSION` file.
+    2.  Update `src/Version.h`.
+    3.  Update `CHANGELOG.md`.
+    4.  Update `DASHBOARD.md`.
+    5.  Commit with message "Bump version to vX.Y.Z".
 
 ## Submodules / Dependencies
-*   Dependencies in `lib/` are **vendored** (copied source), not git submodules.
-*   Do not try to run `git submodule update`.
+*   **`lib/ddc`**: Git submodule. Use `git submodule update --init --recursive` if needed.
+*   **Other `lib/`**: Vendored code (FreeType, Lua, etc.). Do not try to update via git.
 
 ## Key Features (Recent)
-*   **DDreamStudio Integration**: Visual sync, spectrograms, auto-sync.
-*   **osu! Support**: Loading `.osu` files.
+*   **Lua Scripting**: `src/Managers/LuaMan.cpp`, `scripts/`.
+*   **Batch DDC**: `src/Dialogs/BatchDDC.cpp`, `lib/ddc/`.
+*   **Visual Sync**: `src/Managers/TempoMan.cpp` (Ripple logic).
 
 ## Task Protocol
 1.  **Analyze**: Understand the request and check `DASHBOARD.md` / `CHANGELOG.md`.

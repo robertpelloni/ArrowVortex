@@ -6,6 +6,10 @@
 #include <Core/Utils.h>
 #include <thread>
 
+#define WIN32_LEAN_AND_MEAN
+#include <windows.h>
+#undef ERROR
+
 namespace Vortex {
 
 DialogBatchDDC::~DialogBatchDDC() {}
@@ -13,11 +17,12 @@ DialogBatchDDC::~DialogBatchDDC() {}
 DialogBatchDDC::DialogBatchDDC()
 {
 	setTitle("BATCH DDC GENERATION");
-	
-	// Default paths
-	myOutDir = "output";
-	myModelDir = "lib/ddc/models"; 
-	myFFRModelDir = "lib/ddc/ffr_models";
+
+	// Default paths - use absolute paths from exe directory
+	String exeDir = gSystem->getExeDir();
+	myOutDir = Path(exeDir, "output");
+	myModelDir = Path(exeDir, "lib/ddc/models");
+	myFFRModelDir = Path(exeDir, "lib/ddc/ffr_models");
 
 	myCreateWidgets();
 }
@@ -159,29 +164,129 @@ void DialogBatchDDC::mySelectFFRModelDir()
 
 void DialogBatchDDC::myGenerate()
 {
+	// Clear previous log
+	myLogBox->text.set("");
+
+	// Validation 1: Check files selected
 	if(myFiles.empty()) {
-		myUpdateLog("No files selected.");
+		myUpdateLog("ERROR: No files selected.");
+		myUpdateLog("Please add audio files or folders using the buttons above.");
 		return;
 	}
 
-	myUpdateLog("Starting generation...");
+	myUpdateLog("Starting validation...");
 
-	// Construct command
-	String cmd = gEditor->getPythonPath();
-	cmd += " lib/ddc/autochart.py";
-	
+	// Validation 2: Check Python path
+	String pythonPath = gEditor->getPythonPath();
+	if(pythonPath.empty()) {
+		myUpdateLog("ERROR: Python path not configured.");
+		myUpdateLog("Please set Python path in Edit > Preferences.");
+		return;
+	}
+
+	// Validation 3: Check Python executable exists (basic check)
+	// Note: We can't easily check if python.exe exists if it's in PATH
+	// So we'll just warn if it looks suspicious
+	if(pythonPath != "python" && pythonPath != "python3") {
+		FileReader pythonCheck;
+		if(!pythonCheck.open(pythonPath)) {
+			myUpdateLog("WARNING: Python executable not found at: " + pythonPath);
+			myUpdateLog("If Python is in your PATH, you can ignore this warning.");
+		}
+		pythonCheck.close();
+	}
+
+	// Validation 4: Check autochart.py exists
+	String exeDir = gSystem->getExeDir();
+	String scriptPath = Path(exeDir, "lib/ddc/autochart.py");
+	FileReader scriptCheck;
+	if(!scriptCheck.open(scriptPath)) {
+		myUpdateLog("ERROR: DDC script not found at: " + scriptPath);
+		myUpdateLog("Please ensure lib/ddc/autochart.py exists in the ArrowVortex directory.");
+		return;
+	}
+	scriptCheck.close();
+
+	// Validation 5: Check model directory exists
+	DWORD modelDirAttr = GetFileAttributesW(Widen(myModelDir).str());
+	if(modelDirAttr == INVALID_FILE_ATTRIBUTES) {
+		myUpdateLog("ERROR: Model directory not found: " + myModelDir);
+		myUpdateLog("Please train DDC models first or select correct directory.");
+		myUpdateLog("See documentation for training instructions.");
+		return;
+	}
+	if(!(modelDirAttr & FILE_ATTRIBUTE_DIRECTORY)) {
+		myUpdateLog("ERROR: Model path is not a directory: " + myModelDir);
+		return;
+	}
+
+	// Validation 6: Check if at least one model exists (onset model)
+	String onsetModelPath = Path(myModelDir, "onset/model.h5");
+	FileReader onsetCheck;
+	if(!onsetCheck.open(onsetModelPath)) {
+		myUpdateLog("WARNING: Onset model not found at: " + onsetModelPath);
+		myUpdateLog("Models may not be trained yet. Generation will likely fail.");
+		myUpdateLog("See documentation for training instructions.");
+	}
+	onsetCheck.close();
+
+	// Validation 7: Check output directory exists or can be created
+	DWORD outDirAttr = GetFileAttributesW(Widen(myOutDir).str());
+	if(outDirAttr == INVALID_FILE_ATTRIBUTES) {
+		myUpdateLog("Output directory does not exist: " + myOutDir);
+		myUpdateLog("Attempting to create it...");
+		if(!createFolder(myOutDir)) {
+			myUpdateLog("ERROR: Failed to create output directory.");
+			myUpdateLog("Please check permissions and path validity.");
+			return;
+		}
+		myUpdateLog("Output directory created successfully.");
+	}
+
+	// Validation 8: Check input files exist and are valid audio formats
+	for(const auto& f : myFiles) {
+		DWORD attr = GetFileAttributesW(Widen(f).str());
+		if(attr == INVALID_FILE_ATTRIBUTES) {
+			myUpdateLog("ERROR: File or folder not found: " + f);
+			return;
+		}
+
+		// If it's a file (not directory), check extension
+		if(!(attr & FILE_ATTRIBUTE_DIRECTORY)) {
+			Path p(f);
+			if(!p.hasExt("mp3") && !p.hasExt("ogg") && !p.hasExt("wav")) {
+				myUpdateLog("WARNING: File may not be a supported audio format: " + f);
+				myUpdateLog("Supported formats: .mp3, .ogg, .wav");
+			}
+		}
+	}
+
+	myUpdateLog("Validation complete. Starting generation...");
+
+	// Construct command using absolute paths
+	String cmd = pythonPath;
+	cmd += " \"";
+	cmd += scriptPath;
+	cmd += "\"";
+
 	cmd += " --out_dir \"";
 	cmd += myOutDir;
 	cmd += "\"";
-	
+
 	cmd += " --models_dir \"";
 	cmd += myModelDir;
 	cmd += "\"";
 
+	// FFR models are optional
 	if(myFFRModelDir.len()) {
-		cmd += " --ffr_dir \"";
-		cmd += myFFRModelDir;
-		cmd += "\"";
+		DWORD ffrAttr = GetFileAttributesW(Widen(myFFRModelDir).str());
+		if(ffrAttr != INVALID_FILE_ATTRIBUTES && (ffrAttr & FILE_ATTRIBUTE_DIRECTORY)) {
+			cmd += " --ffr_dir \"";
+			cmd += myFFRModelDir;
+			cmd += "\"";
+		} else {
+			myUpdateLog("WARNING: FFR model directory not found, skipping difficulty rating.");
+		}
 	}
 
 	// Add files/folders at the end (positional args)
@@ -191,37 +296,65 @@ void DialogBatchDDC::myGenerate()
 		cmd += "\"";
 	}
 
-	// Redirect output to log file
-	cmd += " > ddc_log.txt 2>&1";
+	// Redirect output to log file in exe directory
+	String logPath = Path(exeDir, "ddc_log.txt");
+	cmd += " > \"";
+	cmd += logPath;
+	cmd += "\" 2>&1";
 
-	myUpdateLog("Executing: " + cmd);
-	
-	// Run in a separate thread to avoid freezing UI?
-	// But gSystem->runSystemCommand might be blocking anyway.
-	// Let's just run it.
-	
+	myUpdateLog("Executing command...");
+	myUpdateLog("(This may take several minutes depending on file count)");
+	myUpdateLog(""); // Blank line for readability
+
+	// Note: This blocks the UI. For production, should use threading.
+	// TODO: Implement async execution with progress updates
 	bool success = gSystem->runSystemCommand(cmd);
-	
+
 	if(success) {
-		myUpdateLog("Command executed successfully.");
+		myUpdateLog("");
+		myUpdateLog("Command completed.");
+		myUpdateLog("Reading output log...");
+
 		// Read log file
 		FileReader reader;
-		if(reader.open("ddc_log.txt")) {
+		if(reader.open(logPath)) {
 			String logContent;
-			// Read all
-			// Assuming FileReader has readAll or similar, or just read in chunks
-			// Let's just read first 1024 bytes for now or implement a loop
-			char buf[1024];
+			char buf[4096];
+			int totalRead = 0;
 			while(true) {
-				int read = reader.read(buf, 1, 1023);
+				int read = reader.read(buf, 1, 4095);
 				if(read <= 0) break;
 				buf[read] = 0;
 				logContent += buf;
+				totalRead += read;
+
+				// Limit log size to prevent UI issues
+				if(totalRead > 100000) {
+					logContent += "\n...[Log truncated, too large]...";
+					break;
+				}
 			}
-			myUpdateLog("Log Output:\n" + logContent);
+			reader.close();
+
+			myUpdateLog("--- DDC OUTPUT ---");
+			myUpdateLog(logContent);
+			myUpdateLog("--- END OUTPUT ---");
+			myUpdateLog("");
+			myUpdateLog("Generation complete!");
+			myUpdateLog("Check output directory: " + myOutDir);
+		} else {
+			myUpdateLog("ERROR: Could not read log file: " + logPath);
 		}
 	} else {
-		myUpdateLog("Command failed to execute.");
+		myUpdateLog("");
+		myUpdateLog("ERROR: Command failed to execute.");
+		myUpdateLog("Possible reasons:");
+		myUpdateLog("- Python not found or not installed");
+		myUpdateLog("- Required Python packages not installed (run: pip install -r lib/ddc/requirements.txt)");
+		myUpdateLog("- Invalid file paths");
+		myUpdateLog("- Models not trained");
+		myUpdateLog("");
+		myUpdateLog("Check the log file for details: " + logPath);
 	}
 }
 
