@@ -53,11 +53,16 @@ struct AsyncDetector
 	TempoDetector* detector;
 	bool success;
 	// Context for applying result
-	enum Type { SONG, SECTION, SELECTION };
+	enum Type { SONG, SECTIONS, SELECTION };
 	Type type;
 	int startRow; // For selection/section
 	// Result data copy
 	std::vector<TempoResult> results;
+	// For SECTIONS:
+	std::vector<BpmChange> sectionResults;
+	// Input for SECTIONS:
+	std::vector<double> sectionTimes;
+	std::vector<int> sectionRows;
 
 	AsyncDetector() : finished(false), detector(nullptr), success(false), type(SONG), startRow(0) {}
 
@@ -100,6 +105,51 @@ void StartAsyncDetection(TempoDetector* detector, AsyncDetector::Type type, int 
 	HudNote("Analyzing audio...");
 }
 
+void StartAsyncSectionSync(const std::vector<int>& sectionRows, const std::vector<double>& sectionTimes)
+{
+	AsyncDetector* ad = new AsyncDetector();
+	ad->type = AsyncDetector::SECTIONS;
+	ad->sectionRows = sectionRows;
+	ad->sectionTimes = sectionTimes;
+
+	ad->worker = std::thread([ad]() {
+		int count = 0;
+		for (size_t i = 0; i < ad->sectionRows.size(); ++i) {
+			if (i + 1 >= ad->sectionRows.size()) break; // Need pairs
+			int r1 = ad->sectionRows[i];
+			//int r2 = ad->sectionRows[i+1]; // Only need time
+			double t1 = ad->sectionTimes[i];
+			double t2 = ad->sectionTimes[i+1];
+			double dur = t2 - t1;
+
+			if (dur < 2.0) continue;
+
+			auto detector = TempoDetector::New(t1, dur);
+			if (detector) {
+				int timeout = 200; // 2 seconds per section
+				while (!detector->hasResult() && timeout > 0) {
+					std::this_thread::sleep_for(std::chrono::milliseconds(10));
+					timeout--;
+				}
+				if (detector->hasResult()) {
+					auto res = detector->getResult();
+					if (!res.empty()) {
+						ad->sectionResults.push_back(BpmChange(r1, res[0].bpm));
+						count++;
+					}
+				}
+				delete detector;
+			}
+		}
+		ad->success = (count > 0);
+		ad->finished = true;
+	});
+
+	std::lock_guard<std::mutex> lock(detectorMutex);
+	activeDetectors.push_back(ad);
+	HudNote("Analyzing sections...");
+}
+
 } // namespace
 
 void Action::tick()
@@ -110,37 +160,50 @@ void Action::tick()
 		if (ad->finished) {
 			if (ad->worker.joinable()) ad->worker.join();
 
-			if (ad->success && !ad->results.empty()) {
-				double bpm = ad->results[0].bpm;
-				double offset = -ad->results[0].offset;
-
+			if (ad->success) {
 				if (ad->type == AsyncDetector::SONG) {
-					Str::fmt msg("Detected BPM: %.3f, Offset: %.3f. Apply (Replace All)?");
-					msg.arg(bpm).arg(offset);
-					int res = gSystem->showMessageDlg("Auto Sync", msg, System::T_YES_NO, System::I_INFO);
-					if (res == System::R_YES) {
-						gHistory->startChain();
-						const auto* segs = gTempo->getSegments();
-						if (segs) {
-							SegmentEdit clearEdit;
-							for (auto& list : *segs) {
-								for (const auto& s : list) {
-									clearEdit.rem.append(list.type(), s.row);
+					if (!ad->results.empty()) {
+						double bpm = ad->results[0].bpm;
+						double offset = -ad->results[0].offset;
+						Str::fmt msg("Detected BPM: %.3f, Offset: %.3f. Apply (Replace All)?");
+						msg.arg(bpm).arg(offset);
+						int res = gSystem->showMessageDlg("Auto Sync", msg, System::T_YES_NO, System::I_INFO);
+						if (res == System::R_YES) {
+							gHistory->startChain();
+							const auto* segs = gTempo->getSegments();
+							if (segs) {
+								SegmentEdit clearEdit;
+								for (auto& list : *segs) {
+									for (const auto& s : list) {
+										clearEdit.rem.append(list.type(), s.row);
+									}
 								}
+								gTempo->modify(clearEdit);
 							}
-							gTempo->modify(clearEdit);
+							gTempo->setOffset(offset);
+							gTempo->addSegment(BpmChange(0, bpm));
+							gHistory->finishChain("Auto Sync Song");
 						}
-						gTempo->setOffset(offset);
-						gTempo->addSegment(BpmChange(0, bpm));
-						gHistory->finishChain("Auto Sync Song");
-					}
+					} else { HudError("Detection failed."); }
 				} else if (ad->type == AsyncDetector::SELECTION) {
-					Str::fmt msg("Estimated BPM: %.3f. Apply at row %d?");
-					msg.arg(bpm).arg(ad->startRow);
-					int res = gSystem->showMessageDlg("BPM Estimation", msg, System::T_YES_NO, System::I_INFO);
-					if (res == System::R_YES) {
-						gTempo->addSegment(BpmChange(ad->startRow, bpm));
-					}
+					if (!ad->results.empty()) {
+						double bpm = ad->results[0].bpm;
+						Str::fmt msg("Estimated BPM: %.3f. Apply at row %d?");
+						msg.arg(bpm).arg(ad->startRow);
+						int res = gSystem->showMessageDlg("BPM Estimation", msg, System::T_YES_NO, System::I_INFO);
+						if (res == System::R_YES) {
+							gTempo->addSegment(BpmChange(ad->startRow, bpm));
+						}
+					} else { HudError("Detection failed."); }
+				} else if (ad->type == AsyncDetector::SECTIONS) {
+					if (!ad->sectionResults.empty()) {
+						gHistory->startChain();
+						for (const auto& bpm : ad->sectionResults) {
+							gTempo->addSegment(bpm);
+						}
+						gHistory->finishChain("Auto-Sync Sections");
+						HudNote("Applied %d BPM changes based on sections.", ad->sectionResults.size());
+					} else { HudError("No sections detected or analyzed."); }
 				}
 			} else {
 				HudError("Detection failed or timed out.");
@@ -908,19 +971,12 @@ void Action::perform(Type action)
 
 	CASE(AUTO_SYNC_SECTIONS)
 		{
-			// 1. Detect Sections if needed (or rely on existing)
-			// Let's assume user has run DETECT_SONG_SECTIONS or manually labeled them.
-			// Or we can detect on the fly.
-
 			auto& music = gMusic->getSamples();
 			if (!music.isCompleted()) break;
 
-			gHistory->startChain();
-
-			// Iterate through Label segments
 			const SegmentGroup* segs = gTempo->getSegments();
 
-			// We need a sorted list of section start rows.
+			// Gather sections
 			std::vector<int> sectionRows;
 			sectionRows.push_back(0); // Always start at 0
 			if(segs) {
@@ -934,49 +990,21 @@ void Action::perform(Type action)
 			std::sort(sectionRows.begin(), sectionRows.end());
 			sectionRows.erase(std::unique(sectionRows.begin(), sectionRows.end()), sectionRows.end());
 
-			int endRow = gSimfile->getEndRow();
+			// Add end row as a boundary
+			sectionRows.push_back(gSimfile->getEndRow());
 
-			int count = 0;
-
-			for(size_t i = 0; i < sectionRows.size(); ++i) {
-				int r1 = sectionRows[i];
-				int r2 = (i + 1 < sectionRows.size()) ? sectionRows[i+1] : endRow;
-
-				// Limit check
-				if (r1 >= r2) continue;
-
-				double t1 = gTempo->rowToTime(r1);
-				double t2 = gTempo->rowToTime(r2);
-				double dur = t2 - t1;
-
-				if (dur < 2.0) continue; // Skip tiny sections
-
-				// Detect BPM in this range
-				auto detector = TempoDetector::New(t1, dur);
-				if (detector) {
-					// Wait for result (blocking for simplicity in this Action)
-					int timeout = 200; // 2 seconds
-					while(!detector->hasResult() && timeout > 0) {
-						std::this_thread::sleep_for(std::chrono::milliseconds(10));
-						timeout--;
-					}
-
-					if (detector->hasResult()) {
-						auto results = detector->getResult();
-						if (!results.empty()) {
-							double bpm = results[0].bpm;
-							// Insert BPM change
-							// If i==0, we also might want to set offset?
-							// AUTO_SYNC_SONG sets offset. This just handles BPM changes.
-							gTempo->addSegment(BpmChange(r1, bpm));
-							count++;
-						}
-					}
-					delete detector;
-				}
+			// Pre-calculate times (must be done on main thread)
+			std::vector<double> sectionTimes;
+			for (int r : sectionRows) {
+				sectionTimes.push_back(gTempo->rowToTime(r));
 			}
-			gHistory->finishChain("Auto-Sync Sections");
-			HudNote("Applied %d BPM changes based on sections.", count);
+
+			if (sectionRows.size() < 2) {
+				HudError("Not enough sections defined.");
+				break;
+			}
+
+			StartAsyncSectionSync(sectionRows, sectionTimes);
 		}
 
 	CASE(CONVERT_REGION_TO_CONSTANT_BPM)
