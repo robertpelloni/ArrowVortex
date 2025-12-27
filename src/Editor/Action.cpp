@@ -1102,6 +1102,17 @@ void Action::perform(Type action)
 	{
 		gNoteskin->setType(action - SET_NOTESKIN_BEGIN);
 	}
+	if(action >= RUN_SCRIPT_BEGIN && action < RUN_SCRIPT_END)
+	{
+		int index = action - RUN_SCRIPT_BEGIN;
+		String path = gLua->getScriptPath(index);
+		if(path.len())
+		{
+			gHistory->startChain("Run Lua Script");
+			gLua->runScript(path);
+			gHistory->finishChain();
+		}
+	}
 }
 
 }; // namespace Vortex

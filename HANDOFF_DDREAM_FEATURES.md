@@ -76,7 +76,7 @@ This session focused on implementing advanced features from **DDreamStudio** int
         *   `addStop(row, seconds)`: Adds a stop.
         *   `getOffset()`, `setOffset(seconds)`: Global offset access.
         *   `rowToTime(row)`, `timeToRow(time)`: Timing conversion.
-    *   **UI:** Added a "Scripts" menu with "Run Script..." and "Run Test Script" actions.
+    *   **UI:** Added a "Scripts" menu that dynamically lists all `.lua` files in the `scripts/` directory.
     *   **Documentation:** Created `LUA_API.md` with full API reference.
     *   **Testing:** Created `scripts/test.lua` to verify functionality.
     *   **Examples:** Added `scripts/quantize_4th.lua` and `scripts/chart_stats.lua` as usage examples.
@@ -94,6 +94,7 @@ This session focused on implementing advanced features from **DDreamStudio** int
 *   **TempoMan:** Added `destructiveShiftRowToTime` and `nonDestructiveShiftRowToTime`. The "Tweak" system was extended to support a transient `myTweakTempo` for drag operations.
 *   **Music:** `writeFrames` now supports A/B looping logic and mixing tick sounds with independent volumes.
 *   **SimfileMan:** Added logic to remove duplicate BPMs on save if the preference is enabled.
+*   **LuaMan:** Added dynamic script discovery (`refreshScripts`) to populate the editor menu.
 
 ### Challenges & Solutions
 *   **UI Binding Constraints:** The `CallSlot::bind` system in `src/Core/Slot.h` is strictly typed and does not support C++11 lambdas with captures.
@@ -102,7 +103,7 @@ This session focused on implementing advanced features from **DDreamStudio** int
     *   *Solution:* `Waveform.cpp` (in previous steps) utilizes caching/texture blocks. The render loop processes data in chunks.
 
 ## Modified Files
-*   `src/Editor/Action.h` / `.cpp`: Added new enums and logic for Auto-Sync actions.
+*   `src/Editor/Action.h` / `.cpp`: Added new enums and logic for Auto-Sync actions and Script execution.
 *   `src/Editor/Editor.h` / `.cpp`: Added preference storage, accessors, and serialization.
 *   `src/Editor/Editing.cpp`: Implemented logic for "Edit One Layer" and "Insert Same Deletes".
 *   `src/Editor/View.cpp`: Implemented Beat Dragging input handling and "Middle Mouse Insert".
@@ -110,9 +111,9 @@ This session focused on implementing advanced features from **DDreamStudio** int
 *   `src/Managers/SimfileMan.cpp`: Logic for "Remove Duplicate BPMs" and "Backup Saves".
 *   `src/Managers/Music.cpp`: Updated mixing logic for Assist Ticks.
 *   `src/Dialogs/Preferences.h` / `.cpp`: New dialog implementation.
-*   `src/Dialogs/Dialog.h`: Registered `DIALOG_PREFERENCES`.
+*   `src/Dialogs/Dialog.h`: Registered `DIALOG_PREFERENCES` and `DIALOG_BATCH_DDC`.
 *   `src/Managers/LuaMan.h` / `.cpp`: New manager for Lua scripting.
-*   `src/Editor/Menubar.cpp`: Added "Scripts" menu.
+*   `src/Editor/Menubar.cpp`: Added dynamic "Scripts" menu.
 *   `build/VisualStudio/ArrowVortex.vcxproj`: Added Lua include paths and project reference.
 
 ## Next Steps for the Next Developer
@@ -120,6 +121,8 @@ This session focused on implementing advanced features from **DDreamStudio** int
     *   Build the project and verify that the **Preferences Dialog** opens and saves settings correctly.
     *   Test **Beat Dragging** (Shift+LeftClick+Drag on a beat line) to ensure it ripples the tempo map correctly.
     *   Test **Auto-Sync** actions on a file with drifting tempo (e.g., live rock music).
+    *   **Lua Scripts**: Verify that the "Scripts" menu lists files from the `scripts/` folder and that `test.lua` runs successfully (check HUD message).
+    *   **Batch DDC**: Verify that the dialog opens and correctly invokes the Python script (check `ddc_log.txt` for output).
 2.  **Refinement**:
     *   **Scroll Cursor Effect**: Implemented as a toggle for the receptor beat pulse in `Notefield::drawReceptors`. When enabled, receptors pulse to the beat. When disabled, they remain static (brightness 255).
     *   **Practice Mode**: Fully implemented in `EditorImpl`.
