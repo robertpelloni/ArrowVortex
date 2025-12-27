@@ -18,6 +18,14 @@ Returns the title of the current simfile.
 Returns the artist of the current simfile.
 *   **Returns**: String (Artist)
 
+### `Vortex.setSongTitle(title)`
+Sets the title of the current simfile.
+*   **title**: String
+
+### `Vortex.setSongArtist(artist)`
+Sets the artist of the current simfile.
+*   **artist**: String
+
 ### `Vortex.getSongDir()`
 Returns the directory path of the current simfile.
 *   **Returns**: String (Path)
@@ -29,6 +37,10 @@ Returns the difficulty name of the active chart (e.g., "Challenge", "Hard").
 ### `Vortex.getChartMeter()`
 Returns the difficulty meter (level) of the active chart.
 *   **Returns**: Integer (Meter)
+
+### `Vortex.setChartMeter(meter)`
+Sets the difficulty meter (level) of the active chart.
+*   **meter**: Integer
 
 ## Note Data Access
 

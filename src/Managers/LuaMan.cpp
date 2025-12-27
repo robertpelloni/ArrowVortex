@@ -3,6 +3,7 @@
 #include <Managers/StyleMan.h>
 #include <Managers/TempoMan.h>
 #include <Managers/NoteMan.h>
+#include <Editor/Editor.h>
 #include <Simfile/Simfile.h>
 #include <Simfile/Chart.h>
 #include <Simfile/Tempo.h>
@@ -116,6 +117,28 @@ static int lua_getSongArtist(lua_State* L)
 	return 1;
 }
 
+static int lua_setSongTitle(lua_State* L)
+{
+	const char* str = luaL_checkstring(L, 1);
+	if (gSimfile && gSimfile->get())
+	{
+		gSimfile->get()->title = str;
+		if (gEditor) gEditor->reportChanges(CHANGES_SIMFILE);
+	}
+	return 0;
+}
+
+static int lua_setSongArtist(lua_State* L)
+{
+	const char* str = luaL_checkstring(L, 1);
+	if (gSimfile && gSimfile->get())
+	{
+		gSimfile->get()->artist = str;
+		if (gEditor) gEditor->reportChanges(CHANGES_SIMFILE);
+	}
+	return 0;
+}
+
 static int lua_getSongDir(lua_State* L)
 {
 	if (gSimfile && gSimfile->get())
@@ -153,6 +176,21 @@ static int lua_getChartMeter(lua_State* L)
 	}
 	lua_pushinteger(L, 0);
 	return 1;
+}
+
+static int lua_setChartMeter(lua_State* L)
+{
+	int meter = (int)luaL_checkinteger(L, 1);
+	if (gSimfile)
+	{
+		Chart* chart = gSimfile->getChart(gSimfile->getActiveChart());
+		if (chart)
+		{
+			chart->meter = meter;
+			if (gEditor) gEditor->reportChanges(CHANGES_CHART);
+		}
+	}
+	return 0;
 }
 
 static int lua_getNotes(lua_State* L)
@@ -384,7 +422,13 @@ void init()
 
 	L = luaL_newstate();
 	luaL_openlibs(L);
+setSongTitle);
+	lua_setfield(L, -2, "setSongTitle");
 
+	lua_pushcfunction(L, lua_setSongArtist);
+	lua_setfield(L, -2, "setSongArtist");
+
+	lua_pushcfunction(L, lua_
 	lua_register(L, "print", lua_print);
 
 	// Create Vortex table
@@ -401,6 +445,9 @@ void init()
 
 	lua_pushcfunction(L, lua_getSongDir);
 	lua_setfield(L, -2, "getSongDir");
+
+	lua_pushcfunction(L, lua_setChartMeter);
+	lua_setfield(L, -2, "setChartMeter");
 
 	lua_pushcfunction(L, lua_getChartDifficulty);
 	lua_setfield(L, -2, "getChartDifficulty");

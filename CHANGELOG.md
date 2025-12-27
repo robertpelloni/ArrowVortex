@@ -8,6 +8,7 @@
   - Added `Scripts` menu to the main menu bar.
   - Implemented `LuaMan` manager for handling script execution.
   - Exposed `Vortex` global API for scripts (Chart, Selection, Tempo, etc.).
+  - **New API Functions**: `setSongTitle`, `setSongArtist`, `setChartMeter`.
   - Added `LUA_API.md` documentation.
   - Included example scripts: `quantize_4th.lua`, `chart_stats.lua`.
 - **Visual Sync (Beat Dragging)**:
