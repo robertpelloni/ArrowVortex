@@ -39,6 +39,8 @@ The following features are exclusive to the newer versions of ArrowVortex provid
 - Fixed Mini options have been replaced with a slider
 - Ability to show Stepmania-style preview during playback
 - Auto-jump to next snap option
+- **Lua Scripting Support**: Write custom scripts to modify charts programmatically.
+  - See [**LUA_API.md**](LUA_API.md) for the API reference.
 
 ## Supported formats
 

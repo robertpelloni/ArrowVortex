@@ -1,5 +1,25 @@
 # Changelog
 
+## [1.3.0] - 2025-12-27
+
+### Added
+- **Lua Scripting Engine**:
+  - Integrated Lua 5.x for advanced chart manipulation.
+  - Added `Scripts` menu to the main menu bar.
+  - Implemented `LuaMan` manager for handling script execution.
+  - Exposed `Vortex` global API for scripts (Chart, Selection, Tempo, etc.).
+  - Added `LUA_API.md` documentation.
+  - Included example scripts: `quantize_4th.lua`, `chart_stats.lua`.
+- **Visual Sync (Beat Dragging)**:
+  - Implemented "Ripple" editing logic in `TempoMan`.
+  - Added visual feedback for dragging beats/sub-beats on the waveform.
+  - Bound to `Ctrl + Drag` (or configured modifier) in the waveform view.
+
+### Changed
+- **Batch DDC**:
+  - Finalized Python script integration.
+  - Improved error handling and status reporting in the Batch DDC dialog.
+
 ## [1.2.0] - 2025-12-25
 
 ### Added
