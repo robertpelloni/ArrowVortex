@@ -40,6 +40,7 @@
 #include <Managers/NoteMan.h>
 #include <Managers/NoteskinMan.h>
 #include <Managers/LyricsMan.h>
+#include <Managers/LuaMan.h>
 
 #include <Dialogs/SongProperties.h>
 #include <Dialogs/ChartList.h>
@@ -331,6 +332,7 @@ void init()
 	ChartMan::create();
 	NotesMan::create();
 	LyricsMan::create();
+	LuaMan::create();
 
 	// Create the editor components.
 	Shortcuts::create();
@@ -394,6 +396,7 @@ void shutdown()
 	TextOverlay::destroy();
 
 	// Destroy the simfile components.
+	LuaMan::destroy();
 	LyricsMan::destroy();
 	NotesMan::destroy();
 	ChartMan::destroy();

@@ -431,6 +431,10 @@ void init(Item* menu)
 	sep(hHelp);
 	add(hHelp, SHOW_ABOUT, "About...");
 
+	// Scripts menu.
+	Item* hScripts = newMenu();
+	add(hScripts, RUN_TEST_SCRIPT, "Run Test Script");
+
 	// Top level menu.
 	sub(menu, hFile, "File");
 	sub(menu, hEdit, "Edit");
@@ -439,6 +443,7 @@ void init(Item* menu)
 	sub(menu, hTempo, "Tempo");
 	sub(menu, hAudio, "Audio");
 	sub(menu, myViewMenu, "View");
+	sub(menu, hScripts, "Scripts");
 	sub(menu, hHelp, "Help");
 
 	update(ALL_PROPERTIES);

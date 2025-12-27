@@ -239,6 +239,8 @@ namespace Action {
 	CONVERT_REGION_TO_CONSTANT_BPM,
 	VERIFY_CHART_INTEGRITY,
 	SELECT_OFF_SYNC_NOTES,
+
+	RUN_TEST_SCRIPT,
 	};
 
 	// Performs the action associated with the action type.

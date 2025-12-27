@@ -121,7 +121,7 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
       <Optimization>Disabled</Optimization>
-      <AdditionalIncludeDirectories>..\..\lib;..\..\lib\freetype\include\freetype;..\..\lib\freetype\include;..\..\lib\libmad\include;..\..\lib\libvorbis\include;..\..\src;..\..\lib\gist\src;..\..\lib\gist\libs\kiss_fft130;..\..\lib\libaca\inc;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..\lib;..\..\lib\freetype\include\freetype;..\..\lib\freetype\include;..\..\lib\libmad\include;..\..\lib\libvorbis\include;..\..\src;..\..\lib\gist\src;..\..\lib\gist\libs\kiss_fft130;..\..\lib\libaca\inc;..\..\lib\lua\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>DEBUG;_DEBUG;_CRTDBG_MAP_ALLOC;_CRT_SECURE_NO_WARNINGS;_HAS_EXCEPTIONS=0;USE_KISS_FFT;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <MinimalRebuild>false</MinimalRebuild>
       <ExceptionHandling>Sync</ExceptionHandling>
@@ -149,7 +149,7 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
       <Optimization>Disabled</Optimization>
-      <AdditionalIncludeDirectories>..\..\lib;..\..\lib\freetype\include\freetype;..\..\lib\freetype\include;..\..\lib\libmad\include;..\..\lib\libvorbis\include;..\..\src;..\..\lib\gist\src;..\..\lib\gist\libs\kiss_fft130;..\..\lib\libaca\inc;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..\lib;..\..\lib\freetype\include\freetype;..\..\lib\freetype\include;..\..\lib\libmad\include;..\..\lib\libvorbis\include;..\..\src;..\..\lib\gist\src;..\..\lib\gist\libs\kiss_fft130;..\..\lib\libaca\inc;..\..\lib\lua\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>DEBUG;_DEBUG;_CRTDBG_MAP_ALLOC;_CRT_SECURE_NO_WARNINGS;_HAS_EXCEPTIONS=0;USE_KISS_FFT;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <MinimalRebuild>false</MinimalRebuild>
       <ExceptionHandling>Sync</ExceptionHandling>
@@ -183,7 +183,7 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <FavorSizeOrSpeed>Size</FavorSizeOrSpeed>
       <WholeProgramOptimization>false</WholeProgramOptimization>
-      <AdditionalIncludeDirectories>..\..\lib;..\..\lib\freetype\include\freetype;..\..\lib\freetype\include;..\..\lib\libmad\include;..\..\lib\libvorbis\include;..\..\src;..\..\lib\gist\src;..\..\lib\gist\libs\kiss_fft130;..\..\lib\libaca\inc;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..\lib;..\..\lib\freetype\include\freetype;..\..\lib\freetype\include;..\..\lib\libmad\include;..\..\lib\libvorbis\include;..\..\src;..\..\lib\gist\src;..\..\lib\gist\libs\kiss_fft130;..\..\lib\libaca\inc;..\..\lib\lua\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>NDEBUG;_CRT_SECURE_NO_WARNINGS;_HAS_EXCEPTIONS=0;USE_KISS_FFT;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ExceptionHandling>Sync</ExceptionHandling>
       <BasicRuntimeChecks>Default</BasicRuntimeChecks>
@@ -213,7 +213,7 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <FavorSizeOrSpeed>Size</FavorSizeOrSpeed>
       <WholeProgramOptimization>false</WholeProgramOptimization>
-      <AdditionalIncludeDirectories>..\..\lib;..\..\lib\freetype\include\freetype;..\..\lib\freetype\include;..\..\lib\libmad\include;..\..\lib\libvorbis\include;..\..\src;..\..\lib\gist\src;..\..\lib\gist\libs\kiss_fft130;..\..\lib\libaca\inc;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..\lib;..\..\lib\freetype\include\freetype;..\..\lib\freetype\include;..\..\lib\libmad\include;..\..\lib\libvorbis\include;..\..\src;..\..\lib\gist\src;..\..\lib\gist\libs\kiss_fft130;..\..\lib\libaca\inc;..\..\lib\lua\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>NDEBUG;_CRT_SECURE_NO_WARNINGS;_HAS_EXCEPTIONS=0;USE_KISS_FFT;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ExceptionHandling>Sync</ExceptionHandling>
       <BasicRuntimeChecks>Default</BasicRuntimeChecks>
@@ -246,7 +246,7 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <FavorSizeOrSpeed>Size</FavorSizeOrSpeed>
       <WholeProgramOptimization>false</WholeProgramOptimization>
-      <AdditionalIncludeDirectories>..\..\lib;..\..\lib\freetype\include\freetype;..\..\lib\freetype\include;..\..\lib\libmad\include;..\..\lib\libvorbis\include;..\..\src;..\..\lib\gist\src;..\..\lib\gist\libs\kiss_fft130;..\..\lib\libaca\inc;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..\lib;..\..\lib\freetype\include\freetype;..\..\lib\freetype\include;..\..\lib\libmad\include;..\..\lib\libvorbis\include;..\..\src;..\..\lib\gist\src;..\..\lib\gist\libs\kiss_fft130;..\..\lib\libaca\inc;..\..\lib\lua\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>NDEBUG;_CRT_SECURE_NO_WARNINGS;_HAS_EXCEPTIONS=0;USE_KISS_FFT;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ExceptionHandling>Sync</ExceptionHandling>
       <BasicRuntimeChecks>Default</BasicRuntimeChecks>
@@ -279,7 +279,7 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <FavorSizeOrSpeed>Size</FavorSizeOrSpeed>
       <WholeProgramOptimization>false</WholeProgramOptimization>
-      <AdditionalIncludeDirectories>..\..\lib;..\..\lib\freetype\include\freetype;..\..\lib\freetype\include;..\..\lib\libmad\include;..\..\lib\libvorbis\include;..\..\src;..\..\lib\gist\src;..\..\lib\gist\libs\kiss_fft130;..\..\lib\libaca\inc;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..\lib;..\..\lib\freetype\include\freetype;..\..\lib\freetype\include;..\..\lib\libmad\include;..\..\lib\libvorbis\include;..\..\src;..\..\lib\gist\src;..\..\lib\gist\libs\kiss_fft130;..\..\lib\libaca\inc;..\..\lib\lua\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>NDEBUG;_CRT_SECURE_NO_WARNINGS;_HAS_EXCEPTIONS=0;USE_KISS_FFT;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ExceptionHandling>Sync</ExceptionHandling>
       <BasicRuntimeChecks>Default</BasicRuntimeChecks>
@@ -391,6 +391,7 @@
     <ClCompile Include="..\..\src\Managers\NoteMan.cpp" />
     <ClCompile Include="..\..\src\Managers\NoteskinMan.cpp" />
     <ClCompile Include="..\..\src\Managers\SimfileMan.cpp" />
+    <ClCompile Include="..\..\src\Managers\LuaMan.cpp" />
     <ClCompile Include="..\..\src\Managers\StyleMan.cpp" />
     <ClCompile Include="..\..\src\Managers\TempoMan.cpp" />
     <ClCompile Include="..\..\src\Simfile\Chart.cpp" />
@@ -538,6 +539,7 @@
     <ClInclude Include="..\..\src\Managers\NoteMan.h" />
     <ClInclude Include="..\..\src\Managers\NoteskinMan.h" />
     <ClInclude Include="..\..\src\Managers\SimfileMan.h" />
+    <ClInclude Include="..\..\src\Managers\LuaMan.h" />
     <ClInclude Include="..\..\src\Managers\StyleMan.h" />
     <ClInclude Include="..\..\src\Managers\TempoMan.h" />
     <ClInclude Include="..\..\src\Simfile\Chart.h" />
@@ -574,6 +576,9 @@
     </ProjectReference>
     <ProjectReference Include="..\..\lib\libvorbis\build\vs\libvorbisfile.vcxproj">
       <Project>{cebde98b-a6aa-46e6-bc79-faaf823db9ec}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\..\lib\lua\build\vs\lua.vcxproj">
+      <Project>{DCAA4A4D-9816-4605-99C5-9803B5CB1683}</Project>
     </ProjectReference>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

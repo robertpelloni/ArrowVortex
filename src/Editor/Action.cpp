@@ -30,6 +30,7 @@
 #include <Managers/StyleMan.h>
 #include <Managers/SimfileMan.h>
 #include <Managers/TempoMan.h>
+#include <Managers/LuaMan.h>
 
 #include <Dialogs/Dialog.h>
 #include <Dialogs/GoTo.h>
@@ -1075,6 +1076,9 @@ void Action::perform(Type action)
 				HudNote("No off-sync (192nd) notes found.");
 			}
 		}
+
+	CASE(RUN_TEST_SCRIPT)
+		gLua->runScript("scripts/test.lua");
 	}};
 
 	if(action >= FILE_OPEN_RECENT_BEGIN && action < FILE_OPEN_RECENT_END)
