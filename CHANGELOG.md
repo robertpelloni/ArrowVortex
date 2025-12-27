@@ -15,6 +15,8 @@
   - Implemented "Ripple" editing logic in `TempoMan`.
   - Added visual feedback for dragging beats/sub-beats on the waveform.
   - Bound to `Ctrl + Drag` (or configured modifier) in the waveform view.
+- **Build System**:
+  - Added `CMakeLists.txt` for cross-platform build support (Linux/macOS).
 
 ### Changed
 - **Batch DDC**:

@@ -32,8 +32,10 @@ The ArrowVortex project is organized as follows:
 ## Build Information
 
 *   **Version**: v1.3.0
-*   **Build System**: Visual Studio 2022 (`build/VisualStudio/ArrowVortex.sln`)
-*   **Platform**: Windows (x64/x86)
+*   **Build System**:
+    *   **Windows**: Visual Studio 2022 (`build/VisualStudio/ArrowVortex.sln`)
+    *   **Cross-Platform**: CMake (`CMakeLists.txt`)
+*   **Platform**: Windows (x64/x86), Linux (Experimental)
 
 ## Feature Roadmap
 
@@ -45,13 +47,25 @@ The ArrowVortex project is organized as follows:
 - [x] **Auto-Sync Refinement**: Improved `AUTO_SYNC_SONG` and `QUANTIZE_TO_AUDIO`.
 - [x] **FPS Counter**: Added FPS display.
 - [x] **osu! Support**: Basic `.osu` file loading.
+- [x] **Multi-Platform Build**: Added `CMakeLists.txt` for Linux/macOS support.
 
 ### Planned Features
 - [ ] **Advanced Waveform Analysis**: More detailed spectral analysis tools.
-- [ ] **Multi-Platform Support**: Linux/macOS build configuration (CMake).
 - [ ] **Theme Support**: Allow custom editor themes.
 - [ ] **Undo/Redo for Batch DDC**: Currently Batch DDC is a destructive/external process.
 - [ ] **Lua API Expansion**: Expose more internal systems (Graphics, Audio) to Lua.
+
+## CMake Build Guide (Linux/macOS)
+
+1.  **Install Dependencies**:
+    *   Ubuntu: `sudo apt install cmake build-essential libfreetype6-dev liblua5.3-dev libvorbis-dev libmad0-dev libgl1-mesa-dev`
+2.  **Build**:
+    ```bash
+    mkdir build && cd build
+    cmake ..
+    make
+    ```
+3.  **Run**: `./bin/ArrowVortex`
 
 ## DDC Setup Guide
 
