@@ -309,6 +309,17 @@ void Canvas::clear(float l)
 	}
 }
 
+void Canvas::clear(const colorf& c)
+{
+	for(float* p = canvas_data_, *end = p + canvas_width_ * canvas_height_ * 4; p < end;)
+	{
+		*p = c.r; ++p;
+		*p = c.g; ++p;
+		*p = c.b; ++p;
+		*p = c.a; ++p;
+	}
+}
+
 void Canvas::line(float x1, float y1, float x2, float y2, float width)
 {
 	float r = width * 0.5f;

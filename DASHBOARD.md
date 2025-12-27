@@ -48,10 +48,13 @@ The ArrowVortex project is organized as follows:
 - [x] **FPS Counter**: Added FPS display.
 - [x] **osu! Support**: Basic `.osu` file loading.
 - [x] **Multi-Platform Build**: Added `CMakeLists.txt` for Linux/macOS support.
+- [x] **Advanced Waveform Analysis**: Verified implementation of CQT, HPSS, Chromagram, and multiple visualization modes.
 
 ### Planned Features
-- [ ] **Advanced Waveform Analysis**: More detailed spectral analysis tools.
 - [ ] **Theme Support**: Allow custom editor themes.
+    - [x] Color Palette System
+    - [ ] Dark/Light Mode
+    - [ ] User Customization
 - [ ] **Undo/Redo for Batch DDC**: Currently Batch DDC is a destructive/external process.
 - [ ] **Lua API Expansion**: Expose more internal systems (Graphics, Audio) to Lua.
 

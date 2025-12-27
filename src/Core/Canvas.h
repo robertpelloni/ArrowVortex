@@ -59,6 +59,7 @@ public:
 
 	/// Fills the entire canvas with the given RGBA colorfvalues.
 	void clear(float lum = 0);
+	void clear(const colorf& color);
 
 	/// Draws a line from point (x1, y1) to point (x2, y2) with the given thickness.
 	void line(float x1, float y1, float x2, float y2, float thickness);

@@ -17,6 +17,9 @@
   - Bound to `Ctrl + Drag` (or configured modifier) in the waveform view.
 - **Build System**:
   - Added `CMakeLists.txt` for cross-platform build support (Linux/macOS).
+- **Waveform Analysis**:
+  - Verified and documented existing implementation of advanced waveform modes (CQT, HPSS, Chromagram).
+  - Confirmed full UI integration in `WaveformSettings`.
 
 ### Changed
 - **Batch DDC**:
