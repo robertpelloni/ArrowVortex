@@ -1,6 +1,7 @@
 #include <Dialogs/Preferences.h>
 #include <Editor/Editor.h>
 #include <Editor/View.h>
+#include <Editor/Waveform.h>
 #include <Core/Utils.h>
 #include <Core/StringUtils.h>
 
@@ -149,6 +150,70 @@ void DialogPreferences::myCreateWidgets()
 	addRow("Boo: +/-", &myWindowBoo, &DialogPreferences::onWindowBooChanged);
 	addRow("Freeze OK: +/-", &myWindowFreeze, &DialogPreferences::onWindowFreezeChanged);
 	addRow("Mine: +/-", &myWindowMine, &DialogPreferences::onWindowMineChanged);
+
+	// --- WAVEFORM SETTINGS ---
+	myLayout.row().col(400);
+	myLayout.add<WgSeperator>();
+	myLayout.add<WgLabel>()->text.set("--- Waveform Settings ---");
+
+	myLayout.row().col(150).col(250);
+	myLayout.add<WgLabel>()->text.set("Color Mode:");
+	auto cmBox = myLayout.add<WgCombobox>();
+	cmBox->addItem("Flat");
+	cmBox->addItem("RGB (Multiband)");
+	cmBox->addItem("Spectral (Centroid)");
+	cmBox->addItem("Pitch");
+	cmBox->addItem("Spectrogram");
+	cmBox->addItem("CQT (Log-Freq)");
+	cmBox->addItem("Percussion (HPSS)");
+	cmBox->addItem("Harmonic (HPSS)");
+	cmBox->addItem("Chromagram");
+	cmBox->addItem("Novelty (Flux)");
+	cmBox->addItem("Tempogram");
+	cmBox->selection.bind(&myWaveformColorMode);
+	cmBox->onChange.bind(this, &DialogPreferences::onWaveformColorModeChanged);
+
+	myLayout.row().col(150).col(250);
+	myLayout.add<WgLabel>()->text.set("Anti-Aliasing:");
+	auto aaBox = myLayout.add<WgCombobox>();
+	aaBox->addItem("None");
+	aaBox->addItem("2x");
+	aaBox->addItem("3x");
+	aaBox->addItem("4x");
+	aaBox->selection.bind(&myAntiAliasing);
+	aaBox->onChange.bind(this, &DialogPreferences::onAntiAliasingChanged);
+
+	auto cbOnsets = myLayout.add<WgCheckbox>("Show Onsets");
+	cbOnsets->value.bind(&myShowOnsets);
+	cbOnsets->onChange.bind(this, &DialogPreferences::onShowOnsetsChanged);
+
+	myLayout.row().col(150).col(200).col(50);
+	myLayout.add<WgLabel>()->text.set("Onset Threshold:");
+	auto slOnset = myLayout.add<WgSlider>();
+	slOnset->setRange(0.0, 1.0);
+	slOnset->value.bind(&myOnsetThreshold);
+	slOnset->onChange.bind(this, &DialogPreferences::onOnsetThresholdChanged);
+	myLayout.add<WgLabel>();
+
+	myLayout.row().col(150).col(200).col(50);
+	myLayout.add<WgLabel>()->text.set("Spectrogram Gain:");
+	auto slGain = myLayout.add<WgSlider>();
+	slGain->setRange(1.0, 10000.0); // Log scale would be better but linear for now
+	slGain->value.bind(&mySpectrogramGain);
+	slGain->onChange.bind(this, &DialogPreferences::onSpectrogramGainChanged);
+	myLayout.add<WgLabel>();
+
+	myLayout.row().col(150).col(100).col(150);
+	myLayout.add<WgLabel>()->text.set("RGB Crossover (Hz):");
+	auto spLow = myLayout.add<WgSpinner>();
+	spLow->setRange(20.0, 20000.0);
+	spLow->value.bind(&myRGBLow);
+	spLow->onChange.bind(this, &DialogPreferences::onRGBCrossoverChanged);
+	
+	auto spHigh = myLayout.add<WgSpinner>();
+	spHigh->setRange(20.0, 20000.0);
+	spHigh->value.bind(&myRGBHigh);
+	spHigh->onChange.bind(this, &DialogPreferences::onRGBCrossoverChanged);
 }
 
 void DialogPreferences::myUpdateWidgets()
@@ -181,6 +246,16 @@ void DialogPreferences::myUpdateWidgets()
 	myWindowBoo = myPracticeSetup.windowBoo * 1000.0;
 	myWindowFreeze = myPracticeSetup.windowFreeze * 1000.0;
 	myWindowMine = myPracticeSetup.windowMine * 1000.0;
+
+	if (gWaveform) {
+		myWaveformColorMode = (int)gWaveform->getColorMode();
+		myAntiAliasing = gWaveform->getAntiAliasing();
+		myShowOnsets = gWaveform->hasShowOnsets();
+		myOnsetThreshold = gWaveform->getOnsetThreshold();
+		mySpectrogramGain = gWaveform->getSpectrogramGain();
+		myRGBLow = gWaveform->getRGBLowHigh(false);
+		myRGBHigh = gWaveform->getRGBLowHigh(true);
+	}
 }
 
 void DialogPreferences::onChanges(int changes)
@@ -220,5 +295,12 @@ void DialogPreferences::onWindowGoodChanged() { UPDATE_SETUP(windowGood, myWindo
 void DialogPreferences::onWindowBooChanged() { UPDATE_SETUP(windowBoo, myWindowBoo); }
 void DialogPreferences::onWindowFreezeChanged() { UPDATE_SETUP(windowFreeze, myWindowFreeze); }
 void DialogPreferences::onWindowMineChanged() { UPDATE_SETUP(windowMine, myWindowMine); }
+
+void DialogPreferences::onWaveformColorModeChanged() { if(gWaveform) gWaveform->setColorMode((Waveform::ColorMode)myWaveformColorMode); }
+void DialogPreferences::onAntiAliasingChanged() { if(gWaveform) gWaveform->setAntiAliasing(myAntiAliasing); }
+void DialogPreferences::onShowOnsetsChanged() { if(gWaveform) gWaveform->setShowOnsets(myShowOnsets); }
+void DialogPreferences::onOnsetThresholdChanged() { if(gWaveform) gWaveform->setOnsetThreshold((float)myOnsetThreshold); }
+void DialogPreferences::onSpectrogramGainChanged() { if(gWaveform) gWaveform->setSpectrogramGain((float)mySpectrogramGain); }
+void DialogPreferences::onRGBCrossoverChanged() { if(gWaveform) gWaveform->setRGBCrossovers((float)myRGBLow, (float)myRGBHigh); }
 
 }; // namespace Vortex

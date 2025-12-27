@@ -20,7 +20,8 @@ private:
 	// Tab switching
 	enum Tab {
 		TAB_EDITOR,
-		TAB_PRACTICE
+		TAB_PRACTICE,
+		TAB_WAVEFORM
 	};
 	Tab myActiveTab;
 	void mySetTab(Tab tab);
@@ -44,6 +45,15 @@ private:
 	// Practice Mode Settings
 	bool myEnablePracticeMode;
 	Editor::PracticeSetup myPracticeSetup;
+
+	// Waveform Settings
+	int myWaveformColorMode;
+	double mySpectrogramGain;
+	double myRGBLow;
+	double myRGBHigh;
+	bool myShowOnsets;
+	double myOnsetThreshold;
+	int myAntiAliasing;
 
 	// Intermediate doubles for UI binding (milliseconds)
 	double myWindowMarvelous;
@@ -81,6 +91,13 @@ private:
 	void onWindowBooChanged();
 	void onWindowFreezeChanged();
 	void onWindowMineChanged();
+
+	void onWaveformColorModeChanged();
+	void onSpectrogramGainChanged();
+	void onRGBCrossoverChanged();
+	void onShowOnsetsChanged();
+	void onOnsetThresholdChanged();
+	void onAntiAliasingChanged();
 };
 
 }; // namespace Vortex
