@@ -1,4 +1,8 @@
 #include <Managers/LuaMan.h>
+#include <Managers/SimfileMan.h>
+#include <Managers/StyleMan.h>
+#include <Simfile/Simfile.h>
+#include <Simfile/Chart.h>
 
 #include <lua.hpp>
 
@@ -50,6 +54,63 @@ static int lua_print(lua_State* L)
 	return 0;
 }
 
+static int lua_getSongTitle(lua_State* L)
+{
+	if (gSimfile && gSimfile->get())
+		lua_pushstring(L, gSimfile->get()->title.str());
+	else
+		lua_pushstring(L, "");
+	return 1;
+}
+
+static int lua_getSongArtist(lua_State* L)
+{
+	if (gSimfile && gSimfile->get())
+		lua_pushstring(L, gSimfile->get()->artist.str());
+	else
+		lua_pushstring(L, "");
+	return 1;
+}
+
+static int lua_getSongDir(lua_State* L)
+{
+	if (gSimfile && gSimfile->get())
+		lua_pushstring(L, gSimfile->get()->dir.str());
+	else
+		lua_pushstring(L, "");
+	return 1;
+}
+
+static int lua_getChartDifficulty(lua_State* L)
+{
+	if (gSimfile)
+	{
+		const Chart* chart = gSimfile->getChart(gSimfile->getActiveChart());
+		if (chart)
+		{
+			lua_pushstring(L, GetDifficultyName(chart->difficulty));
+			return 1;
+		}
+	}
+	lua_pushstring(L, "");
+	return 1;
+}
+
+static int lua_getChartMeter(lua_State* L)
+{
+	if (gSimfile)
+	{
+		const Chart* chart = gSimfile->getChart(gSimfile->getActiveChart());
+		if (chart)
+		{
+			lua_pushinteger(L, chart->meter);
+			return 1;
+		}
+	}
+	lua_pushinteger(L, 0);
+	return 1;
+}
+
 void init()
 {
 	if(L) return;
@@ -58,6 +119,29 @@ void init()
 	luaL_openlibs(L);
 
 	lua_register(L, "print", lua_print);
+
+	// Create Vortex table
+	lua_newtable(L);
+	
+	lua_pushcfunction(L, lua_print);
+	lua_setfield(L, -2, "log");
+
+	lua_pushcfunction(L, lua_getSongTitle);
+	lua_setfield(L, -2, "getSongTitle");
+
+	lua_pushcfunction(L, lua_getSongArtist);
+	lua_setfield(L, -2, "getSongArtist");
+
+	lua_pushcfunction(L, lua_getSongDir);
+	lua_setfield(L, -2, "getSongDir");
+
+	lua_pushcfunction(L, lua_getChartDifficulty);
+	lua_setfield(L, -2, "getChartDifficulty");
+
+	lua_pushcfunction(L, lua_getChartMeter);
+	lua_setfield(L, -2, "getChartMeter");
+
+	lua_setglobal(L, "Vortex");
 
 	HudNote("Lua initialized.");
 }

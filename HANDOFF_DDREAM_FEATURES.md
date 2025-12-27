@@ -60,7 +60,10 @@ This session focused on implementing advanced features from **DDreamStudio** int
 *   **Implementation:**
     *   **Manager:** `LuaMan` (singleton) initializes the Lua state (`lua_State`) and handles script execution.
     *   **Integration:** Added `lib/lua` to the build system (`ArrowVortex.vcxproj`).
-    *   **API:** Exposed a basic `print` function to the editor HUD.
+    *   **API:** Exposed `Vortex` table with:
+        *   `log(msg)`: Print to HUD.
+        *   `getSongTitle()`, `getSongArtist()`, `getSongDir()`: Simfile metadata.
+        *   `getChartDifficulty()`, `getChartMeter()`: Chart metadata.
     *   **UI:** Added a "Scripts" menu with a "Run Test Script" action.
     *   **Testing:** Created `scripts/test.lua` to verify functionality.
 
