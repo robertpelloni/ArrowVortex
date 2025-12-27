@@ -55,6 +55,15 @@ This session focused on implementing advanced features from **DDreamStudio** int
     *   **Storage:** `Editor::PracticeSetup` struct serialized to `settings/settings.txt` under `<practice>`.
     *   **UI:** Spinner widgets in `DialogPreferences` converting between Seconds (internal) and Milliseconds (UI).
 
+### 6. Lua Scripting Support
+*   **Description:** Integrated a Lua scripting environment to allow users to write and execute custom scripts for automation and analysis.
+*   **Implementation:**
+    *   **Manager:** `LuaMan` (singleton) initializes the Lua state (`lua_State`) and handles script execution.
+    *   **Integration:** Added `lib/lua` to the build system (`ArrowVortex.vcxproj`).
+    *   **API:** Exposed a basic `print` function to the editor HUD.
+    *   **UI:** Added a "Scripts" menu with a "Run Test Script" action.
+    *   **Testing:** Created `scripts/test.lua` to verify functionality.
+
 ## Technical Implementation Details
 
 ### Architecture Changes
@@ -78,6 +87,9 @@ This session focused on implementing advanced features from **DDreamStudio** int
 *   `src/Managers/Music.cpp`: Updated mixing logic for Assist Ticks.
 *   `src/Dialogs/Preferences.h` / `.cpp`: New dialog implementation.
 *   `src/Dialogs/Dialog.h`: Registered `DIALOG_PREFERENCES`.
+*   `src/Managers/LuaMan.h` / `.cpp`: New manager for Lua scripting.
+*   `src/Editor/Menubar.cpp`: Added "Scripts" menu.
+*   `build/VisualStudio/ArrowVortex.vcxproj`: Added Lua include paths and project reference.
 
 ## Next Steps for the Next Developer
 1.  **Verification**:
