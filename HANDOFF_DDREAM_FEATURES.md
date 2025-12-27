@@ -137,3 +137,14 @@ This session focused on implementing advanced features from **DDreamStudio** int
 *   `CallSlot::bind` requires strict member function pointers.
 *   `Action.cpp` handles the high-level orchestration of tools.
 *   Destructive editing requires careful handling of BPM anchors (`injectBoundingBpmChange`).
+
+## Session Log - Dec 27, 2025
+*   **Objective**: Finalize Lua Scripting and Batch DDC features.
+*   **Actions**:
+    *   Implemented `LuaMan` with full Read/Write API.
+    *   Created `LUA_API.md` documentation.
+    *   Implemented `DialogBatchDDC` for external Python script execution.
+    *   Updated `Menubar.cpp` to dynamically list scripts.
+    *   Verified `EditorImpl` and `Notefield` changes for Practice Mode and Visual Sync.
+*   **Status**: All planned features are implemented. Code is ready for compilation.
+*   **Next**: Build solution, verify features in-app.
