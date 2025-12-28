@@ -884,99 +884,11 @@ void scaleNotes(int numerator, int denominator)
 	}
 }
 
-void quantizeSelection(int snap)
-{
-	NoteEdit edit;
-	gSelection->getSelectedNotes(edit.add);
-	edit.rem = edit.add;
-
-	if (edit.add.empty()) {
-		HudNote("No notes selected.");
-		return;
-	}
-
-	if (snap <= 0) return;
-
-	for(auto& n : edit.add) {
-		int rem = n.row % snap;
-		if (rem != 0) {
-			if (rem < snap / 2) n.row -= rem;
-			else n.row += (snap - rem);
-		}
-		// Also quantize length for holds?
-		// Standard quantization usually just moves the start row.
-		// If it's a hold, we should probably check if the tail needs quantizing too,
-		// but typically "Quantize" snaps the attack.
-		// Let's also snap the tail if it exists.
-		if (n.type == NoteType::NOTE_HOLD_HEAD || n.type == NoteType::NOTE_ROLL_HEAD) {
-			int tailRow = n.row + n.length; // Assuming length is duration
-			int trem = tailRow % snap;
-			if (trem != 0) {
-				if (trem < snap / 2) tailRow -= trem;
-				else tailRow += (snap - trem);
-			}
-			if (tailRow > (int)n.row) n.length = tailRow - n.row;
-		}
-	}
-
-	static const NotesMan::EditDescription desc = {"Quantized %1 note.", "Quantized %1 notes."};
-	gNotes->modify(edit, true, &desc);
-	if (gSelection->getType() == Selection::NOTES) gNotes->select(SELECT_SET, edit.add.begin(), edit.add.size());
-}
-
-void insertRows(int row, int numRows, bool curChartOnly)
-{
-	if(gSimfile->isOpen())
-	{
-		gHistory->startChain();
-		gTempo->insertRows(row, numRows, curChartOnly);
-		gNotes->insertRows(row, numRows, curChartOnly);
-		gHistory->finishChain((numRows > 0) ? "Insert beats" : "Delete beats");
-	}
-}
-
-int getAnchorRow() {
-	Vortex::vec2i mouse_pos = gSystem->getMousePos();
-	Vortex::ChartOffset chart_offset = gView->yToOffset(mouse_pos.y);
-
-	switch (this->myVisualSyncAnchor) {
-	case VisualSyncAnchor::RECEPTORS:
-		return gView->getCursorRow();
-	case VisualSyncAnchor::CURSOR:
-		return gView->snapRow(gView->offsetToRow(chart_offset), Vortex::View::SnapDir::SNAP_CLOSEST);
-	default:
-		HudError("Unknown anchor row type");
-		return -1;
-	}
-}
-
-void injectBoundingBpmChange() {
-	if (gSimfile->isClosed() || !gView->isTimeBased()) {
-		return;
-	}
-
-	int anchor_row = this->getAnchorRow();
-
-	gTempo->injectBoundingBpmChange(anchor_row);
-}
-
-void shiftAnchorRowToMousePosition(bool is_destructive) {
-	if (gSimfile->isClosed() || !gView->isTimeBased()) {
-		return;
-	}
-	Vortex::vec2i mouse_pos = gSystem->getMousePos();
-	Vortex::ChartOffset chart_offset = gView->yToOffset(mouse_pos.y);
-
-	double target_time = gView->offsetToTime(chart_offset);
-	int anchor_row = this->getAnchorRow();
-
-	if (is_destructive) {
-		gTempo->destructiveShiftRowToTime(anchor_row, target_time);
-	}
-	else {
-		gTempo->nonDestructiveShiftRowToTime(anchor_row, target_time);
-	}
-}
+void quantizeSelection(int snap);
+void insertRows(int row, int numRows, bool curChartOnly);
+int getAnchorRow();
+void injectBoundingBpmChange();
+void shiftAnchorRowToMousePosition(bool is_destructive);
 
 /*
 void streamToTriplets()
@@ -1470,6 +1382,100 @@ bool isRecordMode()
 }
 
 }; // EditingImpl
+
+void EditingImpl::quantizeSelection(int snap)
+{
+	NoteEdit edit;
+	gSelection->getSelectedNotes(edit.add);
+	edit.rem = edit.add;
+
+	if (edit.add.empty()) {
+		HudNote("No notes selected.");
+		return;
+	}
+
+	if (snap <= 0) return;
+
+	for(auto& n : edit.add) {
+		int rem = n.row % snap;
+		if (rem != 0) {
+			if (rem < snap / 2) n.row -= rem;
+			else n.row += (snap - rem);
+		}
+		// Also quantize length for holds?
+		// Standard quantization usually just moves the start row.
+		// If it's a hold, we should probably check if the tail needs quantizing too,
+		// but typically "Quantize" snaps the attack.
+		// Let's also snap the tail if it exists.
+		if (n.type == NoteType::NOTE_HOLD_HEAD || n.type == NoteType::NOTE_ROLL_HEAD) {
+			int tailRow = n.row + n.length; // Assuming length is duration
+			int trem = tailRow % snap;
+			if (trem != 0) {
+				if (trem < snap / 2) tailRow -= trem;
+				else tailRow += (snap - trem);
+			}
+			if (tailRow > (int)n.row) n.length = tailRow - n.row;
+		}
+	}
+
+	static const NotesMan::EditDescription desc = {"Quantized %1 note.", "Quantized %1 notes."};
+	gNotes->modify(edit, true, &desc);
+	if (gSelection->getType() == Selection::NOTES) gNotes->select(SELECT_SET, edit.add.begin(), edit.add.size());
+}
+
+void EditingImpl::insertRows(int row, int numRows, bool curChartOnly)
+{
+	if(gSimfile->isOpen())
+	{
+		gHistory->startChain();
+		gTempo->insertRows(row, numRows, curChartOnly);
+		gNotes->insertRows(row, numRows, curChartOnly);
+		gHistory->finishChain((numRows > 0) ? "Insert beats" : "Delete beats");
+	}
+}
+
+int EditingImpl::getAnchorRow() {
+	Vortex::vec2i mouse_pos = gSystem->getMousePos();
+	Vortex::ChartOffset chart_offset = gView->yToOffset(mouse_pos.y);
+
+	switch (this->myVisualSyncAnchor) {
+	case VisualSyncAnchor::RECEPTORS:
+		return gView->getCursorRow();
+	case VisualSyncAnchor::CURSOR:
+		return gView->snapRow(gView->offsetToRow(chart_offset), Vortex::View::SnapDir::SNAP_CLOSEST);
+	default:
+		HudError("Unknown anchor row type");
+		return -1;
+	}
+}
+
+void EditingImpl::injectBoundingBpmChange() {
+	if (gSimfile->isClosed() || !gView->isTimeBased()) {
+		return;
+	}
+
+	int anchor_row = this->getAnchorRow();
+
+	gTempo->injectBoundingBpmChange(anchor_row);
+}
+
+void EditingImpl::shiftAnchorRowToMousePosition(bool is_destructive) {
+	if (gSimfile->isClosed() || !gView->isTimeBased()) {
+		return;
+	}
+	Vortex::vec2i mouse_pos = gSystem->getMousePos();
+	Vortex::ChartOffset chart_offset = gView->yToOffset(mouse_pos.y);
+
+	double target_time = gView->offsetToTime(chart_offset);
+	int anchor_row = this->getAnchorRow();
+
+	if (is_destructive) {
+		gTempo->destructiveShiftRowToTime(anchor_row, target_time);
+	}
+	else {
+		gTempo->nonDestructiveShiftRowToTime(anchor_row, target_time);
+	}
+}
 
 // ================================================================================================
 // Editing API.

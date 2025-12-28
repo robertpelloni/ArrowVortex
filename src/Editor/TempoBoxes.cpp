@@ -148,36 +148,11 @@ void onChanges(int changes)
 // ================================================================================================
 // TempoBoxesImpl :: toggle visuals.
 
-void toggleShowBoxes()
-{
-	myShowBoxes = !myShowBoxes;
-	gMenubar->update(Menubar::SHOW_TEMPO_BOXES);
-}
-
-void setShowBoxes(bool show)
-{
-	if (myShowBoxes != show)
-	{
-		myShowBoxes = show;
-		gMenubar->update(Menubar::SHOW_TEMPO_BOXES);
-	}
-}
-
-void toggleShowHelp()
-{
-	myShowHelp = !myShowHelp;
-	gMenubar->update(Menubar::SHOW_TEMPO_HELP);
-}
-
-bool hasShowBoxes()
-{
-	return myShowBoxes;
-}
-
-bool hasShowHelp()
-{
-	return myShowHelp;
-}
+void toggleShowBoxes();
+void setShowBoxes(bool show);
+void toggleShowHelp();
+bool hasShowBoxes();
+bool hasShowHelp();
 
 // ================================================================================================
 // TempoBoxesImpl :: selection.
@@ -454,6 +429,37 @@ const Vector<TempoBox>& getBoxes()
 }
 
 }; // TempoBoxesImpl
+
+void TempoBoxesImpl::toggleShowBoxes()
+{
+	myShowBoxes = !myShowBoxes;
+	gMenubar->update(Menubar::SHOW_TEMPO_BOXES);
+}
+
+void TempoBoxesImpl::setShowBoxes(bool show)
+{
+	if (myShowBoxes != show)
+	{
+		myShowBoxes = show;
+		gMenubar->update(Menubar::SHOW_TEMPO_BOXES);
+	}
+}
+
+void TempoBoxesImpl::toggleShowHelp()
+{
+	myShowHelp = !myShowHelp;
+	gMenubar->update(Menubar::SHOW_TEMPO_HELP);
+}
+
+bool TempoBoxesImpl::hasShowBoxes()
+{
+	return myShowBoxes;
+}
+
+bool TempoBoxesImpl::hasShowHelp()
+{
+	return myShowHelp;
+}
 
 // ================================================================================================
 // TempoBoxes API.

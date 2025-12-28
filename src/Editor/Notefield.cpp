@@ -820,13 +820,28 @@ void drawSongPreviewArea()
 // ================================================================================================
 // NotefieldImpl :: toggle/check functions.
 
-void toggleShowWaveform()
+void toggleShowWaveform();
+void setShowWaveform(bool show);
+void toggleShowBeatLines();
+void setShowBeatLines(bool show);
+void toggleShowNotes();
+void setShowNotes(bool show);
+void toggleShowSongPreview();
+
+bool hasShowWaveform();
+bool hasShowBeatLines();
+bool hasShowNotes();
+bool hasShowSongPreview();
+
+}; // NotefieldImpl
+
+void NotefieldImpl::toggleShowWaveform()
 {
 	myShowWaveform = !myShowWaveform;
 	gMenubar->update(Menubar::SHOW_WAVEFORM);
 }
 
-void setShowWaveform(bool show)
+void NotefieldImpl::setShowWaveform(bool show)
 {
 	if (myShowWaveform != show)
 	{
@@ -835,13 +850,13 @@ void setShowWaveform(bool show)
 	}
 }
 
-void toggleShowBeatLines()
+void NotefieldImpl::toggleShowBeatLines()
 {
 	myShowBeatLines = !myShowBeatLines;
 	gMenubar->update(Menubar::SHOW_BEATLINES);
 }
 
-void setShowBeatLines(bool show)
+void NotefieldImpl::setShowBeatLines(bool show)
 {
 	if (myShowBeatLines != show)
 	{
@@ -850,13 +865,13 @@ void setShowBeatLines(bool show)
 	}
 }
 
-void toggleShowNotes()
+void NotefieldImpl::toggleShowNotes()
 {
 	myShowNotes = !myShowNotes;
 	gMenubar->update(Menubar::SHOW_NOTES);
 }
 
-void setShowNotes(bool show)
+void NotefieldImpl::setShowNotes(bool show)
 {
 	if (myShowNotes != show)
 	{
@@ -865,32 +880,30 @@ void setShowNotes(bool show)
 	}
 }
 
-void toggleShowSongPreview()
+void NotefieldImpl::toggleShowSongPreview()
 {
 	myShowSongPreview = !myShowSongPreview;
 }
 
-bool hasShowWaveform()
+bool NotefieldImpl::hasShowWaveform()
 {
 	return myShowWaveform;
 }
 
-bool hasShowBeatLines()
+bool NotefieldImpl::hasShowBeatLines()
 {
 	return myShowBeatLines;
 }
 
-bool hasShowNotes()
+bool NotefieldImpl::hasShowNotes()
 {
 	return myShowNotes;
 }
 
-bool hasShowSongPreview()
+bool NotefieldImpl::hasShowSongPreview()
 {
 	return myShowSongPreview;
 }
-
-}; // NotefieldImpl
 
 // ================================================================================================
 // TweakInfoBox.

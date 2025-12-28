@@ -24,6 +24,8 @@
 #include <algorithm>
 #include <thread>
 #include <chrono>
+#include <atomic>
+#include <mutex>
 
 #include <Managers/MetadataMan.h>
 #include <Managers/NoteskinMan.h>
@@ -37,10 +39,6 @@
 #include <Dialogs/BgChanges.h>
 #include <Dialogs/ChartStatistics.h>
 #include <Core/Widgets.h>
-
-#include <atomic>
-#include <thread>
-#include <mutex>
 
 namespace Vortex {
 
