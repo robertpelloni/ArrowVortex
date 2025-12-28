@@ -35,6 +35,15 @@ The following features are exclusive to the newer versions of ArrowVortex provid
 - Ability to show Stepmania-style preview during playback
 - Auto-jump to next snap option
 
+### DDreamStudio Feature Set (v0.4.0)
+A major update introduces features inspired by DDreamStudio:
+- **Beat Dragging**: Manual waveform syncing (Ripple/Local).
+- **Advanced Waveforms**: Spectrogram, CQT, Chromagram, Pitch, HPSS, etc.
+- **Auto-Sync Tools**: BPM detection, Key detection, and Grid Warping.
+- **Practice Mode**: Test timing without editing.
+
+See [docs/DDREAM_FEATURES.md](docs/DDREAM_FEATURES.md) for full details.
+
 ## Supported formats
 
 Audio formats:
