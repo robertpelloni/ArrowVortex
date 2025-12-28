@@ -1,29 +1,8 @@
 {
   "permissions": {
     "allow": [
-      "Bash(pip show tensorflow)",
-      "Bash(pip show torch)",
-      "Bash(pip show librosa)",
-      "Bash(pip install -r requirements.txt)",
-      "Bash(pip install tensorflow-cpu)",
-      "Bash(where python)",
-      "Bash(py -0)",
-      "Bash(py -3.11 --version)",
-      "Bash(py -3.11 -m venv ddc_env)",
-      "Bash(ddc_envScriptspip install --upgrade pip setuptools wheel)",
-      "Bash(./ddc_env/Scripts/pip install --upgrade pip setuptools wheel)",
-      "Bash(./ddc_env/Scripts/pip install -r requirements.txt)",
-      "Bash(./ddc_env/Scripts/python scripts/train_all.py data/raw/ddr_official work_dir)",
-      "Bash(tee training_log.txt)",
-      "Bash(./ddc_env/Scripts/python dataset/extract_json.py data/raw/ddr_official work_dir/json_raw)",
-      "Bash(./ddc_env/Scripts/python dataset/filter_json.py work_dir/json_raw work_dir/json_filtered)",
-      "Bash(./ddc_env/Scripts/python dataset/filter_json.py work_dir/json_raw/ddr_official work_dir/json_filtered)",
-      "Bash(./ddc_env/Scripts/python scripts/train_v2.py --dataset_dir work_dir/json_raw/ddr_official --feats_dir work_dir/quick_test/feats --out_dir work_dir/quick_test/models/onset --model_type onset --batch_size 32 --epochs 5)",
-      "Bash(./ddc_env/Scripts/python scripts/train_v2.py --dataset_dir work_dir/json_raw/ddr_official --feats_dir work_dir/quick_test/feats --out_dir work_dir/quick_test/models/dance-single_Expert --model_type sym --batch_size 32 --epochs 10)",
-      "Bash(export PYTHONPATH=\"$PWD:$PYTHONPATH\")",
-      "Bash(./ddc_env/Scripts/python train_onset_wrapper.py)",
-      "Bash(./ddc_env/Scripts/python train_sym_wrapper.py)",
-      "Bash(./ddc_env/Scripts/python dataset/extract_json.py data/raw/ddr_official work_dir/json_full)"
+      "Bash(./ddc_env/Scripts/python scripts/numpy_to_h5.py --numpy_dir work_dir/quick_test/models/onset --output models/onset/model.h5 --model_type onset)",
+      "Bash(./ddc_env/Scripts/python scripts/numpy_to_h5.py --numpy_dir work_dir/quick_test/models/dance-single_Expert --output models/dance-single_Expert/model.h5 --model_type sym)"
     ],
     "deny": [],
     "ask": []
