@@ -180,7 +180,7 @@ Editor::PracticeSetup myPracticeSetup;
 
 EditorImpl()
 {
-	gSystem->setWindowTitle("ArrowVortex");
+	gSystem->setWindowTitle("ArrowVortex v0.4.0");
 
 	for(auto& dialog : myDialogs)
 	{
@@ -992,11 +992,11 @@ void updateTitle()
 		if(title.len() && subtitle.len()) title += " ";
 		title += subtitle;
 		if(hasChanges) title += "*";
-		title += " :: ArrowVortex";
+		title += " :: ArrowVortex v0.4.0";
 	}
 	else
 	{
-		title = "ArrowVortex";
+		title = "ArrowVortex v0.4.0";
 		if(hasChanges) title += "*";
 	}
 	gSystem->setWindowTitle(title);
