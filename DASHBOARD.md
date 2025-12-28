@@ -25,13 +25,13 @@ The ArrowVortex project is organized as follows:
 | **libmad** | 0.15.1b | `lib/libmad` | MPEG audio decoder. |
 | **libvorbis** | 1.3.7 | `lib/libvorbis` | Ogg Vorbis audio codec. |
 | **Lua** | 5.4.3 | `lib/lua` | Scripting language. |
-| **ddc** | *Submodule* | `lib/ddc` | Dance Dance Convolution (Auto-charting). |
+| **ddc** | v1.0-172-gc8caffe (2025-12-27) | `lib/ddc` | Dance Dance Convolution (Auto-charting). |
 | **ddc_onset** | *Submodule* | `lib/ddc/ddc_onset` | Onset detection model for DDC. |
 | **ffr-difficulty** | *Submodule* | `lib/ddc/ffr-difficulty-model` | Difficulty rating model for DDC. |
 
 ## Build Information
 
-*   **Version**: v1.3.0
+*   **Version**: v1.3.1
 *   **Build System**:
     *   **Windows**: Visual Studio 2022 (`build/VisualStudio/ArrowVortex.sln`)
     *   **Cross-Platform**: CMake (`CMakeLists.txt`)

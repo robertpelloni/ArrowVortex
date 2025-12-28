@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.3.1] - 2025-12-27
+
+### Changed
+- **Submodules**: Updated `lib/ddc` to latest version (v1.0-172-gc8caffe).
+- **Documentation**: Updated DASHBOARD.md with latest submodule information.
+
 ## [1.3.0] - 2025-12-27
 
 ### Added
