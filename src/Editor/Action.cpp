@@ -73,27 +73,25 @@ struct AsyncDetector
 std::vector<AsyncDetector*> activeDetectors;
 std::mutex detectorMutex;
 
-void StartAsyncDetection(TempoDetector* detector, AsyncDetector::Type type, int startRow)
+void StartAsyncDetection(double startTime, double length, AsyncDetector::Type type, int startRow)
 {
-	if (!detector) return;
 	AsyncDetector* ad = new AsyncDetector();
-	ad->detector = detector;
 	ad->type = type;
 	ad->startRow = startRow;
 
-	// Start thread to wait for result
-	ad->worker = std::thread([ad]() {
-		// Poll detector (it is internally threaded but we need to wait for result)
-		// Or if New() already started it, we just poll hasResult().
-		// Since we want to avoid sleep in main thread, we sleep here.
-		int timeout = 1000; // 10 seconds
-		while (!ad->detector->hasResult() && timeout > 0) {
-			std::this_thread::sleep_for(std::chrono::milliseconds(10));
-			timeout--;
-		}
-		if (ad->detector->hasResult()) {
-			ad->results = ad->detector->getResult();
-			ad->success = !ad->results.empty();
+	// Start thread to detect
+	ad->worker = std::thread([ad, startTime, length]() {
+		ad->detector = TempoDetector::New(startTime, length);
+		if (ad->detector) {
+			int timeout = 1000; // 10 seconds
+			while (!ad->detector->hasResult() && timeout > 0) {
+				std::this_thread::sleep_for(std::chrono::milliseconds(10));
+				timeout--;
+			}
+			if (ad->detector->hasResult()) {
+				ad->results = ad->detector->getResult();
+				ad->success = !ad->results.empty();
+			}
 		}
 		ad->finished = true;
 	});
@@ -713,10 +711,7 @@ void Action::perform(Type action)
 			} else {
 				double start = gTempo->rowToTime(region.beginRow);
 				double end = gTempo->rowToTime(region.endRow);
-				auto detector = TempoDetector::New(start, end - start);
-				if(detector) {
-					StartAsyncDetection(detector, AsyncDetector::SELECTION, region.beginRow);
-				}
+				StartAsyncDetection(start, end - start, AsyncDetector::SELECTION, region.beginRow);
 			}
 		}
 
@@ -726,10 +721,7 @@ void Action::perform(Type action)
 			if (!music.isCompleted()) {
 				HudError("Music not loaded.");
 			} else {
-				auto detector = TempoDetector::New(0, gMusic->getSongLength());
-				if (detector) {
-					StartAsyncDetection(detector, AsyncDetector::SONG, 0);
-				}
+				StartAsyncDetection(0, gMusic->getSongLength(), AsyncDetector::SONG, 0);
 			}
 		}
 
