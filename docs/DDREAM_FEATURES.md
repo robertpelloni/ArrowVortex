@@ -65,7 +65,7 @@ New automated tools assist in establishing the initial tempo map and correcting 
 
 *   **Key Detection:**
     *   **Location:** `Tempo > Detect Key`
-    *   **Function:** Analyzes the audio to estimate the musical key (e.g., "C Major", "F# Minor") using the `libaca` library.
+    *   **Function:** Analyzes the audio to estimate the musical key (e.g., "C Major", "F# Minor") using `Gist`-based Chromagram analysis.
 
 ## 4. Practice Mode
 
@@ -93,8 +93,7 @@ Various workflow enhancements to match DDreamStudio's usability.
 ## Technical Implementation Notes
 
 ### Libraries
-*   **Gist:** Used for all frequency-domain analysis (Spectrogram, CQT, Pitch, MFCC).
-*   **libaca:** Integrated for `Detect Key` functionality.
+*   **Gist:** Used for all frequency-domain analysis (Spectrogram, CQT, Pitch, MFCC) and Key Detection.
 *   **Aubio (Embedded):** Ported logic used for robust Onset Detection.
 
 ### Compilation
@@ -104,5 +103,5 @@ The project configuration (`ArrowVortex.vcxproj`) has been updated to include al
 *   `src/Editor/Waveform.cpp`: Visualization rendering pipeline.
 *   `src/Managers/TempoMan.cpp`: Beat dragging and sync logic.
 *   `src/Editor/Action.cpp`: Implementation of new menu commands.
-*   `src/Editor/AnalyzeKey.cpp`: Interface to `libaca`.
+*   `src/Editor/AnalyzeKey.cpp`: Implementation of Key Detection (via Gist).
 *   `src/Editor/Editing.cpp`: Practice mode input interception.
