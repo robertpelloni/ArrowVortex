@@ -101,6 +101,8 @@ void Action::perform(Type action)
 		gEditor->openDialog(DIALOG_PREFERENCES);
 	CASE(OPEN_DIALOG_BATCH_DDC)
 		gEditor->openDialog(DIALOG_BATCH_DDC);
+	CASE(OPEN_DIALOG_THEME_EDITOR)
+		gEditor->openDialog(DIALOG_THEME_EDITOR);
 
 	CASE(EDIT_UNDO)
 		gSystem->getEvents().addKeyPress(Key::Z, Keyflag::CTRL, false);

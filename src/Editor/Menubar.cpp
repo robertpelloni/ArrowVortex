@@ -415,6 +415,7 @@ void init(Item* menu)
 	add(myViewMenu, USE_ROW_BASED_VIEW, "Row based (X-mod)");
 	sep(myViewMenu);
 	add(myViewMenu, OPEN_DIALOG_WAVEFORM_SETTINGS, "Waveform...");
+	add(myViewMenu, OPEN_DIALOG_THEME_EDITOR, "Theme Editor...");
 	add(myViewMenu, 0 /*dummy*/, "Noteskins");
 	sub(myViewMenu, myMinimapMenu, "Minimap");
 	sub(myViewMenu, myBgStyleMenu, "Background");

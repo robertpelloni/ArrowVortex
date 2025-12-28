@@ -57,6 +57,9 @@ struct Theme
 	static Theme& get();
 	static void set(const Theme& theme);
 	static void resetToDefault();
+
+	static bool load(const char* path);
+	static bool save(const char* path);
 };
 
 }; // namespace Vortex

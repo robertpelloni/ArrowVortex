@@ -63,6 +63,7 @@
 #include <Dialogs/ChartStatistics.h>
 #include <Dialogs/Preferences.h>
 #include <Dialogs/BatchDDC.h>
+#include <Dialogs/ThemeEditor.h>
 
 namespace Vortex {
 
@@ -937,6 +938,8 @@ void handleDialogOpening(DialogId id, recti rect)
 		dlg = new DialogPreferences; break;
 	case DIALOG_BATCH_DDC:
 		dlg = new DialogBatchDDC; break;
+	case DIALOG_THEME_EDITOR:
+		dlg = new DialogThemeEditor; break;
 	};
 
 	dlg->setId(id);

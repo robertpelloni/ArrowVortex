@@ -24,7 +24,8 @@ static const char* IdStrings[NUM_DIALOG_IDS] =
 	"lyricsEditor",
 	"bgChanges",
 	"preferences",
-	"batchDDC"
+	"batchDDC",
+	"themeEditor"
 };
 
 EditorDialog::~EditorDialog()
