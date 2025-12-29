@@ -28,6 +28,7 @@
 #include <Managers/StyleMan.h>
 #include <Managers/TempoMan.h>
 #include <Managers/SimfileMan.h>
+#include <Managers/MiningMan.h>
 
 #include <Core/Draw.h>
 
@@ -210,6 +211,11 @@ void onKeyPress(KeyPress& evt) override
 
 					double ms = (gTempo->rowToTime(bestNote->row) - hitTime) * 1000.0;
 					HudNote("%s (%+.0f ms)", judge.str(), ms);
+
+					// Mine Bobcoin based on accuracy
+					float accuracy = 1.0f - (float)(minDiff / limit);
+					int meter = gChart->isOpen() ? gChart->get()->meter : 1;
+					gMining->onNoteHit(accuracy, meter);
 				}
 
 				evt.handled = true;

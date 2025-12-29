@@ -16,6 +16,7 @@
 #include <Editor/Menubar.h>
 #include <Editor/Action.h>
 #include <Editor/Shortcuts.h>
+#include <Core/Version.h>
 
 #include <Editor/View.h>
 #include <Editor/Notefield.h>
@@ -39,6 +40,7 @@
 #include <Managers/NoteMan.h>
 #include <Managers/NoteskinMan.h>
 #include <Managers/LyricsMan.h>
+#include <Managers/MiningMan.h>
 
 #include <Dialogs/SongProperties.h>
 #include <Dialogs/ChartList.h>
@@ -180,7 +182,7 @@ Editor::PracticeSetup myPracticeSetup;
 
 EditorImpl()
 {
-	gSystem->setWindowTitle("ArrowVortex v0.4.0");
+	gSystem->setWindowTitle(Str::fmt("ArrowVortex v%1", Version::Get()));
 
 	for(auto& dialog : myDialogs)
 	{
@@ -274,6 +276,7 @@ void init()
 	ChartMan::create();
 	NotesMan::create();
 	LyricsMan::create();
+	MiningMan::create();
 
 	// Create the editor components.
 	Shortcuts::create();
@@ -337,6 +340,7 @@ void shutdown()
 	TextOverlay::destroy();
 
 	// Destroy the simfile components.
+	MiningMan::destroy();
 	LyricsMan::destroy();
 	NotesMan::destroy();
 	ChartMan::destroy();
@@ -987,16 +991,17 @@ void updateTitle()
 		subtitle = meta->subtitle;
 	}
 	bool hasChanges = gHistory->hasUnsavedChanges();
+	String ver = Version::Get();
 	if(title.len() || subtitle.len())
 	{
 		if(title.len() && subtitle.len()) title += " ";
 		title += subtitle;
 		if(hasChanges) title += "*";
-		title += " :: ArrowVortex v0.4.0";
+		title += " :: ArrowVortex v" + ver;
 	}
 	else
 	{
-		title = "ArrowVortex v0.4.0";
+		title = "ArrowVortex v" + ver;
 		if(hasChanges) title += "*";
 	}
 	gSystem->setWindowTitle(title);

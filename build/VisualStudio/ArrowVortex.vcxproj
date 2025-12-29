@@ -121,7 +121,7 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
       <Optimization>Disabled</Optimization>
-      <AdditionalIncludeDirectories>..\..\lib;..\..\lib\freetype\include\freetype;..\..\lib\freetype\include;..\..\lib\libmad\include;..\..\lib\libvorbis\include;..\..\src;..\..\lib\gist\src;..\..\lib\gist\libs\kiss_fft130;..\..\lib\libaca\inc;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..\lib;..\..\lib\freetype\include\freetype;..\..\lib\freetype\include;..\..\lib\libmad\include;..\..\lib\libvorbis\include;..\..\src;..\..\lib\gist\src;..\..\lib\gist\libs\kiss_fft130;..\..\lib\libaca\inc;..\..\lib\bobcoin\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>DEBUG;_DEBUG;_CRTDBG_MAP_ALLOC;_CRT_SECURE_NO_WARNINGS;_HAS_EXCEPTIONS=0;USE_KISS_FFT;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <MinimalRebuild>false</MinimalRebuild>
       <ExceptionHandling>Sync</ExceptionHandling>
@@ -395,6 +395,7 @@
     <ClCompile Include="..\..\src\Editor\Spectrogram.cpp" />
     <ClCompile Include="..\..\src\Managers\ChartMan.cpp" />
     <ClCompile Include="..\..\src\Managers\LyricsMan.cpp" />
+    <ClCompile Include="..\..\src\Managers\MiningMan.cpp" />
     <ClCompile Include="..\..\src\Managers\MetadataMan.cpp" />
     <ClCompile Include="..\..\src\Managers\NoteMan.cpp" />
     <ClCompile Include="..\..\src\Managers\NoteskinMan.cpp" />
@@ -424,6 +425,7 @@
     <ClCompile Include="..\..\src\System\Thread.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="..\..\lib\bobcoin\src\bobcoin.cpp" />
     <ClCompile Include="..\..\lib\gist\src\Gist.cpp" />
     <ClCompile Include="..\..\lib\gist\src\CoreTimeDomainFeatures.cpp" />
     <ClCompile Include="..\..\lib\gist\src\CoreFrequencyDomainFeatures.cpp" />
@@ -510,6 +512,7 @@
     <ClInclude Include="..\..\src\Editor\View.h" />
     <ClInclude Include="..\..\src\Editor\Waveform.h" />
     <ClInclude Include="..\..\src\Managers\ChartMan.h" />
+    <ClInclude Include="..\..\src\Managers\MiningMan.h" />
     <ClInclude Include="..\..\src\Managers\MetadataMan.h" />
     <ClInclude Include="..\..\src\Managers\NoteMan.h" />
     <ClInclude Include="..\..\src\Managers\NoteskinMan.h" />

@@ -14,6 +14,7 @@
 External dependencies are located here. Note that `libaca` is currently excluded from the build due to missing internal headers.
 
 *   **Gist**: Audio analysis library (Spectrograms, Pitch, MFCC). Used for advanced visualization and Key Detection.
+*   **Bobcoin**: (`lib/bobcoin`) Native cryptocurrency implementation. Handles mining and wallet state.
 *   **FreeType**: Font rendering.
 *   **libmad**: MP3 decoding.
 *   **libvorbis**: Ogg Vorbis decoding.
@@ -21,6 +22,7 @@ External dependencies are located here. Note that `libaca` is currently excluded
 
 ### Documentation (`docs/`)
 *   **DDREAM_FEATURES.md**: User guide and technical notes for DDreamStudio-inspired features.
+*   **LLM_INSTRUCTIONS.md**: Master guide for AI agents.
 *   **DASHBOARD.md**: This file.
 
 ## Build Information
@@ -34,9 +36,10 @@ External dependencies are located here. Note that `libaca` is currently excluded
 *   **Management**: Manual (No `.gitmodules` found in root).
 *   **Status**:
     *   `Gist`: Active. Used for Waveform filters.
+    *   `Bobcoin`: Active (Experimental). Implements "Proof of Dance".
     *   `Aubio` (Embedded in `src/Editor`): Active. Used for Onset Detection.
     *   `libaca`: Inactive/Removed from build.
 
 ## Versioning
 
-*   **Current Version**: (See `CHANGELOG.md`)
+*   **Current Version**: 0.4.1 (Defined in `VERSION.md`, synced to `ArrowVortex` window title).

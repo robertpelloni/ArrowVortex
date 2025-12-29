@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.4.1] - 2024-05-20 (Bobcoin Integration)
+
+### Added
+*   **Bobcoin Support**: Infrastructure for integrating `bobcoin` mining via gameplay ("Dancing").
+*   **Versioning**: Implemented a global versioning system reading from `VERSION.md`.
+
 ## [0.4.0] - 2024-05-20 (DDream Feature Set)
 
 ### Added
