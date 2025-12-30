@@ -1,8 +1,9 @@
 {
   "permissions": {
     "allow": [
-      "Bash(./ddc_env/Scripts/python scripts/numpy_to_h5.py --numpy_dir work_dir/quick_test/models/onset --output models/onset/model.h5 --model_type onset)",
-      "Bash(./ddc_env/Scripts/python scripts/numpy_to_h5.py --numpy_dir work_dir/quick_test/models/dance-single_Expert --output models/dance-single_Expert/model.h5 --model_type sym)"
+      "Bash(ddc_env/Scripts/python.exe kill_training.py)",
+      "Bash(wmic process where \"name=''''python.exe''''\" get ProcessId,CommandLine)",
+      "Bash(findstr \"train_\")"
     ],
     "deny": [],
     "ask": []
