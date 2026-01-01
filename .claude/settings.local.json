@@ -3,7 +3,12 @@
     "allow": [
       "Bash(ddc_env/Scripts/python.exe kill_training.py)",
       "Bash(wmic process where \"name=''''python.exe''''\" get ProcessId,CommandLine)",
-      "Bash(findstr \"train_\")"
+      "Bash(findstr \"train_\")",
+      "Bash(wmic process where \"name=''python.exe''\" get ProcessId,CommandLine)",
+      "Bash(taskkill /F /PID 71180)",
+      "Bash(taskkill /F /PID 20912)",
+      "Bash(taskkill //F //PID 71180)",
+      "Bash(taskkill //F //PID 20912)"
     ],
     "deny": [],
     "ask": []
