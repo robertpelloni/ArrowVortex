@@ -31,7 +31,7 @@ The ArrowVortex project is organized as follows:
 
 ## Build Information
 
-*   **Version**: v1.3.1
+*   **Version**: v1.3.2
 *   **Build System**:
     *   **Windows**: Visual Studio 2022 (`build/VisualStudio/ArrowVortex.sln`)
     *   **Cross-Platform**: CMake (`CMakeLists.txt`)

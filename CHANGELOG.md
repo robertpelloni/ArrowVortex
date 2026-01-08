@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.3.2] - 2026-01-08
+
+### Changed
+- **Versioning**: Bumped version to v1.3.2 to resolve mismatch and align with release cycle.
+- **Dependencies**: Removed `tensorflow>=2.0` from `lib/ddc/requirements.txt` to strictly enforce PyTorch usage as per project policy.
+- **Merged Feature**: Integrated `feature-goto-quantize-insert` into main.
+
 ## [1.3.1] - 2025-12-27
 
 ### Changed
