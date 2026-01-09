@@ -27,6 +27,10 @@ struct Menubar
 	USE_UNDO_REDO_JUMP,
 	USE_TIME_BASED_COPY,
 	USE_RECORD_MODE,
+<<<<<<< HEAD
+=======
+	USE_PRACTICE_MODE,
+>>>>>>> origin/feature-goto-quantize-insert
 	USE_REVERSE_SCROLL,
 	USE_CHART_PREVIEW,
 

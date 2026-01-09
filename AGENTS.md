@@ -2,7 +2,7 @@
 
 **Context:** Rhythm Game Editor (C++/Qt) + ML (PyTorch)
 **Parent:** [Workspace Root](../AGENTS.md)
-**Master Instructions:** [LLM_INSTRUCTIONS.md](LLM_INSTRUCTIONS.md)
+**Master Instructions:** [docs/LLM_INSTRUCTIONS.md](docs/LLM_INSTRUCTIONS.md)
 
 ## OVERVIEW
 Windows-based simfile editor for rhythm games (StepMania, ITG, osu!). Features automatic chart generation via DDC (Data-Driven Convolution).

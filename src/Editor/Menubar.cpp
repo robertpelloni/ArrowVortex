@@ -152,6 +152,10 @@ void init(Item* menu)
 	add(hEdit, TOGGLE_UNDO_REDO_JUMP, "Enable undo/redo jump");
 	add(hEdit, TOGGLE_TIME_BASED_COPY, "Enable time-based copy");
 	add(hEdit, TOGGLE_RECORD_MODE, "Enable record mode");
+<<<<<<< HEAD
+=======
+	add(hEdit, TOGGLE_PRACTICE_MODE, "Enable practice mode");
+>>>>>>> origin/feature-goto-quantize-insert
 
 	// Chart > Convert menu.
 	Item* hChartConvert = newMenu();
@@ -333,6 +337,7 @@ void init(Item* menu)
 	Item* hViewMm = myMinimapMenu = newMenu();
 	add(hViewMm, MINIMAP_SET_NOTES, "Notes");
 	add(hViewMm, MINIMAP_SET_DENSITY, "Density");
+	add(hViewMm, MINIMAP_SET_WAVEFORM, "Waveform");
 	
 	// View > Background menu.
 	Item* hViewBg = myBgStyleMenu = newMenu();
@@ -522,6 +527,13 @@ void registerUpdateFunctions()
 	{
 		MENU->myEditMenu->setChecked(TOGGLE_RECORD_MODE, gEditing->isRecordMode());
 	};
+<<<<<<< HEAD
+=======
+	myUpdateFunctions[USE_PRACTICE_MODE] = []
+	{
+		MENU->myEditMenu->setChecked(TOGGLE_PRACTICE_MODE, gEditor->isPracticeMode());
+	};
+>>>>>>> origin/feature-goto-quantize-insert
 	myUpdateFunctions[VISUAL_SYNC_ANCHOR] = []
 	{
 		MENU->myVisualSyncMenu->setChecked(SET_VISUAL_SYNC_CURSOR_ANCHOR, gEditing->getVisualSyncMode() == Editing::VisualSyncAnchor::CURSOR);
@@ -545,6 +557,7 @@ void registerUpdateFunctions()
 		auto mode = gMinimap->getMode();
 		MENU->myMinimapMenu->setChecked(MINIMAP_SET_NOTES, mode == Minimap::NOTES);
 		MENU->myMinimapMenu->setChecked(MINIMAP_SET_DENSITY, mode == Minimap::DENSITY);
+		MENU->myMinimapMenu->setChecked(MINIMAP_SET_WAVEFORM, mode == Minimap::WAVEFORM);
 	};
 	myUpdateFunctions[VIEW_BACKGROUND] = []
 	{

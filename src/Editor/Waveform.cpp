@@ -146,6 +146,7 @@ void update(float lowFreq, float highFreq)
 // ================================================================================================
 // WaveFilterSpectral.
 
+<<<<<<< HEAD
 // Uses Gist to calculate the spectral centroid and map it to a color.
 struct WaveFilterSpectral {
 
@@ -164,12 +165,34 @@ static void ProcessChannel(const short* src, int numFrames, int samplerate, Vect
 	if (numFrames < frameSize) return;
 
 	colors.resize(numFrames);
+=======
+// Uses Gist to calculate the spectral centroid.
+struct WaveFilterSpectral {
+
+Vector<float> centroidsL;
+Vector<float> centroidsR;
+bool dirty = true;
+
+static void ProcessChannel(const short* src, int numFrames, int samplerate, Vector<float>& out)
+{
+	const int frameSize = 1024;
+	const int hopSize = 256;
+
+	if (numFrames < frameSize) return;
+
+	out.resize(numFrames);
+>>>>>>> origin/feature-goto-quantize-insert
 
 	Gist<float> gist(frameSize, samplerate);
 	std::vector<float> audioFrame(frameSize);
 
+<<<<<<< HEAD
 	// Fill with default color
 	for(int i=0; i<numFrames; ++i) colors[i] = {255, 255, 255};
+=======
+	// Default
+	for(int i=0; i<numFrames; ++i) out[i] = 0.0f;
+>>>>>>> origin/feature-goto-quantize-insert
 
 	int numBlocks = (numFrames - frameSize) / hopSize;
 
@@ -184,6 +207,7 @@ static void ProcessChannel(const short* src, int numFrames, int samplerate, Vect
 		gist.processAudioFrame(audioFrame);
 		float centroid = gist.spectralCentroid(); // in Hz
 
+<<<<<<< HEAD
 		// Map centroid to color (HSV -> RGB)
 		// H: Map 0-8000Hz to 0-360 (or partial range)
 		// Low freq = Red (0), High freq = Blue (240) or Purple (280)
@@ -217,6 +241,12 @@ static void ProcessChannel(const short* src, int numFrames, int samplerate, Vect
 		int endSample = min(numFrames, startSample + hopSize);
 		for(int k=startSample; k < endSample; ++k) {
 			colors[k] = cp;
+=======
+		// Fill the hop region
+		int endSample = min(numFrames, startSample + hopSize);
+		for(int k=startSample; k < endSample; ++k) {
+			out[k] = centroid;
+>>>>>>> origin/feature-goto-quantize-insert
 		}
 	}
 }
@@ -230,8 +260,13 @@ void update()
 	int numFrames = music.getNumFrames();
 	int samplerate = music.getFrequency();
 
+<<<<<<< HEAD
 	ProcessChannel(music.samplesL(), numFrames, samplerate, colorsL);
 	ProcessChannel(music.samplesR(), numFrames, samplerate, colorsR);
+=======
+	ProcessChannel(music.samplesL(), numFrames, samplerate, centroidsL);
+	ProcessChannel(music.samplesR(), numFrames, samplerate, centroidsR);
+>>>>>>> origin/feature-goto-quantize-insert
 
 	dirty = false;
 }
@@ -241,6 +276,7 @@ void update()
 // ================================================================================================
 // WaveFilterPitch.
 
+<<<<<<< HEAD
 // Uses Gist to calculate the pitch and map it to a color.
 struct WaveFilterPitch {
 
@@ -250,19 +286,37 @@ Vector<ColorPoint> colorsR;
 bool dirty = true;
 
 static void ProcessChannel(const short* src, int numFrames, int samplerate, Vector<ColorPoint>& colors)
+=======
+// Uses Gist to calculate the pitch.
+struct WaveFilterPitch {
+
+Vector<float> pitchL;
+Vector<float> pitchR;
+bool dirty = true;
+
+static void ProcessChannel(const short* src, int numFrames, int samplerate, Vector<float>& out)
+>>>>>>> origin/feature-goto-quantize-insert
 {
 	const int frameSize = 1024;
 	const int hopSize = 256;
 
 	if (numFrames < frameSize) return;
 
+<<<<<<< HEAD
 	colors.resize(numFrames);
+=======
+	out.resize(numFrames);
+>>>>>>> origin/feature-goto-quantize-insert
 
 	Gist<float> gist(frameSize, samplerate);
 	std::vector<float> audioFrame(frameSize);
 
+<<<<<<< HEAD
 	// Fill with default color
 	for(int i=0; i<numFrames; ++i) colors[i] = {255, 255, 255};
+=======
+	for(int i=0; i<numFrames; ++i) out[i] = 0.0f;
+>>>>>>> origin/feature-goto-quantize-insert
 
 	int numBlocks = (numFrames - frameSize) / hopSize;
 
@@ -277,6 +331,7 @@ static void ProcessChannel(const short* src, int numFrames, int samplerate, Vect
 		gist.processAudioFrame(audioFrame);
 		float pitch = gist.pitch(); // in Hz
 
+<<<<<<< HEAD
 		// Map pitch to color (Chromatic)
 		// Midi note = 69 + 12 * log2(freq / 440)
 		// C = 0, C# = 1, ... B = 11
@@ -313,6 +368,11 @@ static void ProcessChannel(const short* src, int numFrames, int samplerate, Vect
 		int endSample = min(numFrames, startSample + hopSize);
 		for(int k=startSample; k < endSample; ++k) {
 			colors[k] = cp;
+=======
+		int endSample = min(numFrames, startSample + hopSize);
+		for(int k=startSample; k < endSample; ++k) {
+			out[k] = pitch;
+>>>>>>> origin/feature-goto-quantize-insert
 		}
 	}
 }
@@ -326,8 +386,13 @@ void update()
 	int numFrames = music.getNumFrames();
 	int samplerate = music.getFrequency();
 
+<<<<<<< HEAD
 	ProcessChannel(music.samplesL(), numFrames, samplerate, colorsL);
 	ProcessChannel(music.samplesR(), numFrames, samplerate, colorsR);
+=======
+	ProcessChannel(music.samplesL(), numFrames, samplerate, pitchL);
+	ProcessChannel(music.samplesR(), numFrames, samplerate, pitchR);
+>>>>>>> origin/feature-goto-quantize-insert
 
 	dirty = false;
 }
@@ -340,14 +405,23 @@ void update()
 // Uses Gist to calculate CQT-like spectrum (Log-Frequency spectrogram).
 struct WaveFilterCQT {
 
+<<<<<<< HEAD
 struct ColorPoint { uchar r, g, b; };
 Vector<Vector<uchar>> intensitiesL; // [note][time_block]
 Vector<Vector<uchar>> intensitiesR;
+=======
+Vector<Vector<float>> spectrumL; // [note][time_block]
+Vector<Vector<float>> spectrumR;
+>>>>>>> origin/feature-goto-quantize-insert
 int timeBlockSize;
 double samplesPerBlock;
 bool dirty = true;
 
+<<<<<<< HEAD
 void update(float gain)
+=======
+void update()
+>>>>>>> origin/feature-goto-quantize-insert
 {
 	if (!dirty) return;
 	auto& music = gMusic->getSamples();
@@ -369,6 +443,7 @@ void update(float gain)
 	int numBlocks = (numFrames - frameSize) / hopSize;
 	if (numBlocks < 0) numBlocks = 0;
 
+<<<<<<< HEAD
 	intensitiesL.resize(numNotes);
 	intensitiesR.resize(numNotes);
 	for(int i=0; i<numNotes; ++i) {
@@ -382,6 +457,21 @@ void update(float gain)
 	for(int channel=0; channel<2; ++channel) {
 		const short* samples = (channel == 0) ? music.samplesL() : music.samplesR();
 		auto& intensities = (channel == 0) ? intensitiesL : intensitiesR;
+=======
+	spectrumL.resize(numNotes);
+	spectrumR.resize(numNotes);
+	for(int i=0; i<numNotes; ++i) {
+		spectrumL[i].resize(numBlocks);
+		spectrumR[i].resize(numBlocks);
+	}
+
+	std::vector<float> audioFrame(frameSize);
+
+	for(int channel=0; channel<2; ++channel) {
+		Gist<float> gist(frameSize, samplerate);
+		const short* samples = (channel == 0) ? music.samplesL() : music.samplesR();
+		auto& spectrumOut = (channel == 0) ? spectrumL : spectrumR;
+>>>>>>> origin/feature-goto-quantize-insert
 
 		for(int i=0; i<numBlocks; ++i) {
 			int start = i * hopSize;
@@ -400,10 +490,14 @@ void update(float gain)
 				bin = clamp(bin, 0, numBins - 1);
 
 				float val = spectrum[bin];
+<<<<<<< HEAD
 				val = log10(1 + val * gain) * 2.0f;
 				val = clamp(val, 0.0f, 1.0f);
 
 				intensities[n][i] = (uchar)(val * 255);
+=======
+				spectrumOut[n][i] = val;
+>>>>>>> origin/feature-goto-quantize-insert
 			}
 		}
 	}
@@ -419,12 +513,21 @@ void update(float gain)
 // Chromagram: Folds CQT into 12 pitch classes.
 struct WaveFilterChromagram {
 
+<<<<<<< HEAD
 Vector<Vector<uchar>> chromaL; // [chroma_idx][time_block]
 Vector<Vector<uchar>> chromaR;
 double samplesPerBlock;
 bool dirty = true;
 
 void update(float gain)
+=======
+Vector<Vector<float>> chromaL; // [chroma_idx][time_block]
+Vector<Vector<float>> chromaR;
+double samplesPerBlock;
+bool dirty = true;
+
+void update()
+>>>>>>> origin/feature-goto-quantize-insert
 {
 	if (!dirty) return;
 	auto& music = gMusic->getSamples();
@@ -433,7 +536,10 @@ void update(float gain)
 	int numFrames = music.getNumFrames();
 	int samplerate = music.getFrequency();
 
+<<<<<<< HEAD
 	// Use same parameters as CQT for consistency, or use Gist's chromagram if available (Gist typically calculates it from Magnitude Spectrum)
+=======
+>>>>>>> origin/feature-goto-quantize-insert
 	const int frameSize = 4096;
 	const int hopSize = 512;
 	samplesPerBlock = (double)hopSize;
@@ -448,10 +554,17 @@ void update(float gain)
 		chromaR[i].resize(numBlocks);
 	}
 
+<<<<<<< HEAD
 	Gist<float> gist(frameSize, samplerate);
 	std::vector<float> audioFrame(frameSize);
 
 	for(int channel=0; channel<2; ++channel) {
+=======
+	std::vector<float> audioFrame(frameSize);
+
+	for(int channel=0; channel<2; ++channel) {
+		Gist<float> gist(frameSize, samplerate);
+>>>>>>> origin/feature-goto-quantize-insert
 		const short* samples = (channel == 0) ? music.samplesL() : music.samplesR();
 		auto& chroma = (channel == 0) ? chromaL : chromaR;
 
@@ -462,8 +575,11 @@ void update(float gain)
 			}
 
 			gist.processAudioFrame(audioFrame);
+<<<<<<< HEAD
 			// Gist doesn't have built-in getChromagram(). We must calculate it from Spectrum.
 			// Simple mapping: map each bin frequency to midi note, take modulo 12.
+=======
+>>>>>>> origin/feature-goto-quantize-insert
 			const auto& spectrum = gist.getMagnitudeSpectrum();
 			int numBins = spectrum.size();
 
@@ -471,7 +587,11 @@ void update(float gain)
 
 			for(int b=0; b<numBins; ++b) {
 				float freq = b * samplerate / (float)frameSize;
+<<<<<<< HEAD
 				if (freq < 27.5f) continue; // Skip sub-A0
+=======
+				if (freq < 27.5f) continue;
+>>>>>>> origin/feature-goto-quantize-insert
 
 				float midiNote = 69.0f + 12.0f * log2(freq / 440.0f);
 				int noteIndex = (int)round(midiNote);
@@ -481,15 +601,22 @@ void update(float gain)
 				chromaEnergy[chromaIdx] += spectrum[b];
 			}
 
+<<<<<<< HEAD
 			// Normalize and scale
+=======
+>>>>>>> origin/feature-goto-quantize-insert
 			float maxE = 0.0f;
 			for(float e : chromaEnergy) maxE = max(maxE, e);
 
 			for(int c=0; c<12; ++c) {
 				float val = (maxE > 0) ? chromaEnergy[c] / maxE : 0.0f;
+<<<<<<< HEAD
 				val = log10(1 + val * gain) * 2.0f;
 				val = clamp(val, 0.0f, 1.0f);
 				chroma[c][i] = (uchar)(val * 255);
+=======
+				chroma[c][i] = val;
+>>>>>>> origin/feature-goto-quantize-insert
 			}
 		}
 	}
@@ -505,12 +632,21 @@ void update(float gain)
 // Novelty/Flux Curve.
 struct WaveFilterNovelty {
 
+<<<<<<< HEAD
 Vector<uchar> fluxL; // [time_block]
 Vector<uchar> fluxR;
 double samplesPerBlock;
 bool dirty = true;
 
 void update(float gain)
+=======
+Vector<float> fluxL; // [time_block]
+Vector<float> fluxR;
+double samplesPerBlock;
+bool dirty = true;
+
+void update()
+>>>>>>> origin/feature-goto-quantize-insert
 {
 	if (!dirty) return;
 	auto& music = gMusic->getSamples();
@@ -520,7 +656,11 @@ void update(float gain)
 	int samplerate = music.getFrequency();
 
 	const int frameSize = 1024;
+<<<<<<< HEAD
 	const int hopSize = 256; // Higher resolution for timing
+=======
+	const int hopSize = 256;
+>>>>>>> origin/feature-goto-quantize-insert
 	samplesPerBlock = (double)hopSize;
 
 	int numBlocks = (numFrames - frameSize) / hopSize;
@@ -529,10 +669,17 @@ void update(float gain)
 	fluxL.resize(numBlocks);
 	fluxR.resize(numBlocks);
 
+<<<<<<< HEAD
 	Gist<float> gist(frameSize, samplerate);
 	std::vector<float> audioFrame(frameSize);
 
 	for(int channel=0; channel<2; ++channel) {
+=======
+	std::vector<float> audioFrame(frameSize);
+
+	for(int channel=0; channel<2; ++channel) {
+		Gist<float> gist(frameSize, samplerate);
+>>>>>>> origin/feature-goto-quantize-insert
 		const short* samples = (channel == 0) ? music.samplesL() : music.samplesR();
 		auto& flux = (channel == 0) ? fluxL : fluxR;
 
@@ -543,11 +690,16 @@ void update(float gain)
 			}
 
 			gist.processAudioFrame(audioFrame);
+<<<<<<< HEAD
 			float val = gist.complexSpectralDifference(); // ODF
 
 			val = log10(1 + val * gain) * 2.0f;
 			val = clamp(val, 0.0f, 1.0f);
 			flux[i] = (uchar)(val * 255);
+=======
+			float val = gist.complexSpectralDifference();
+			flux[i] = val;
+>>>>>>> origin/feature-goto-quantize-insert
 		}
 	}
 
@@ -564,14 +716,23 @@ void update(float gain)
 // Tempogram: Visualizes BPM probability over time using Autocorrelation of Flux.
 struct WaveFilterTempogram {
 
+<<<<<<< HEAD
 Vector<Vector<uchar>> tempogramL; // [bpm_bin][time_block]
 Vector<Vector<uchar>> tempogramR;
+=======
+Vector<Vector<float>> tempogramL; // [bpm_bin][time_block]
+Vector<Vector<float>> tempogramR;
+>>>>>>> origin/feature-goto-quantize-insert
 double samplesPerBlock;
 bool dirty = true;
 int minBPM = 60;
 int maxBPM = 240;
 
+<<<<<<< HEAD
 void update(float gain)
+=======
+void update()
+>>>>>>> origin/feature-goto-quantize-insert
 {
 	if (!dirty) return;
 	auto& music = gMusic->getSamples();
@@ -583,19 +744,29 @@ void update(float gain)
 	// Parameters for Flux calculation
 	const int frameSize = 1024;
 	const int hopSize = 256;
+<<<<<<< HEAD
 	double fluxRate = (double)samplerate / hopSize; // ~172 Hz
+=======
+	double fluxRate = (double)samplerate / hopSize;
+>>>>>>> origin/feature-goto-quantize-insert
 
 	int numBlocks = (numFrames - frameSize) / hopSize;
 	if (numBlocks < 0) numBlocks = 0;
 	samplesPerBlock = (double)hopSize;
 
+<<<<<<< HEAD
 	// Compute Flux first (reuse logic from Novelty but keep local to be safe/independent)
+=======
+>>>>>>> origin/feature-goto-quantize-insert
 	std::vector<float> flux(numBlocks);
 	Gist<float> gist(frameSize, samplerate);
 	std::vector<float> audioFrame(frameSize);
 
+<<<<<<< HEAD
 	// Compute flux for Left channel only for simplicity/speed (Tempo is usually mono)
 	// Or average L+R
+=======
+>>>>>>> origin/feature-goto-quantize-insert
 	const short* samplesL = music.samplesL();
 	const short* samplesR = music.samplesR();
 
@@ -609,6 +780,7 @@ void update(float gain)
 		flux[i] = gist.complexSpectralDifference();
 	}
 
+<<<<<<< HEAD
 	// Tempogram parameters
 	// Window size for autocorrelation: ~6 seconds?
 	// 6 seconds * 172 Hz = ~1032 samples.
@@ -619,16 +791,29 @@ void update(float gain)
 	tempogramR.resize(numBins); // Duplicate for display
 	for(int i=0; i<numBins; ++i) {
 		tempogramL[i].resize(numBlocks); // Store same resolution as flux
+=======
+	int winSize = 1024;
+
+	int numBins = maxBPM - minBPM;
+	tempogramL.resize(numBins);
+	tempogramR.resize(numBins);
+	for(int i=0; i<numBins; ++i) {
+		tempogramL[i].resize(numBlocks);
+>>>>>>> origin/feature-goto-quantize-insert
 		tempogramR[i].resize(numBlocks);
 	}
 
 	std::vector<float> window(winSize);
 
+<<<<<<< HEAD
 	// Pre-calculate lags for BPMs
+=======
+>>>>>>> origin/feature-goto-quantize-insert
 	std::vector<int> bpmLags(numBins);
 	for(int b=0; b<numBins; ++b) {
 		float bpm = (float)(minBPM + b);
 		float bps = bpm / 60.0f;
+<<<<<<< HEAD
 		// lag in samples = fluxRate / bps
 		bpmLags[b] = (int)(fluxRate / bps);
 	}
@@ -646,6 +831,15 @@ void update(float gain)
 		// Sliding window centered at i
 		int start = i - winSize / 2;
 		// Fill window, zero pad
+=======
+		bpmLags[b] = (int)(fluxRate / bps);
+	}
+
+	int step = 10;
+
+	for(int i=0; i<numBlocks; i+=step) {
+		int start = i - winSize / 2;
+>>>>>>> origin/feature-goto-quantize-insert
 		for(int k=0; k<winSize; ++k) {
 			int idx = start + k;
 			if (idx >= 0 && idx < numBlocks) window[k] = flux[idx];
@@ -689,6 +883,7 @@ void update(float gain)
 }; // WaveFilterTempogram.
 
 // ================================================================================================
+<<<<<<< HEAD
 // WaveFilterHPSS.
 
 // Harmonic-Percussive Source Separation
@@ -720,6 +915,26 @@ static uchar Median(std::vector<uchar>& v) {
 }
 
 void update(float gain)
+=======
+// WaveFilterSpectrogram.
+
+struct WaveFilterSpectrogram {
+
+struct SpectrogramData {
+	int width;
+	int height;
+	Vector<float> data;
+
+	float get(int t, int f) const { return data[t * height + f]; }
+	void set(int t, int f, float v) { data[t * height + f] = v; }
+	void resize(int w, int h) { width = w; height = h; data.resize(w * h); }
+};
+
+SpectrogramData spec[2];
+double samplesPerBlock;
+bool dirty = true;
+
+void update()
 {
 	if (!dirty) return;
 	auto& music = gMusic->getSamples();
@@ -735,15 +950,87 @@ void update(float gain)
 	int numBlocks = (numFrames - frameSize) / hopSize;
 	if (numBlocks <= 0) return;
 
+	std::vector<float> audioFrame(frameSize);
+
+	int numBins = frameSize / 2;
+
+	for(int channel=0; channel<2; ++channel) {
+		Gist<float> gist(frameSize, samplerate);
+		const short* samples = (channel == 0) ? music.samplesL() : music.samplesR();
+		spec[channel].resize(numBlocks, numBins);
+
+		for(int i=0; i<numBlocks; ++i) {
+			int start = i * hopSize;
+			for(int k=0; k<frameSize; ++k) audioFrame[k] = samples[start+k] / 32768.0f;
+			gist.processAudioFrame(audioFrame);
+			const auto& spectrum = gist.getMagnitudeSpectrum();
+			for(int f=0; f<numBins; ++f) {
+				spec[channel].set(i, f, spectrum[f]);
+			}
+		}
+	}
+
+	dirty = false;
+}
+
+}; // WaveFilterSpectrogram.
+
+// ================================================================================================
+// WaveFilterHPSS.
+
+// Harmonic-Percussive Source Separation
+struct WaveFilterHPSS {
+
+struct SpectrogramData {
+	int width; // numFrames (time)
+	int height; // numBins (freq)
+	Vector<float> data;
+
+	float get(int t, int f) const { return data[t * height + f]; }
+	void set(int t, int f, float v) { data[t * height + f] = v; }
+	void resize(int w, int h) { width = w; height = h; data.resize(w * h); }
+};
+
+SpectrogramData specP[2];
+SpectrogramData specH[2];
+double samplesPerBlock;
+bool dirty = true;
+
+void update()
+>>>>>>> origin/feature-goto-quantize-insert
+{
+	if (!dirty) return;
+	auto& music = gMusic->getSamples();
+	if (!music.isCompleted()) return;
+
+	int numFrames = music.getNumFrames();
+	int samplerate = music.getFrequency();
+
+	const int frameSize = 1024;
+	const int hopSize = 512;
+	samplesPerBlock = (double)hopSize;
+
+	int numBlocks = (numFrames - frameSize) / hopSize;
+	if (numBlocks <= 0) return;
+
+<<<<<<< HEAD
 	Gist<float> gist(frameSize, samplerate);
 	std::vector<float> audioFrame(frameSize);
 
 	// Temporary full float spectrogram for processing
 	// [time][freq]
+=======
+	std::vector<float> audioFrame(frameSize);
+
+>>>>>>> origin/feature-goto-quantize-insert
 	int numBins = frameSize / 2;
 	std::vector<std::vector<float>> S(numBlocks, std::vector<float>(numBins));
 
 	for(int channel=0; channel<2; ++channel) {
+<<<<<<< HEAD
+=======
+		Gist<float> gist(frameSize, samplerate);
+>>>>>>> origin/feature-goto-quantize-insert
 		const short* samples = (channel == 0) ? music.samplesL() : music.samplesR();
 
 		// 1. Compute Spectrogram
@@ -758,16 +1045,24 @@ void update(float gain)
 		}
 
 		// 2. Harmonic: Horizontal Median (Time)
+<<<<<<< HEAD
 		// Window size: ~0.2s. Hop 512 @ 44100 = 11ms. 0.2s = ~18 frames. Use 17.
 		int wH = 17;
 		int wP = 17; // Vertical Median (Freq). 17 bins * 43Hz = ~700Hz window.
+=======
+		int wH = 17;
+		int wP = 17;
+>>>>>>> origin/feature-goto-quantize-insert
 
 		specP[channel].resize(numBlocks, numBins);
 		specH[channel].resize(numBlocks, numBins);
 
+<<<<<<< HEAD
 		std::vector<uchar> buf;
 		buf.reserve(32);
 
+=======
+>>>>>>> origin/feature-goto-quantize-insert
 		for(int t=0; t<numBlocks; ++t) {
 			for(int f=0; f<numBins; ++f) {
 				float val = S[t][f];
@@ -794,10 +1089,13 @@ void update(float gain)
 				std::nth_element(winP.begin(), winP.begin()+nP, winP.end());
 				float P = winP[nP];
 
+<<<<<<< HEAD
 				// Masking (Soft or Binary)
 				// Soft mask: M_p = P^2 / (P^2 + H^2)
 				// Let's use simple Wiener-like masking
 				// P_component = S * (P / (P + H + epsilon))
+=======
+>>>>>>> origin/feature-goto-quantize-insert
 				float epsilon = 1e-6f;
 				float maskP = P / (P + H + epsilon);
 				float maskH = H / (P + H + epsilon);
@@ -805,12 +1103,17 @@ void update(float gain)
 				float valP = val * maskP;
 				float valH = val * maskH;
 
+<<<<<<< HEAD
 				// Log scale for display
 				valP = log10(1 + valP * gain) * 2.0f;
 				valH = log10(1 + valH * gain) * 2.0f;
 
 				specP[channel].set(t, f, (uchar)clamp(valP * 255.0f, 0.0f, 255.0f));
 				specH[channel].set(t, f, (uchar)clamp(valH * 255.0f, 0.0f, 255.0f));
+=======
+				specP[channel].set(t, f, valP);
+				specH[channel].set(t, f, valH);
+>>>>>>> origin/feature-goto-quantize-insert
 			}
 		}
 	}
@@ -836,6 +1139,10 @@ WaveFilterHPSS* waveformFilterHPSS_;
 WaveFilterChromagram* waveformFilterChromagram_;
 WaveFilterNovelty* waveformFilterNovelty_;
 WaveFilterTempogram* waveformFilterTempogram_;
+<<<<<<< HEAD
+=======
+WaveFilterSpectrogram* waveformFilterSpectrogram_;
+>>>>>>> origin/feature-goto-quantize-insert
 Vector<uchar> waveformTextureBuffer_;
 
 int waveformBlockWidth_, waveformSpacing_;
@@ -870,6 +1177,10 @@ bool m_showSpectrogram;
 	delete waveformFilterChromagram_;
 	delete waveformFilterNovelty_;
 	delete waveformFilterTempogram_;
+<<<<<<< HEAD
+=======
+	delete waveformFilterSpectrogram_;
+>>>>>>> origin/feature-goto-quantize-insert
 }
 
 WaveformImpl()
@@ -885,6 +1196,10 @@ WaveformImpl()
 	waveformFilterChromagram_ = new WaveFilterChromagram();
 	waveformFilterNovelty_ = new WaveFilterNovelty();
 	waveformFilterTempogram_ = new WaveFilterTempogram();
+<<<<<<< HEAD
+=======
+	waveformFilterSpectrogram_ = new WaveFilterSpectrogram();
+>>>>>>> origin/feature-goto-quantize-insert
 	waveformOverlayFilter_ = true;
 	waveformShowOnsets_ = false;
 	waveformOnsetThreshold_ = 0.3f;
@@ -1066,6 +1381,7 @@ void onChanges(int changes)
 		waveformFilterSpectral_->dirty = true;
 		waveformFilterPitch_->dirty = true;
 		waveformFilterCQT_->dirty = true;
+<<<<<<< HEAD
 		if(waveformColorMode_ == CM_RGB) waveformFilterRGB_->update(waveformRGBLow_, waveformRGBHigh_);
 		if(waveformColorMode_ == CM_SPECTRAL) waveformFilterSpectral_->update();
 		if(waveformColorMode_ == CM_PITCH) waveformFilterPitch_->update();
@@ -1074,6 +1390,18 @@ void onChanges(int changes)
 		if(waveformColorMode_ == CM_NOVELTY) waveformFilterNovelty_->update(waveformSpectrogramGain_);
 		if(waveformColorMode_ == CM_TEMPOGRAM) waveformFilterTempogram_->update(waveformSpectrogramGain_);
 		if(waveformColorMode_ == CM_PERCUSSION || waveformColorMode_ == CM_HARMONIC) waveformFilterHPSS_->update(waveformSpectrogramGain_);
+=======
+		waveformFilterSpectrogram_->dirty = true;
+		if(waveformColorMode_ == CM_RGB) waveformFilterRGB_->update(waveformRGBLow_, waveformRGBHigh_);
+		if(waveformColorMode_ == CM_SPECTRAL) waveformFilterSpectral_->update();
+		if(waveformColorMode_ == CM_PITCH) waveformFilterPitch_->update();
+		if(waveformColorMode_ == CM_SPECTROGRAM) waveformFilterSpectrogram_->update();
+		if(waveformColorMode_ == CM_CQT) waveformFilterCQT_->update();
+		if(waveformColorMode_ == CM_CHROMAGRAM) waveformFilterChromagram_->update();
+		if(waveformColorMode_ == CM_NOVELTY) waveformFilterNovelty_->update();
+		if(waveformColorMode_ == CM_TEMPOGRAM) waveformFilterTempogram_->update();
+		if(waveformColorMode_ == CM_PERCUSSION || waveformColorMode_ == CM_HARMONIC) waveformFilterHPSS_->update();
+>>>>>>> origin/feature-goto-quantize-insert
 
 		// Update onsets
 		updateOnsets();
@@ -1145,6 +1473,7 @@ void setColorMode(ColorMode mode)
 	else if (mode == CM_PITCH) {
 		waveformFilterPitch_->update();
 	}
+<<<<<<< HEAD
 	else if (mode == CM_CQT) {
 		waveformFilterCQT_->update(waveformSpectrogramGain_);
 	}
@@ -1159,6 +1488,25 @@ void setColorMode(ColorMode mode)
 	}
 	else if (mode == CM_PERCUSSION || mode == CM_HARMONIC) {
 		waveformFilterHPSS_->update(waveformSpectrogramGain_);
+=======
+	else if (mode == CM_SPECTROGRAM) {
+		waveformFilterSpectrogram_->update();
+	}
+	else if (mode == CM_CQT) {
+		waveformFilterCQT_->update();
+	}
+	else if (mode == CM_CHROMAGRAM) {
+		waveformFilterChromagram_->update();
+	}
+	else if (mode == CM_NOVELTY) {
+		waveformFilterNovelty_->update();
+	}
+	else if (mode == CM_TEMPOGRAM) {
+		waveformFilterTempogram_->update();
+	}
+	else if (mode == CM_PERCUSSION || mode == CM_HARMONIC) {
+		waveformFilterHPSS_->update();
+>>>>>>> origin/feature-goto-quantize-insert
 	}
 	clearBlocks();
 }
@@ -1351,7 +1699,13 @@ void edgeShapeSignedRGB(uchar* dst, const WaveEdge* edge, int w, int h, int chan
 	}
 }
 
+<<<<<<< HEAD
 void edgeShapeRectifiedSpectral(uchar* dst, const WaveEdge* edge, int w, int h, const WaveFilterSpectral::ColorPoint* colors)
+=======
+struct RgbColor { uchar r, g, b; };
+
+void edgeShapeRectifiedSpectral(uchar* dst, const WaveEdge* edge, int w, int h, const RgbColor* colors)
+>>>>>>> origin/feature-goto-quantize-insert
 {
 	int cx = w / 2;
 	for(int y = 0; y < h; ++y, dst += w * 4, ++edge)
@@ -1370,7 +1724,11 @@ void edgeShapeRectifiedSpectral(uchar* dst, const WaveEdge* edge, int w, int h, 
 	}
 }
 
+<<<<<<< HEAD
 void edgeShapeSignedSpectral(uchar* dst, const WaveEdge* edge, int w, int h, const WaveFilterSpectral::ColorPoint* colors)
+=======
+void edgeShapeSignedSpectral(uchar* dst, const WaveEdge* edge, int w, int h, const RgbColor* colors)
+>>>>>>> origin/feature-goto-quantize-insert
 {
 	int cx = w / 2;
 	for(int y = 0; y < h; ++y, dst += w * 4, ++edge)
@@ -1690,6 +2048,7 @@ void renderWaveformSpectrogram(Texture* textures, WaveEdge* edgeBuf, int w, int 
 	double samplesPerBlock = (double)TEX_H * samplesPerPixel;
 	int64_t samplePos = max((int64_t)0, (int64_t)(samplesPerBlock * (double)blockId));
 
+<<<<<<< HEAD
 	// We use Gist for each column (line) of the texture
 	const int frameSize = 1024;
 	Gist<float> gist(frameSize, music.getFrequency());
@@ -1720,17 +2079,26 @@ void renderWaveformSpectrogram(Texture* textures, WaveEdge* edgeBuf, int w, int 
 
 	// So for each row y (Time), we compute FFT.
 	// Then we map Frequency bins to columns x.
+=======
+	double advance = samplesPerPixel * TEX_H / h;
+>>>>>>> origin/feature-goto-quantize-insert
 
 	memset(texBuf, 0, w * h * 4);
 
 	for(int channel = 0; channel < 2; ++channel)
 	{
+<<<<<<< HEAD
 		const short* samples = (channel == 0) ? music.samplesL() : music.samplesR();
 		int64_t totalFrames = music.getNumFrames();
+=======
+		const auto& spec = waveformFilterSpectrogram_->spec[channel];
+		if (spec.width == 0) continue;
+>>>>>>> origin/feature-goto-quantize-insert
 
 		for(int y = 0; y < h; ++y)
 		{
 			int64_t currentSample = samplePos + (int64_t)(y * advance);
+<<<<<<< HEAD
 			if (currentSample >= totalFrames) break;
 
 			// Extract frame centered at currentSample
@@ -1783,11 +2151,33 @@ void renderWaveformSpectrogram(Texture* textures, WaveEdge* edgeBuf, int w, int 
 				uchar intensity = (uchar)(val * 255);
 
 				// Magma-like colormap (Black -> Red -> Yellow -> White)
+=======
+			int t = (int)(currentSample / waveformFilterSpectrogram_->samplesPerBlock);
+			if (t < 0 || t >= spec.width) continue;
+
+			int cx = w / 2;
+			int numBins = spec.height;
+
+			for(int x = 0; x < cx; ++x)
+			{
+				float u = (float)x / cx;
+				int bin = (int)(u * u * numBins);
+				bin = clamp(bin, 0, numBins-1);
+
+				float val = spec.get(t, bin);
+				val = log10(1 + val * waveformSpectrogramGain_) * 2.0f;
+				val = clamp(val, 0.0f, 1.0f);
+				uchar intensity = (uchar)(val * 255);
+
+>>>>>>> origin/feature-goto-quantize-insert
 				uchar r = intensity;
 				uchar g = (intensity > 128) ? (intensity - 128) * 2 : 0;
 				uchar b = (intensity > 192) ? (intensity - 192) * 4 : 0;
 
+<<<<<<< HEAD
 				// Mirror
+=======
+>>>>>>> origin/feature-goto-quantize-insert
 				int l = cx - 1 - x;
 				int r_pos = cx + x;
 
@@ -1795,10 +2185,14 @@ void renderWaveformSpectrogram(Texture* textures, WaveEdge* edgeBuf, int w, int 
 					texBuf[(y * w + l) * 4 + 0] = r;
 					texBuf[(y * w + l) * 4 + 1] = g;
 					texBuf[(y * w + l) * 4 + 2] = b;
+<<<<<<< HEAD
 					texBuf[(y * w + l) * 4 + 3] = intensity; // Use intensity as alpha? Or full opaque?
 					// Standard waveform uses alpha for shape.
 					// If we use full opaque, we fill the box.
 					// Let's use intensity as alpha to blend with background.
+=======
+					texBuf[(y * w + l) * 4 + 3] = intensity;
+>>>>>>> origin/feature-goto-quantize-insert
 				}
 				if(r_pos < w) {
 					texBuf[(y * w + r_pos) * 4 + 0] = r;
@@ -1809,7 +2203,10 @@ void renderWaveformSpectrogram(Texture* textures, WaveEdge* edgeBuf, int w, int 
 			}
 		}
 
+<<<<<<< HEAD
 		// Apply anti-aliasing
+=======
+>>>>>>> origin/feature-goto-quantize-insert
 		switch (waveformAntiAliasingMode_) {
 		case 1: antiAlias2xRGB(texBuf, w, h); break;
 		case 2: antiAlias3xRGB(texBuf, w, h); break;
@@ -1858,14 +2255,25 @@ void renderWaveformChromagram(Texture* textures, WaveEdge* edgeBuf, int w, int h
 				int bin = (int)(t * 12);
 				bin = clamp(bin, 0, 11);
 
+<<<<<<< HEAD
 				uchar intensity = chroma[bin][blockIndex];
+=======
+				float val = chroma[bin][blockIndex];
+				val = log10(1 + val * waveformSpectrogramGain_) * 2.0f;
+				val = clamp(val, 0.0f, 1.0f);
+				uchar intensity = (uchar)(val * 255);
+>>>>>>> origin/feature-goto-quantize-insert
 
 				// Map bin to hue (Circle of Fifths or Chromatic?)
 				// Chromatic: C=Red, C#=Orange...
 				float hue = bin * 30.0f; // 360 / 12
 
 				float s = 0.8f;
+<<<<<<< HEAD
 				float v = intensity / 255.0f;
+=======
+				float v = val;
+>>>>>>> origin/feature-goto-quantize-insert
 
 				float c = v * s;
 				float hh = hue / 60.0f;
@@ -1943,10 +2351,20 @@ void renderWaveformNovelty(Texture* textures, WaveEdge* edgeBuf, int w, int h, i
 			if (blockIndex < 0 || blockIndex >= numBlocks) continue;
 
 			int cx = w / 2;
+<<<<<<< HEAD
 			uchar intensity = flux[blockIndex];
 
 			// Draw flux as a solid block width proportional to intensity
 			int width = (int)(intensity / 255.0f * cx);
+=======
+			float val = flux[blockIndex];
+			val = log10(1 + val * waveformSpectrogramGain_) * 2.0f;
+			val = clamp(val, 0.0f, 1.0f);
+			uchar intensity = (uchar)(val * 255);
+
+			// Draw flux as a solid block width proportional to intensity
+			int width = (int)(val * cx);
+>>>>>>> origin/feature-goto-quantize-insert
 
 			for(int x = 0; x < cx; ++x)
 			{
@@ -2159,17 +2577,41 @@ void renderWaveformNovelty(Texture* textures, WaveEdge* edgeBuf, int w, int h, i
 	}
 }
 
+<<<<<<< HEAD
 void renderWaveformColored(Texture* textures, WaveEdge* edgeBuf, int w, int h, int blockId, FilterType* filter)
 {
 	// Similar to standard render, but we pass a color buffer to the shape function
 	uchar* texBuf = waveformTextureBuffer_.begin();
 
+=======
+RgbColor MapSpectral(float centroid) {
+	float normalizedFreq = clamp(centroid / 5000.0f, 0.0f, 1.0f);
+	float h = normalizedFreq * 280.0f;
+	float s = 0.8f, v = 1.0f;
+	float c = v * s;
+	float x = c * (1 - fabs(fmod(h / 60.0f, 2) - 1));
+	float m = v - c;
+	float r=0, g=0, b=0;
+	if (h < 60) { r=c; g=x; b=0; }
+	else if (h < 120) { r=x; g=c; b=0; }
+	else if (h < 180) { r=0; g=c; b=x; }
+	else if (h < 240) { r=0; g=x; b=c; }
+	else if (h < 300) { r=x; g=0; b=c; }
+	else { r=c; g=0; b=x; }
+	return { (uchar)((r+m)*255), (uchar)((g+m)*255), (uchar)((b+m)*255) };
+}
+
+void renderWaveformSpectral(Texture* textures, WaveEdge* edgeBuf, int w, int h, int blockId)
+{
+	uchar* texBuf = waveformTextureBuffer_.begin();
+>>>>>>> origin/feature-goto-quantize-insert
 	auto& music = gMusic->getSamples();
 	double samplesPerSec = (double)music.getFrequency();
 	double samplesPerPixel = samplesPerSec / fabs(gView->getPixPerSec());
 	double samplesPerBlock = (double)TEX_H * samplesPerPixel;
 	int64_t samplePos = max((int64_t)0, (int64_t)(samplesPerBlock * (double)blockId));
 
+<<<<<<< HEAD
 	// Collect colors for this block
 	// We need to sample the color array at the same rate as the pixels (lines)
 	Vector<WaveFilterSpectral::ColorPoint> blockColors;
@@ -2212,15 +2654,104 @@ void renderWaveformColored(Texture* textures, WaveEdge* edgeBuf, int w, int h, i
 		}
 
 		// Anti-alias
+=======
+	Vector<RgbColor> blockColors(h);
+	for(int channel = 0; channel < 2; ++channel)
+	{
+		const auto& srcValues = (channel==0) ? waveformFilterSpectral_->centroidsL : waveformFilterSpectral_->centroidsR;
+		if (samplePos < srcValues.size()) {
+			double advance = samplesPerPixel * TEX_H / h;
+			for(int y=0; y<h; ++y) {
+				int idx = (int)(samplePos + y * advance);
+				if (idx < srcValues.size()) blockColors[y] = MapSpectral(srcValues[idx]);
+				else blockColors[y] = {255, 255, 255};
+			}
+		} else {
+			for(int y=0; y<h; ++y) blockColors[y] = {255, 255, 255};
+		}
+		memset(texBuf, 0, w * h * 4);
+		sampleEdges(edgeBuf, w, h, channel, blockId, false);
+		if (waveformLuminance_ == LL_UNIFORM) edgeLumUniform(edgeBuf, h);
+		else if (waveformLuminance_ == LL_AMPLITUDE) edgeLumAmplitude(edgeBuf, w, h);
+
+		if (waveformShape_ == WS_RECTIFIED) edgeShapeRectifiedSpectral(texBuf, edgeBuf, w, h, blockColors.begin());
+		else if (waveformShape_ == WS_SIGNED) edgeShapeSignedSpectral(texBuf, edgeBuf, w, h, blockColors.begin());
+
+>>>>>>> origin/feature-goto-quantize-insert
 		switch (waveformAntiAliasingMode_) {
 		case 1: antiAlias2xRGB(texBuf, w, h); break;
 		case 2: antiAlias3xRGB(texBuf, w, h); break;
 		case 3: antiAlias4xRGB(texBuf, w, h); break;
 		}
+<<<<<<< HEAD
 
 		if (!textures[channel].handle() || textures[channel].format() != Texture::RGBA) {
 			textures[channel] = Texture(TEX_W, TEX_H, Texture::RGBA);
 		}
+=======
+		if (!textures[channel].handle() || textures[channel].format() != Texture::RGBA) textures[channel] = Texture(TEX_W, TEX_H, Texture::RGBA);
+		textures[channel].modify(0, 0, waveformBlockWidth_, TEX_H, texBuf);
+	}
+}
+
+RgbColor MapPitch(float pitch) {
+	if (pitch <= 20.0f) return {255, 255, 255};
+	float midiNote = 69.0f + 12.0f * log2(pitch / 440.0f);
+	float chroma = fmod(midiNote, 12.0f);
+	if (chroma < 0) chroma += 12.0f;
+	float h = chroma * 30.0f;
+	float s = 0.8f, v = 1.0f;
+	float c = v * s;
+	float x = c * (1 - fabs(fmod(h / 60.0f, 2) - 1));
+	float m = v - c;
+	float r=0, g=0, b=0;
+	if (h < 60) { r=c; g=x; b=0; }
+	else if (h < 120) { r=x; g=c; b=0; }
+	else if (h < 180) { r=0; g=c; b=x; }
+	else if (h < 240) { r=0; g=x; b=c; }
+	else if (h < 300) { r=x; g=0; b=c; }
+	else { r=c; g=0; b=x; }
+	return { (uchar)((r+m)*255), (uchar)((g+m)*255), (uchar)((b+m)*255) };
+}
+
+void renderWaveformPitch(Texture* textures, WaveEdge* edgeBuf, int w, int h, int blockId)
+{
+	uchar* texBuf = waveformTextureBuffer_.begin();
+	auto& music = gMusic->getSamples();
+	double samplesPerSec = (double)music.getFrequency();
+	double samplesPerPixel = samplesPerSec / fabs(gView->getPixPerSec());
+	double samplesPerBlock = (double)TEX_H * samplesPerPixel;
+	int64_t samplePos = max((int64_t)0, (int64_t)(samplesPerBlock * (double)blockId));
+
+	Vector<RgbColor> blockColors(h);
+	for(int channel = 0; channel < 2; ++channel)
+	{
+		const auto& srcValues = (channel==0) ? waveformFilterPitch_->pitchL : waveformFilterPitch_->pitchR;
+		if (samplePos < srcValues.size()) {
+			double advance = samplesPerPixel * TEX_H / h;
+			for(int y=0; y<h; ++y) {
+				int idx = (int)(samplePos + y * advance);
+				if (idx < srcValues.size()) blockColors[y] = MapPitch(srcValues[idx]);
+				else blockColors[y] = {255, 255, 255};
+			}
+		} else {
+			for(int y=0; y<h; ++y) blockColors[y] = {255, 255, 255};
+		}
+		memset(texBuf, 0, w * h * 4);
+		sampleEdges(edgeBuf, w, h, channel, blockId, false);
+		if (waveformLuminance_ == LL_UNIFORM) edgeLumUniform(edgeBuf, h);
+		else if (waveformLuminance_ == LL_AMPLITUDE) edgeLumAmplitude(edgeBuf, w, h);
+
+		if (waveformShape_ == WS_RECTIFIED) edgeShapeRectifiedSpectral(texBuf, edgeBuf, w, h, blockColors.begin());
+		else if (waveformShape_ == WS_SIGNED) edgeShapeSignedSpectral(texBuf, edgeBuf, w, h, blockColors.begin());
+
+		switch (waveformAntiAliasingMode_) {
+		case 1: antiAlias2xRGB(texBuf, w, h); break;
+		case 2: antiAlias3xRGB(texBuf, w, h); break;
+		case 3: antiAlias4xRGB(texBuf, w, h); break;
+		}
+		if (!textures[channel].handle() || textures[channel].format() != Texture::RGBA) textures[channel] = Texture(TEX_W, TEX_H, Texture::RGBA);
+>>>>>>> origin/feature-goto-quantize-insert
 		textures[channel].modify(0, 0, waveformBlockWidth_, TEX_H, texBuf);
 	}
 }
@@ -2245,8 +2776,13 @@ void renderWaveformCQT(Texture* textures, WaveEdge* edgeBuf, int w, int h, int b
 
 	for(int channel = 0; channel < 2; ++channel)
 	{
+<<<<<<< HEAD
 		const auto& intensities = (channel == 0) ? waveformFilterCQT_->intensitiesL : waveformFilterCQT_->intensitiesR;
 		int numBlocks = intensities.empty() ? 0 : intensities[0].size();
+=======
+		const auto& spectrum = (channel == 0) ? waveformFilterCQT_->spectrumL : waveformFilterCQT_->spectrumR;
+		int numBlocks = spectrum.empty() ? 0 : spectrum[0].size();
+>>>>>>> origin/feature-goto-quantize-insert
 
 		for(int y = 0; y < h; ++y)
 		{
@@ -2267,13 +2803,24 @@ void renderWaveformCQT(Texture* textures, WaveEdge* edgeBuf, int w, int h, int b
 				int noteIdx = note - minNote;
 				if (noteIdx >= numNotes) continue;
 
+<<<<<<< HEAD
 				uchar intensity = intensities[noteIdx][blockIndex];
+=======
+				float val = spectrum[noteIdx][blockIndex];
+				val = log10(1 + val * waveformSpectrogramGain_) * 2.0f;
+				val = clamp(val, 0.0f, 1.0f);
+				uchar intensity = (uchar)(val * 255);
+>>>>>>> origin/feature-goto-quantize-insert
 
 				float chroma = fmod(noteFloat, 12.0f);
 				float hue = chroma * 30.0f;
 
 				float s = 0.8f;
+<<<<<<< HEAD
 				float v = intensity / 255.0f;
+=======
+				float v = val;
+>>>>>>> origin/feature-goto-quantize-insert
 
 				float c = v * s;
 				float hh = hue / 60.0f;
@@ -2404,7 +2951,14 @@ void renderWaveformTempogram(Texture* textures, WaveEdge* edgeBuf, int w, int h,
 				int bin = (int)(t * numBins);
 				bin = clamp(bin, 0, numBins-1);
 
+<<<<<<< HEAD
 				uchar intensity = tempogram[bin][blockIndex];
+=======
+				float val = tempogram[bin][blockIndex];
+				val *= waveformSpectrogramGain_ / 50.0f;
+				val = clamp(val, 0.0f, 1.0f);
+				uchar intensity = (uchar)(val * 255);
+>>>>>>> origin/feature-goto-quantize-insert
 
 				// Heatmap: Blue->Red->Yellow
 				uchar r, g, b;
@@ -2487,7 +3041,14 @@ void renderWaveformHPSS(Texture* textures, WaveEdge* edgeBuf, int w, int h, int 
 				int bin = (int)(u * u * numBins);
 				bin = clamp(bin, 0, numBins-1);
 
+<<<<<<< HEAD
 				uchar intensity = spec.get(t, bin);
+=======
+				float val = spec.get(t, bin);
+				val = log10(1 + val * waveformSpectrogramGain_) * 2.0f;
+				val = clamp(val, 0.0f, 1.0f);
+				uchar intensity = (uchar)(val * 255);
+>>>>>>> origin/feature-goto-quantize-insert
 
 				// Color map
 				// Harmonic: Blue/Greenish? Percussive: Red/Orange?
@@ -2555,46 +3116,82 @@ void renderBlock(WaveBlock* block)
 	else if(waveformColorMode_ == CM_SPECTRAL)
 	{
 		waveformFilterSpectral_->update();
+<<<<<<< HEAD
 		renderWaveformColored(block->tex, edges.begin(), w, h, block->id, waveformFilterSpectral_);
 	}
 	else if(waveformColorMode_ == CM_SPECTROGRAM)
 	{
 		waveformFilterSpectral_->update();
+=======
+		renderWaveformSpectral(block->tex, edges.begin(), w, h, block->id);
+	}
+	else if(waveformColorMode_ == CM_SPECTROGRAM)
+	{
+		waveformFilterSpectrogram_->update();
+>>>>>>> origin/feature-goto-quantize-insert
 		renderWaveformSpectrogram(block->tex, edges.begin(), w, h, block->id);
 	}
 	else if(waveformColorMode_ == CM_PITCH)
 	{
 		waveformFilterPitch_->update();
+<<<<<<< HEAD
 		renderWaveformColored(block->tex, edges.begin(), w, h, block->id, waveformFilterPitch_);
 	}
 	else if(waveformColorMode_ == CM_CQT)
 	{
 		waveformFilterCQT_->update(waveformSpectrogramGain_);
+=======
+		renderWaveformPitch(block->tex, edges.begin(), w, h, block->id);
+	}
+	else if(waveformColorMode_ == CM_CQT)
+	{
+		waveformFilterCQT_->update();
+>>>>>>> origin/feature-goto-quantize-insert
 		renderWaveformCQT(block->tex, edges.begin(), w, h, block->id);
 	}
 	else if(waveformColorMode_ == CM_CHROMAGRAM)
 	{
+<<<<<<< HEAD
 		waveformFilterChromagram_->update(waveformSpectrogramGain_);
+=======
+		waveformFilterChromagram_->update();
+>>>>>>> origin/feature-goto-quantize-insert
 		renderWaveformChromagram(block->tex, edges.begin(), w, h, block->id);
 	}
 	else if(waveformColorMode_ == CM_NOVELTY)
 	{
+<<<<<<< HEAD
 		waveformFilterNovelty_->update(waveformSpectrogramGain_);
+=======
+		waveformFilterNovelty_->update();
+>>>>>>> origin/feature-goto-quantize-insert
 		renderWaveformNovelty(block->tex, edges.begin(), w, h, block->id);
 	}
 	else if(waveformColorMode_ == CM_TEMPOGRAM)
 	{
+<<<<<<< HEAD
 		waveformFilterTempogram_->update(waveformSpectrogramGain_);
+=======
+		waveformFilterTempogram_->update();
+>>>>>>> origin/feature-goto-quantize-insert
 		renderWaveformTempogram(block->tex, edges.begin(), w, h, block->id);
 	}
 	else if(waveformColorMode_ == CM_PERCUSSION)
 	{
+<<<<<<< HEAD
 		waveformFilterHPSS_->update(waveformSpectrogramGain_);
+=======
+		waveformFilterHPSS_->update();
+>>>>>>> origin/feature-goto-quantize-insert
 		renderWaveformHPSS(block->tex, edges.begin(), w, h, block->id, false);
 	}
 	else if(waveformColorMode_ == CM_HARMONIC)
 	{
+<<<<<<< HEAD
 		waveformFilterHPSS_->update(waveformSpectrogramGain_);
+=======
+		waveformFilterHPSS_->update();
+>>>>>>> origin/feature-goto-quantize-insert
 		renderWaveformHPSS(block->tex, edges.begin(), w, h, block->id, true);
 	}
 	else if(waveformFilter_)

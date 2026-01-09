@@ -26,8 +26,13 @@ private:
 	void onSetBeat();
 	void onSelectLine(int index);
 	void onSelectLineWrapper() { onSelectLine(mySelectedIndex); }
+<<<<<<< HEAD
 	void onFileChange(String& val);
 	void onRateChange(double val);
+=======
+	void onFileChange();
+	void onRateChange();
+>>>>>>> origin/feature-goto-quantize-insert
 	void onBrowseFile();
 
 	void onLayerChanged(int layer);
@@ -38,6 +43,11 @@ private:
 	WgCycleButton* myLayerCycle; // Layer 1, Layer 2, Foreground
 
 	int mySelectedIndex;
+<<<<<<< HEAD
+=======
+	String myCurrentFile;
+	double myCurrentRate;
+>>>>>>> origin/feature-goto-quantize-insert
 	int myCurrentLayer; // 0=BG1, 1=BG2, 2=FG
 	Vector<BgChange> myChanges;
 };

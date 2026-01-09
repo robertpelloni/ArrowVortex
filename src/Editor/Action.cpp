@@ -1,4 +1,4 @@
-﻿#include <Editor/Action.h>
+#include <Editor/Action.h>
 
 #include <System/System.h>
 
@@ -18,12 +18,15 @@
 #include <Editor/StructureAnalyzer.h>
 #include <Editor/FindTempo.h>
 #include <Editor/FindOnsets.h>
+#include <Editor/AnalyzeKey.h>
 #include <Simfile/NoteList.h>
 
 #include <vector>
 #include <algorithm>
 #include <thread>
 #include <chrono>
+#include <atomic>
+#include <mutex>
 
 #include <Managers/MetadataMan.h>
 #include <Managers/NoteskinMan.h>
@@ -40,6 +43,177 @@
 #include <Core/Widgets.h>
 
 namespace Vortex {
+
+namespace {
+
+struct AsyncDetector
+{
+	std::thread worker;
+	std::atomic<bool> finished;
+	TempoDetector* detector;
+	bool success;
+	// Context for applying result
+	enum Type { SONG, SECTIONS, SELECTION };
+	Type type;
+	int startRow; // For selection/section
+	// Result data copy
+	std::vector<TempoResult> results;
+	// For SECTIONS:
+	std::vector<BpmChange> sectionResults;
+	// Input for SECTIONS:
+	std::vector<double> sectionTimes;
+	std::vector<int> sectionRows;
+
+	AsyncDetector() : finished(false), detector(nullptr), success(false), type(SONG), startRow(0) {}
+
+	~AsyncDetector() {
+		if (worker.joinable()) worker.join();
+		delete detector;
+	}
+};
+
+std::vector<AsyncDetector*> activeDetectors;
+std::mutex detectorMutex;
+
+void StartAsyncDetection(double startTime, double length, AsyncDetector::Type type, int startRow)
+{
+	AsyncDetector* ad = new AsyncDetector();
+	ad->type = type;
+	ad->startRow = startRow;
+
+	// Start thread to detect
+	ad->worker = std::thread([ad, startTime, length]() {
+		ad->detector = TempoDetector::New(startTime, length);
+		if (ad->detector) {
+			int timeout = 1000; // 10 seconds
+			while (!ad->detector->hasResult() && timeout > 0) {
+				std::this_thread::sleep_for(std::chrono::milliseconds(10));
+				timeout--;
+			}
+			if (ad->detector->hasResult()) {
+				ad->results = ad->detector->getResult();
+				ad->success = !ad->results.empty();
+			}
+		}
+		ad->finished = true;
+	});
+
+	std::lock_guard<std::mutex> lock(detectorMutex);
+	activeDetectors.push_back(ad);
+	HudNote("Analyzing audio...");
+}
+
+void StartAsyncSectionSync(const std::vector<int>& sectionRows, const std::vector<double>& sectionTimes)
+{
+	AsyncDetector* ad = new AsyncDetector();
+	ad->type = AsyncDetector::SECTIONS;
+	ad->sectionRows = sectionRows;
+	ad->sectionTimes = sectionTimes;
+
+	ad->worker = std::thread([ad]() {
+		int count = 0;
+		for (size_t i = 0; i < ad->sectionRows.size(); ++i) {
+			if (i + 1 >= ad->sectionRows.size()) break; // Need pairs
+			int r1 = ad->sectionRows[i];
+			//int r2 = ad->sectionRows[i+1]; // Only need time
+			double t1 = ad->sectionTimes[i];
+			double t2 = ad->sectionTimes[i+1];
+			double dur = t2 - t1;
+
+			if (dur < 2.0) continue;
+
+			auto detector = TempoDetector::New(t1, dur);
+			if (detector) {
+				int timeout = 200; // 2 seconds per section
+				while (!detector->hasResult() && timeout > 0) {
+					std::this_thread::sleep_for(std::chrono::milliseconds(10));
+					timeout--;
+				}
+				if (detector->hasResult()) {
+					auto res = detector->getResult();
+					if (!res.empty()) {
+						ad->sectionResults.push_back(BpmChange(r1, res[0].bpm));
+						count++;
+					}
+				}
+				delete detector;
+			}
+		}
+		ad->success = (count > 0);
+		ad->finished = true;
+	});
+
+	std::lock_guard<std::mutex> lock(detectorMutex);
+	activeDetectors.push_back(ad);
+	HudNote("Analyzing sections...");
+}
+
+} // namespace
+
+void Action::tick()
+{
+	std::lock_guard<std::mutex> lock(detectorMutex);
+	for (auto it = activeDetectors.begin(); it != activeDetectors.end();) {
+		AsyncDetector* ad = *it;
+		if (ad->finished) {
+			if (ad->worker.joinable()) ad->worker.join();
+
+			if (ad->success) {
+				if (ad->type == AsyncDetector::SONG) {
+					if (!ad->results.empty()) {
+						double bpm = ad->results[0].bpm;
+						double offset = -ad->results[0].offset;
+						Str::fmt msg("Detected BPM: %.3f, Offset: %.3f. Apply (Replace All)?");
+						msg.arg(bpm).arg(offset);
+						int res = gSystem->showMessageDlg("Auto Sync", msg, System::T_YES_NO, System::I_INFO);
+						if (res == System::R_YES) {
+							gHistory->startChain();
+							const auto* segs = gTempo->getSegments();
+							if (segs) {
+								SegmentEdit clearEdit;
+								for (auto& list : *segs) {
+									for (const auto& s : list) {
+										clearEdit.rem.append(list.type(), s.row);
+									}
+								}
+								gTempo->modify(clearEdit);
+							}
+							gTempo->setOffset(offset);
+							gTempo->addSegment(BpmChange(0, bpm));
+							gHistory->finishChain("Auto Sync Song");
+						}
+					} else { HudError("Detection failed."); }
+				} else if (ad->type == AsyncDetector::SELECTION) {
+					if (!ad->results.empty()) {
+						double bpm = ad->results[0].bpm;
+						Str::fmt msg("Estimated BPM: %.3f. Apply at row %d?");
+						msg.arg(bpm).arg(ad->startRow);
+						int res = gSystem->showMessageDlg("BPM Estimation", msg, System::T_YES_NO, System::I_INFO);
+						if (res == System::R_YES) {
+							gTempo->addSegment(BpmChange(ad->startRow, bpm));
+						}
+					} else { HudError("Detection failed."); }
+				} else if (ad->type == AsyncDetector::SECTIONS) {
+					if (!ad->sectionResults.empty()) {
+						gHistory->startChain();
+						for (const auto& bpm : ad->sectionResults) {
+							gTempo->addSegment(bpm);
+						}
+						gHistory->finishChain("Auto-Sync Sections");
+						HudNote("Applied %d BPM changes based on sections.", ad->sectionResults.size());
+					} else { HudError("No sections detected or analyzed."); }
+				}
+			} else {
+				HudError("Detection failed or timed out.");
+			}
+
+			delete ad;
+			it = activeDetectors.erase(it);
+		} else {
+			++it;
+		}
+	}
+}
 
 void Action::perform(Type action)
 {
@@ -99,10 +273,13 @@ void Action::perform(Type action)
 		gEditor->openDialog(DIALOG_BG_CHANGES);
 	CASE(OPEN_DIALOG_PREFERENCES)
 		gEditor->openDialog(DIALOG_PREFERENCES);
+<<<<<<< HEAD
 	CASE(OPEN_DIALOG_BATCH_DDC)
 		gEditor->openDialog(DIALOG_BATCH_DDC);
 	CASE(OPEN_DIALOG_THEME_EDITOR)
 		gEditor->openDialog(DIALOG_THEME_EDITOR);
+=======
+>>>>>>> origin/feature-goto-quantize-insert
 
 	CASE(EDIT_UNDO)
 		gSystem->getEvents().addKeyPress(Key::Z, Keyflag::CTRL, false);
@@ -141,6 +318,16 @@ void Action::perform(Type action)
 		gEditing->toggleTimeBasedCopy();
 	CASE(TOGGLE_RECORD_MODE)
 		gEditing->toggleRecordMode();
+<<<<<<< HEAD
+=======
+	CASE(TOGGLE_PRACTICE_MODE)
+		{
+			bool enabled = !gEditor->isPracticeMode();
+			gEditor->setPracticeMode(enabled);
+			HudNote("Practice Mode: %s", enabled ? "ON" : "OFF");
+			gMenubar->update(Menubar::USE_PRACTICE_MODE);
+		}
+>>>>>>> origin/feature-goto-quantize-insert
 
 	CASE(SET_VISUAL_SYNC_CURSOR_ANCHOR)
 		gEditing->setVisualSyncAnchor(Editing::VisualSyncAnchor::CURSOR);
@@ -354,6 +541,8 @@ void Action::perform(Type action)
 		gMinimap->setMode(Minimap::NOTES);
 	CASE(MINIMAP_SET_DENSITY)
 		gMinimap->setMode(Minimap::DENSITY);
+	CASE(MINIMAP_SET_WAVEFORM)
+		gMinimap->setMode(Minimap::WAVEFORM);
 
 	CASE(BACKGROUND_HIDE)
 		gNotefield->setBgAlpha(0);
@@ -534,6 +723,7 @@ void Action::perform(Type action)
 			} else {
 				double start = gTempo->rowToTime(region.beginRow);
 				double end = gTempo->rowToTime(region.endRow);
+<<<<<<< HEAD
 				auto detector = TempoDetector::New(start, end - start);
 				if(detector) {
 					int timeout = 500; // 5 seconds
@@ -559,6 +749,9 @@ void Action::perform(Type action)
 					}
 					delete detector;
 				}
+=======
+				StartAsyncDetection(start, end - start, AsyncDetector::SELECTION, region.beginRow);
+>>>>>>> origin/feature-goto-quantize-insert
 			}
 		}
 
@@ -568,6 +761,7 @@ void Action::perform(Type action)
 			if (!music.isCompleted()) {
 				HudError("Music not loaded.");
 			} else {
+<<<<<<< HEAD
 				auto detector = TempoDetector::New(0, gMusic->getSongLength());
 				if (detector) {
 					int timeout = 1000; // 10 seconds
@@ -626,6 +820,9 @@ void Action::perform(Type action)
 					}
 					delete detector;
 				}
+=======
+				StartAsyncDetection(0, gMusic->getSongLength(), AsyncDetector::SONG, 0);
+>>>>>>> origin/feature-goto-quantize-insert
 			}
 		}
 
@@ -684,12 +881,17 @@ void Action::perform(Type action)
 					break;
 				}
 
+<<<<<<< HEAD
 				Str::fmt msg("Quantize notes in range [%d, %d] to audio?");
+=======
+				Str::fmt msg("Quantize beats in range [%d, %d] to audio?");
+>>>>>>> origin/feature-goto-quantize-insert
 				msg.arg(startRow).arg(endRow);
 				int res = gSystem->showMessageDlg("Quantize to Audio", msg, System::T_YES_NO, System::I_INFO);
 				if (res != System::R_YES) break;
 
 				int samplerate = music.getFrequency();
+<<<<<<< HEAD
 				double window = 0.05; // 50ms window
 
 				NoteEdit edit;
@@ -735,6 +937,67 @@ void Action::perform(Type action)
 				} else {
 					HudNote("No notes needed quantization.");
 				}
+=======
+
+				// Iterate beats
+				int count = 0;
+				// Use a threshold window (e.g. 100ms)
+				double window = 0.1;
+
+				// Use current snap settings
+				int step = gView->getSnapQuant();
+				if (step <= 0) step = ROWS_PER_BEAT;
+
+				// Note: moveBeat(ripple=true) changes the timing of subsequent rows.
+				// So we must recalculate row time in each iteration.
+				// Also, we should probably iterate from Left to Right.
+
+				gHistory->startChain();
+
+				for (int row = startRow; row <= endRow; row += step) {
+					double currentTime = gTempo->rowToTime(row);
+
+					// Find closest onset
+					double minDiff = window;
+					double bestTime = -1.0;
+
+					// Binary search or linear scan (linear is fine for onsets vector)
+					// Optimization: maintain index
+					for(const auto& onset : onsets) {
+						double t = (double)onset.pos / samplerate;
+						double diff = abs(t - currentTime);
+						if (diff < minDiff) {
+							minDiff = diff;
+							bestTime = t;
+						}
+						if (t > currentTime + window) break;
+					}
+
+					if (bestTime > 0.0) {
+						// Found match.
+						// Apply ripple move.
+						// But wait, if we ripple move beat N, beat N+1 moves too.
+						// If beat N+1 was already aligned, it might move out of alignment?
+						// No, if we process left to right:
+						// 1. Align beat 1 -> shifts beats 2,3,4...
+						// 2. Beat 2 is now at new position. Check its alignment.
+						// 3. Align beat 2 -> shifts beats 3,4...
+						// This is correct. It propagates the "drift correction".
+
+						gTempo->moveBeat(row, bestTime, true);
+
+						// IMPORTANT: Insert a BPM anchor at this row.
+						// Otherwise, when we adjust the NEXT beat, we will be modifying
+						// the SAME BPM segment (starting from previous anchor), which
+						// will undo the alignment we just did for THIS beat.
+						gTempo->injectBoundingBpmChange(row);
+
+						count++;
+					}
+				}
+				gHistory->finishChain("Quantize to Audio");
+				HudNote("Quantized %d beats.", count);
+>>>>>>> origin/feature-goto-quantize-insert
 			}
 		}
 
@@ -851,6 +1114,7 @@ void Action::perform(Type action)
 
 	CASE(AUTO_SYNC_SECTIONS)
 		{
+<<<<<<< HEAD
 			// 1. Detect Sections if needed (or rely on existing)
 			// Let's assume user has run DETECT_SONG_SECTIONS or manually labeled them.
 			// Or we can detect on the fly.
@@ -864,6 +1128,14 @@ void Action::perform(Type action)
 			const SegmentGroup* segs = gTempo->getSegments();
 
 			// We need a sorted list of section start rows.
+=======
+			auto& music = gMusic->getSamples();
+			if (!music.isCompleted()) break;
+
+			const SegmentGroup* segs = gTempo->getSegments();
+
+			// Gather sections
+>>>>>>> origin/feature-goto-quantize-insert
 			std::vector<int> sectionRows;
 			sectionRows.push_back(0); // Always start at 0
 			if(segs) {
@@ -877,6 +1149,7 @@ void Action::perform(Type action)
 			std::sort(sectionRows.begin(), sectionRows.end());
 			sectionRows.erase(std::unique(sectionRows.begin(), sectionRows.end()), sectionRows.end());
 
+<<<<<<< HEAD
 			int endRow = gSimfile->getEndRow();
 
 			int count = 0;
@@ -920,6 +1193,23 @@ void Action::perform(Type action)
 			}
 			gHistory->finishChain("Auto-Sync Sections");
 			HudNote("Applied %d BPM changes based on sections.", count);
+=======
+			// Add end row as a boundary
+			sectionRows.push_back(gSimfile->getEndRow());
+
+			// Pre-calculate times (must be done on main thread)
+			std::vector<double> sectionTimes;
+			for (int r : sectionRows) {
+				sectionTimes.push_back(gTempo->rowToTime(r));
+			}
+
+			if (sectionRows.size() < 2) {
+				HudError("Not enough sections defined.");
+				break;
+			}
+
+			StartAsyncSectionSync(sectionRows, sectionTimes);
+>>>>>>> origin/feature-goto-quantize-insert
 		}
 
 	CASE(CONVERT_REGION_TO_CONSTANT_BPM)
@@ -1079,6 +1369,7 @@ void Action::perform(Type action)
 			}
 		}
 
+<<<<<<< HEAD
 	CASE(RUN_TEST_SCRIPT)
 		gHistory->startChain("Run Lua Script");
 		gLua->runScript("scripts/test.lua");
@@ -1092,6 +1383,89 @@ void Action::perform(Type action)
 				gHistory->startChain("Run Lua Script");
 				gLua->runScript(path);
 				gHistory->finishChain();
+=======
+	CASE(NUDGE_BEAT_FORWARD)
+		{
+			int row = gView->getCursorRow();
+			double currentTime = gTempo->rowToTime(row);
+			double delta = 0.002; // Default 2ms
+
+			if (gEditor->getNudgeBasedOnZoom()) {
+				// Zoom is pixels per second?
+				// gView->getPixPerSec()
+				double pps = gView->getPixPerSec();
+				if (pps > 1.0) {
+					// Nudge by 1 pixel?
+					delta = 1.0 / pps;
+				}
+			}
+
+			gTempo->moveBeat(row, currentTime + delta, true);
+			gTempo->injectBoundingBpmChange(row);
+		}
+
+	CASE(NUDGE_BEAT_BACKWARD)
+		{
+			int row = gView->getCursorRow();
+			double currentTime = gTempo->rowToTime(row);
+			double delta = 0.002; // Default 2ms
+
+			if (gEditor->getNudgeBasedOnZoom()) {
+				double pps = gView->getPixPerSec();
+				if (pps > 1.0) {
+					delta = 1.0 / pps;
+				}
+			}
+
+			gTempo->moveBeat(row, currentTime - delta, true);
+			gTempo->injectBoundingBpmChange(row);
+		}
+
+	CASE(DETECT_KEY)
+		{
+			auto& music = gMusic->getSamples();
+			if (music.isCompleted() && music.getNumFrames() > 0) {
+				// Use the whole song or selection?
+				// Let's use selection if active, else whole song.
+				auto region = gSelection->getSelectedRegion();
+				const float* samples = nullptr;
+				int numFrames = 0;
+				int samplerate = music.getFrequency();
+
+				std::vector<float> floatSamples;
+
+				// Convert to float (mono)
+				const short* src = music.samplesL();
+				int totalFrames = music.getNumFrames();
+
+				int startFrame = 0;
+				int endFrame = totalFrames;
+
+				if (region.beginRow != region.endRow) {
+					double t1 = gTempo->rowToTime(region.beginRow);
+					double t2 = gTempo->rowToTime(region.endRow);
+					startFrame = (int)(t1 * samplerate);
+					endFrame = (int)(t2 * samplerate);
+					startFrame = clamp(startFrame, 0, totalFrames);
+					endFrame = clamp(endFrame, 0, totalFrames);
+				}
+
+				numFrames = endFrame - startFrame;
+				if (numFrames <= 0) {
+					HudError("Invalid selection for key detection.");
+					break;
+				}
+
+				floatSamples.resize(numFrames);
+				for(int i=0; i<numFrames; ++i) {
+					floatSamples[i] = src[startFrame + i] / 32768.0f;
+				}
+
+				String key = DetectKey(floatSamples.data(), numFrames, samplerate);
+				gSystem->showMessageDlg("Key Detection", Str::fmt("Estimated Key: %s").arg(key), System::T_OK, System::I_INFO);
+			} else {
+				HudError("Music not loaded.");
+>>>>>>> origin/feature-goto-quantize-insert
 			}
 		}
 	}};

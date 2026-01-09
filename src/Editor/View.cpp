@@ -1,6 +1,7 @@
 #include <Editor/View.h>
 
 #include <algorithm>
+#include <cmath>
 
 #include <Core/String.h>
 #include <Core/Utils.h>
@@ -30,6 +31,37 @@
 
 namespace Vortex {
 namespace {
+
+	bool isMouseOverBeat(int x, int y, int& row)
+	{
+		if (!gView->isTimeBased())
+			return false;
+
+		const int hitbox = gView->applyZoom(4);
+		const View::Coords notefieldCoords = gView->getNotefieldCoords();
+		if (x < notefieldCoords.xl || x > notefieldCoords.xr)
+			return false;
+
+		// Find the beat the mouse is closest to
+		const double time = gView->offsetToTime(gView->yToOffset(y));
+		int closestRow = gTempo->timeToRow(time);
+
+		// We want to snap to ANY visible grid line, not just 4ths?
+		// snapRow uses the current snap setting (View::SNAP_CLOSEST).
+		// If snap is set to 16ths, closestRow will be a 16th.
+		closestRow = gView->snapRow(closestRow, View::SNAP_CLOSEST);
+
+		// Check if the mouse is close enough to the beat
+		const double beatTime = gTempo->rowToTime(closestRow);
+		const int beatY = gView->timeToY(beatTime);
+
+		if (abs(y - beatY) <= hitbox) {
+			row = closestRow;
+			return true;
+		}
+
+		return false;
+	}
 
 }; // anonymous namespace
 
@@ -218,7 +250,11 @@ void onMouseRelease(MouseRelease& evt) override
 
 		// Apply final move
 		const double time = offsetToTime(yToOffset(gSystem->getMousePos().y));
+<<<<<<< HEAD
 		bool ripple = (gSystem->getKeyboardState() & Keyflag::SHIFT) != 0;
+=======
+		bool ripple = (gSystem->isKeyDown(Key::SHIFT_L) || gSystem->isKeyDown(Key::SHIFT_R));
+>>>>>>> origin/feature-goto-quantize-insert
 		gTempo->moveBeat(myDraggedBeatRow, time, ripple);
 		gTempo->injectBoundingBpmChange(myDraggedBeatRow);
 	}
@@ -258,6 +294,7 @@ void onKeyRelease(KeyRelease& evt) override
 // ================================================================================================
 // ViewImpl :: member functions.
 
+<<<<<<< HEAD
 namespace {
 
 	bool isMouseOverBeat(int x, int y, int& row)
@@ -293,6 +330,8 @@ namespace {
 
 } // anonymous namespace
 
+=======
+>>>>>>> origin/feature-goto-quantize-insert
 double getZoomLevel() const
 {
 	return myZoomLevel;
@@ -406,7 +445,11 @@ void tick()
 	if (myIsDraggingBeat)
 	{
 		const double time = offsetToTime(yToOffset(gSystem->getMousePos().y));
+<<<<<<< HEAD
 		bool ripple = (gSystem->getKeyboardState() & Keyflag::SHIFT) != 0;
+=======
+		bool ripple = (gSystem->isKeyDown(Key::SHIFT_L) || gSystem->isKeyDown(Key::SHIFT_R));
+>>>>>>> origin/feature-goto-quantize-insert
 		gTempo->updateDragBeat(myDraggedBeatRow, time, ripple);
 	}
 
@@ -488,7 +531,27 @@ void tick()
 	// Store the y-position of time zero.
 	if(myUseTimeBasedView)
 	{
-		myChartTopY = floor((double)myReceptorY - myCursorTime * myPixPerSec);
+		if (gEditor->getScrollCursorEffect() && !gMusic->isPaused())
+		{
+			// "Scroll Cursor Effect" (DDream style):
+			// The chart is static (paged), and the cursor (receptors) moves.
+			double pageH = (double)rect_.h;
+			if (pageH > 0)
+			{
+				double cursorY_virtual = myCursorTime * myPixPerSec;
+				double pageTop_virtual = floor(cursorY_virtual / pageH) * pageH;
+
+				// Fix the chart top to the current page start
+				myChartTopY = -pageTop_virtual;
+
+				// Move the receptors to the current cursor position within the page
+				myReceptorY = (int)(myChartTopY + cursorY_virtual);
+			}
+		}
+		else
+		{
+			myChartTopY = floor((double)myReceptorY - myCursorTime * myPixPerSec);
+		}
 	}
 	else
 	{

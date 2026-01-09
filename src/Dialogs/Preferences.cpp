@@ -1,7 +1,10 @@
 #include <Dialogs/Preferences.h>
 #include <Editor/Editor.h>
 #include <Editor/View.h>
+<<<<<<< HEAD
 #include <Editor/Waveform.h>
+=======
+>>>>>>> origin/feature-goto-quantize-insert
 #include <Core/Utils.h>
 #include <Core/StringUtils.h>
 
@@ -30,11 +33,15 @@ void DialogPreferences::myRefreshLayout()
 
 void DialogPreferences::myCreateWidgets()
 {
+<<<<<<< HEAD
 	// Only create once.
 	static bool created = false;
 	if (created) return;
 	created = true;
 
+=======
+	// Create layout
+>>>>>>> origin/feature-goto-quantize-insert
 	myLayout.row().col(400); // Approximate width
 
 	// --- EDITOR SETTINGS ---
@@ -95,6 +102,7 @@ void DialogPreferences::myCreateWidgets()
 	cbFPS->onChange.bind(this, &DialogPreferences::onDontShowFPSChanged);
 	cbFPS->setTooltip("Uncheck: Show FPS");
 
+<<<<<<< HEAD
 	// Python Path
 	myLayout.row().col(100).col(300);
 	myLayout.add<WgLabel>()->text.set("Python Path:");
@@ -102,6 +110,8 @@ void DialogPreferences::myCreateWidgets()
 	tbPython->text.bind(&myPythonPath);
 	tbPython->onChange.bind(this, &DialogPreferences::onPythonPathChanged);
 
+=======
+>>>>>>> origin/feature-goto-quantize-insert
 	// Volumes
 	myLayout.row().col(190).col(20).col(190);
 	myLayout.add<WgLabel>()->text.set("Beat Assist Vol.");
@@ -150,6 +160,7 @@ void DialogPreferences::myCreateWidgets()
 	addRow("Boo: +/-", &myWindowBoo, &DialogPreferences::onWindowBooChanged);
 	addRow("Freeze OK: +/-", &myWindowFreeze, &DialogPreferences::onWindowFreezeChanged);
 	addRow("Mine: +/-", &myWindowMine, &DialogPreferences::onWindowMineChanged);
+<<<<<<< HEAD
 
 	// --- WAVEFORM SETTINGS ---
 	myLayout.row().col(400);
@@ -214,6 +225,8 @@ void DialogPreferences::myCreateWidgets()
 	spHigh->setRange(20.0, 20000.0);
 	spHigh->value.bind(&myRGBHigh);
 	spHigh->onChange.bind(this, &DialogPreferences::onRGBCrossoverChanged);
+=======
+>>>>>>> origin/feature-goto-quantize-insert
 }
 
 void DialogPreferences::myUpdateWidgets()
@@ -233,7 +246,10 @@ void DialogPreferences::myUpdateWidgets()
 	mySelectPasted = gEditor->getSelectPasted();
 	myBackupSaves = gEditor->getBackupSaves();
 	myDontShowFPS = gEditor->getDontShowFPS();
+<<<<<<< HEAD
 	myPythonPath = gEditor->getPythonPath();
+=======
+>>>>>>> origin/feature-goto-quantize-insert
 
 	myEnablePracticeMode = gEditor->isPracticeMode();
 	myPracticeSetup = gEditor->getPracticeSetup();
@@ -246,6 +262,7 @@ void DialogPreferences::myUpdateWidgets()
 	myWindowBoo = myPracticeSetup.windowBoo * 1000.0;
 	myWindowFreeze = myPracticeSetup.windowFreeze * 1000.0;
 	myWindowMine = myPracticeSetup.windowMine * 1000.0;
+<<<<<<< HEAD
 
 	if (gWaveform) {
 		myWaveformColorMode = (int)gWaveform->getColorMode();
@@ -256,6 +273,8 @@ void DialogPreferences::myUpdateWidgets()
 		myRGBLow = gWaveform->getRGBLowHigh(false);
 		myRGBHigh = gWaveform->getRGBLowHigh(true);
 	}
+=======
+>>>>>>> origin/feature-goto-quantize-insert
 }
 
 void DialogPreferences::onChanges(int changes)
@@ -278,7 +297,10 @@ void DialogPreferences::onPasteOverwritesChanged() { gEditor->setPasteOverwrites
 void DialogPreferences::onSelectPastedChanged() { gEditor->setSelectPasted(mySelectPasted); }
 void DialogPreferences::onBackupSavesChanged() { gEditor->setBackupSaves(myBackupSaves); }
 void DialogPreferences::onDontShowFPSChanged() { gEditor->setDontShowFPS(myDontShowFPS); }
+<<<<<<< HEAD
 void DialogPreferences::onPythonPathChanged() { gEditor->setPythonPath(myPythonPath); }
+=======
+>>>>>>> origin/feature-goto-quantize-insert
 
 void DialogPreferences::onPracticeEnabledChanged() { gEditor->setPracticeMode(myEnablePracticeMode); }
 
@@ -296,6 +318,7 @@ void DialogPreferences::onWindowBooChanged() { UPDATE_SETUP(windowBoo, myWindowB
 void DialogPreferences::onWindowFreezeChanged() { UPDATE_SETUP(windowFreeze, myWindowFreeze); }
 void DialogPreferences::onWindowMineChanged() { UPDATE_SETUP(windowMine, myWindowMine); }
 
+<<<<<<< HEAD
 void DialogPreferences::onWaveformColorModeChanged() { if(gWaveform) gWaveform->setColorMode((Waveform::ColorMode)myWaveformColorMode); }
 void DialogPreferences::onAntiAliasingChanged() { if(gWaveform) gWaveform->setAntiAliasing(myAntiAliasing); }
 void DialogPreferences::onShowOnsetsChanged() { if(gWaveform) gWaveform->setShowOnsets(myShowOnsets); }
@@ -303,4 +326,6 @@ void DialogPreferences::onOnsetThresholdChanged() { if(gWaveform) gWaveform->set
 void DialogPreferences::onSpectrogramGainChanged() { if(gWaveform) gWaveform->setSpectrogramGain((float)mySpectrogramGain); }
 void DialogPreferences::onRGBCrossoverChanged() { if(gWaveform) gWaveform->setRGBCrossovers((float)myRGBLow, (float)myRGBHigh); }
 
+=======
+>>>>>>> origin/feature-goto-quantize-insert
 }; // namespace Vortex

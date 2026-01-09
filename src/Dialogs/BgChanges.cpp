@@ -46,8 +46,12 @@ void DialogBgChanges::myCreateWidgets()
 	timeBtn->onPress.bind(this, &DialogBgChanges::onSetBeat);
 
 	myFile = myLayout.add<WgLineEdit>("File");
+<<<<<<< HEAD
 	static String sFile;
 	myFile->text.bind(&sFile);
+=======
+	myFile->text.bind(&myCurrentFile);
+>>>>>>> origin/feature-goto-quantize-insert
 	myFile->onChange.bind(this, &DialogBgChanges::onFileChange);
 
 	myLayout.row().col(100).col(300);
@@ -55,8 +59,12 @@ void DialogBgChanges::myCreateWidgets()
 	browseBtn->onPress.bind(this, &DialogBgChanges::onBrowseFile);
 
 	myRate = myLayout.add<WgSpinner>("Rate");
+<<<<<<< HEAD
 	static double sRate = 1.0;
 	myRate->value.bind(&sRate);
+=======
+	myRate->value.bind(&myCurrentRate);
+>>>>>>> origin/feature-goto-quantize-insert
 	myRate->onChange.bind(this, &DialogBgChanges::onRateChange);
 
 	// Controls
@@ -155,6 +163,7 @@ void DialogBgChanges::onSetBeat()
 	}
 }
 
+<<<<<<< HEAD
 void DialogBgChanges::onFileChange(String& val)
 {
 	if (mySelectedIndex >= 0 && mySelectedIndex < myChanges.size()) {
@@ -171,6 +180,22 @@ void DialogBgChanges::onRateChange(double val)
 {
 	if (mySelectedIndex >= 0 && mySelectedIndex < myChanges.size()) {
 		myChanges[mySelectedIndex].rate = val;
+=======
+void DialogBgChanges::onFileChange()
+{
+	if (mySelectedIndex >= 0 && mySelectedIndex < myChanges.size()) {
+		myChanges[mySelectedIndex].file = myCurrentFile;
+		if (myCurrentLayer == 2) gMetadata->setFgChanges(myChanges);
+		else gMetadata->setBgChanges(myChanges, myCurrentLayer);
+		myChangeList->setItemText(mySelectedIndex, Str::fmt("[%1] %2").arg(Str::val(myChanges[mySelectedIndex].startBeat, 3)).arg(myCurrentFile));
+	}
+}
+
+void DialogBgChanges::onRateChange()
+{
+	if (mySelectedIndex >= 0 && mySelectedIndex < myChanges.size()) {
+		myChanges[mySelectedIndex].rate = myCurrentRate;
+>>>>>>> origin/feature-goto-quantize-insert
 		if (myCurrentLayer == 2) gMetadata->setFgChanges(myChanges);
 		else gMetadata->setBgChanges(myChanges, myCurrentLayer);
 	}

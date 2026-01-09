@@ -36,8 +36,12 @@ void DialogLyricsEditor::myCreateWidgets()
 	timeBtn->onPress.bind(this, &DialogLyricsEditor::onSetTime);
 
 	myTextInput = myLayout.add<WgLineEdit>("Text");
+<<<<<<< HEAD
 	String dummy;
 	myTextInput->text.bind(&dummy); // Manual handling
+=======
+	myTextInput->text.bind(&myCurrentText);
+>>>>>>> origin/feature-goto-quantize-insert
 	myTextInput->onChange.bind(this, &DialogLyricsEditor::onTextChange);
 
 	myTimeLabel = myLayout.add<WgLabel>("0.000");
@@ -134,6 +138,7 @@ void DialogLyricsEditor::onSetTime()
 	}
 }
 
+<<<<<<< HEAD
 void DialogLyricsEditor::onTextChange(String& val)
 {
 	if (mySelectedIndex >= 0 && mySelectedIndex < myLyrics.size()) {
@@ -151,6 +156,13 @@ void DialogLyricsEditor::onTextChange(String& val)
 		// No, usually immediate.
 		// But refreshing re-builds widgets.
 		// Let's just update backend.
+=======
+void DialogLyricsEditor::onTextChange()
+{
+	if (mySelectedIndex >= 0 && mySelectedIndex < myLyrics.size()) {
+		myLyrics[mySelectedIndex].text = myCurrentText;
+		gLyrics->setLyrics(myLyrics);
+>>>>>>> origin/feature-goto-quantize-insert
 	}
 }
 

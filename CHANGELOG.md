@@ -7,6 +7,10 @@
 - **Dependencies**: Removed `tensorflow>=2.0` from `lib/ddc/requirements.txt` to strictly enforce PyTorch usage as per project policy.
 - **Merged Feature**: Integrated `feature-goto-quantize-insert` into main.
 
+### Added
+- **Bobcoin Support**: Infrastructure for integrating `bobcoin` mining via gameplay ("Dancing").
+- **Versioning**: Implemented a global versioning system reading from `VERSION.md`.
+
 ## [1.3.1] - 2025-12-27
 
 ### Changed

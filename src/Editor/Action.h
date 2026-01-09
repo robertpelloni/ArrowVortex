@@ -47,8 +47,11 @@ namespace Action {
 	OPEN_DIALOG_LYRICS_EDITOR,
 	OPEN_DIALOG_BG_CHANGES,
 	OPEN_DIALOG_PREFERENCES,
+<<<<<<< HEAD
 	OPEN_DIALOG_BATCH_DDC,
 	OPEN_DIALOG_THEME_EDITOR,
+=======
+>>>>>>> origin/feature-goto-quantize-insert
 	
 	EDIT_UNDO,
 	EDIT_REDO,
@@ -66,6 +69,11 @@ namespace Action {
 	TOGGLE_UNDO_REDO_JUMP,
 	TOGGLE_TIME_BASED_COPY,
 	TOGGLE_RECORD_MODE,
+<<<<<<< HEAD
+=======
+	// Toggle Practice Mode (DDream feature)
+	TOGGLE_PRACTICE_MODE,
+>>>>>>> origin/feature-goto-quantize-insert
 
 	SET_VISUAL_SYNC_CURSOR_ANCHOR,
 	SET_VISUAL_SYNC_RECEPTOR_ANCHOR,
@@ -175,6 +183,7 @@ namespace Action {
 
 	MINIMAP_SET_NOTES,
 	MINIMAP_SET_DENSITY,
+	MINIMAP_SET_WAVEFORM,
 	
 	BACKGROUND_HIDE,
 	BACKGROUND_INCREASE_ALPHA,
@@ -241,15 +250,24 @@ namespace Action {
 	VERIFY_CHART_INTEGRITY,
 	SELECT_OFF_SYNC_NOTES,
 
+<<<<<<< HEAD
 	RUN_TEST_SCRIPT,
 	RUN_LUA_SCRIPT,
 
 	RUN_SCRIPT_BEGIN,
 	RUN_SCRIPT_END = RUN_SCRIPT_BEGIN + 99,
+=======
+	NUDGE_BEAT_FORWARD,
+	NUDGE_BEAT_BACKWARD,
+	DETECT_KEY,
+>>>>>>> origin/feature-goto-quantize-insert
 	};
 
 	// Performs the action associated with the action type.
 	void perform(Type action);
+
+	// Called every frame to handle async actions.
+	void tick();
 };
 
 }; // namespace Vortex

@@ -285,9 +285,9 @@ void draw()
 	// Draw stuff.
 	drawBackground();
 
+	if(drawWaveform) gWaveform->drawPeaks();
 	if(myShowBeatLines) drawBeatLines();
 	if (gView->isTimeBased()) drawBeats();
-	if(drawWaveform) gWaveform->drawPeaks();
 	if(gTempoBoxes->hasShowBoxes()) drawStopsAndWarps();
 
 	drawReceptors();
@@ -840,6 +840,21 @@ void drawSongPreviewArea()
 // ================================================================================================
 // NotefieldImpl :: toggle/check functions.
 
+void toggleShowWaveform();
+void setShowWaveform(bool show);
+void toggleShowBeatLines();
+void setShowBeatLines(bool show);
+void toggleShowNotes();
+void setShowNotes(bool show);
+void toggleShowSongPreview();
+
+bool hasShowWaveform();
+bool hasShowBeatLines();
+bool hasShowNotes();
+bool hasShowSongPreview();
+
+}; // NotefieldImpl
+
 void NotefieldImpl::toggleShowWaveform()
 {
 	myShowWaveform = !myShowWaveform;
@@ -890,27 +905,25 @@ void NotefieldImpl::toggleShowSongPreview()
 	myShowSongPreview = !myShowSongPreview;
 }
 
-bool hasShowWaveform()
+bool NotefieldImpl::hasShowWaveform()
 {
 	return myShowWaveform;
 }
 
-bool hasShowBeatLines()
+bool NotefieldImpl::hasShowBeatLines()
 {
 	return myShowBeatLines;
 }
 
-bool hasShowNotes()
+bool NotefieldImpl::hasShowNotes()
 {
 	return myShowNotes;
 }
 
-bool hasShowSongPreview()
+bool NotefieldImpl::hasShowSongPreview()
 {
 	return myShowSongPreview;
 }
-
-}; // NotefieldImpl
 
 // ================================================================================================
 // TweakInfoBox.

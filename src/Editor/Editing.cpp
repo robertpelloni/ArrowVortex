@@ -28,6 +28,7 @@
 #include <Managers/StyleMan.h>
 #include <Managers/TempoMan.h>
 #include <Managers/SimfileMan.h>
+#include <Managers/MiningMan.h>
 
 #include <Core/Draw.h>
 
@@ -173,6 +174,56 @@ void onKeyPress(KeyPress& evt) override
 			{
 				gView->setCursorRow(row);
 			}
+<<<<<<< HEAD
+=======
+			else if (gEditor->isPracticeMode())
+			{
+				// Practice Mode Logic: Judge input instead of editing
+				auto setup = gEditor->getPracticeSetup();
+				double hitTime = gMusic->getPlayTime();
+				// Use largest window for search limit (Miss/Boo)
+				double limit = max(setup.windowBoo, setup.windowMiss);
+				if (limit <= 0) limit = 0.2;
+
+				const ExpandedNote* bestNote = nullptr;
+				double minDiff = 1000.0;
+
+				// Linear search for nearest note in column (optimization possible)
+				for(auto it = gNotes->begin(); it != gNotes->end(); ++it) {
+					if (it->col != col || it->type == NOTE_MINE) continue;
+					double t = gTempo->rowToTime(it->row);
+					double diff = fabs(t - hitTime);
+
+					if (diff < minDiff) {
+						minDiff = diff;
+						bestNote = it;
+					}
+					// If we passed the window, stop
+					if (t > hitTime + limit) break;
+				}
+
+				if (bestNote && minDiff <= limit) {
+					String judge;
+					if (minDiff <= setup.windowMarvelous) judge = "Marvelous!!";
+					else if (minDiff <= setup.windowPerfect) judge = "Perfect!";
+					else if (minDiff <= setup.windowGreat) judge = "Great";
+					else if (minDiff <= setup.windowGood) judge = "Good";
+					else if (minDiff <= setup.windowBoo) judge = "Boo";
+					else judge = "Miss";
+
+					double ms = (gTempo->rowToTime(bestNote->row) - hitTime) * 1000.0;
+					HudNote("%s (%+.0f ms)", judge.str(), ms);
+
+					// Mine Bobcoin based on accuracy
+					float accuracy = 1.0f - (float)(minDiff / limit);
+					int meter = gChart->isOpen() ? gChart->get()->meter : 1;
+					gMining->onNoteHit(accuracy, meter);
+				}
+
+				evt.handled = true;
+				return;
+			}
+>>>>>>> origin/feature-goto-quantize-insert
 			else if (!myIsRecordMode)
 			{
 				evt.handled = true;
@@ -842,6 +893,7 @@ void scaleNotes(int numerator, int denominator)
 	}
 }
 
+<<<<<<< HEAD
 void quantizeSelection(int snap)
 {
 	NoteEdit edit;
@@ -935,6 +987,13 @@ void shiftAnchorRowToMousePosition(bool is_destructive) {
 		gTempo->nonDestructiveShiftRowToTime(anchor_row, target_time);
 	}
 }
+=======
+void quantizeSelection(int snap);
+void insertRows(int row, int numRows, bool curChartOnly);
+int getAnchorRow();
+void injectBoundingBpmChange();
+void shiftAnchorRowToMousePosition(bool is_destructive);
+>>>>>>> origin/feature-goto-quantize-insert
 
 /*
 void streamToTriplets()
@@ -1428,6 +1487,100 @@ bool isRecordMode()
 }
 
 }; // EditingImpl
+
+void EditingImpl::quantizeSelection(int snap)
+{
+	NoteEdit edit;
+	gSelection->getSelectedNotes(edit.add);
+	edit.rem = edit.add;
+
+	if (edit.add.empty()) {
+		HudNote("No notes selected.");
+		return;
+	}
+
+	if (snap <= 0) return;
+
+	for(auto& n : edit.add) {
+		int rem = n.row % snap;
+		if (rem != 0) {
+			if (rem < snap / 2) n.row -= rem;
+			else n.row += (snap - rem);
+		}
+		// Also quantize length for holds?
+		// Standard quantization usually just moves the start row.
+		// If it's a hold, we should probably check if the tail needs quantizing too,
+		// but typically "Quantize" snaps the attack.
+		// Let's also snap the tail if it exists.
+		if (n.type == NoteType::NOTE_HOLD_HEAD || n.type == NoteType::NOTE_ROLL_HEAD) {
+			int tailRow = n.row + n.length; // Assuming length is duration
+			int trem = tailRow % snap;
+			if (trem != 0) {
+				if (trem < snap / 2) tailRow -= trem;
+				else tailRow += (snap - trem);
+			}
+			if (tailRow > (int)n.row) n.length = tailRow - n.row;
+		}
+	}
+
+	static const NotesMan::EditDescription desc = {"Quantized %1 note.", "Quantized %1 notes."};
+	gNotes->modify(edit, true, &desc);
+	if (gSelection->getType() == Selection::NOTES) gNotes->select(SELECT_SET, edit.add.begin(), edit.add.size());
+}
+
+void EditingImpl::insertRows(int row, int numRows, bool curChartOnly)
+{
+	if(gSimfile->isOpen())
+	{
+		gHistory->startChain();
+		gTempo->insertRows(row, numRows, curChartOnly);
+		gNotes->insertRows(row, numRows, curChartOnly);
+		gHistory->finishChain((numRows > 0) ? "Insert beats" : "Delete beats");
+	}
+}
+
+int EditingImpl::getAnchorRow() {
+	Vortex::vec2i mouse_pos = gSystem->getMousePos();
+	Vortex::ChartOffset chart_offset = gView->yToOffset(mouse_pos.y);
+
+	switch (this->myVisualSyncAnchor) {
+	case VisualSyncAnchor::RECEPTORS:
+		return gView->getCursorRow();
+	case VisualSyncAnchor::CURSOR:
+		return gView->snapRow(gView->offsetToRow(chart_offset), Vortex::View::SnapDir::SNAP_CLOSEST);
+	default:
+		HudError("Unknown anchor row type");
+		return -1;
+	}
+}
+
+void EditingImpl::injectBoundingBpmChange() {
+	if (gSimfile->isClosed() || !gView->isTimeBased()) {
+		return;
+	}
+
+	int anchor_row = this->getAnchorRow();
+
+	gTempo->injectBoundingBpmChange(anchor_row);
+}
+
+void EditingImpl::shiftAnchorRowToMousePosition(bool is_destructive) {
+	if (gSimfile->isClosed() || !gView->isTimeBased()) {
+		return;
+	}
+	Vortex::vec2i mouse_pos = gSystem->getMousePos();
+	Vortex::ChartOffset chart_offset = gView->yToOffset(mouse_pos.y);
+
+	double target_time = gView->offsetToTime(chart_offset);
+	int anchor_row = this->getAnchorRow();
+
+	if (is_destructive) {
+		gTempo->destructiveShiftRowToTime(anchor_row, target_time);
+	}
+	else {
+		gTempo->nonDestructiveShiftRowToTime(anchor_row, target_time);
+	}
+}
 
 // ================================================================================================
 // Editing API.

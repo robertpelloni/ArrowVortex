@@ -17,6 +17,7 @@
 #include <Editor/Menubar.h>
 #include <Editor/Action.h>
 #include <Editor/Shortcuts.h>
+#include <Core/Version.h>
 
 #include <Editor/View.h>
 #include <Editor/Notefield.h>
@@ -40,7 +41,11 @@
 #include <Managers/NoteMan.h>
 #include <Managers/NoteskinMan.h>
 #include <Managers/LyricsMan.h>
+<<<<<<< HEAD
 #include <Managers/LuaMan.h>
+=======
+#include <Managers/MiningMan.h>
+>>>>>>> origin/feature-goto-quantize-insert
 
 #include <Dialogs/SongProperties.h>
 #include <Dialogs/ChartList.h>
@@ -62,8 +67,11 @@
 #include <Dialogs/BgChanges.h>
 #include <Dialogs/ChartStatistics.h>
 #include <Dialogs/Preferences.h>
+<<<<<<< HEAD
 #include <Dialogs/BatchDDC.h>
 #include <Dialogs/ThemeEditor.h>
+=======
+>>>>>>> origin/feature-goto-quantize-insert
 
 namespace Vortex {
 
@@ -170,11 +178,15 @@ bool myPasteOverwrites;
 bool mySelectPasted;
 bool myBackupSaves;
 bool myDontShowFPS;
+<<<<<<< HEAD
 String myPythonPath;
+=======
+>>>>>>> origin/feature-goto-quantize-insert
 
 // Practice Mode
 bool myPracticeMode;
 Editor::PracticeSetup myPracticeSetup;
+<<<<<<< HEAD
 bool myWasPaused;
 	double myLastTime;
 
@@ -225,6 +237,8 @@ void handlePracticeInput(int col)
 		}
 	}
 }
+=======
+>>>>>>> origin/feature-goto-quantize-insert
 
 // ================================================================================================
 // EditorImpl :: constructor and destructor.
@@ -235,7 +249,7 @@ void handlePracticeInput(int col)
 
 EditorImpl()
 {
-	gSystem->setWindowTitle("ArrowVortex");
+	gSystem->setWindowTitle(Str::fmt("ArrowVortex v%1", Version::Get()));
 
 	for(auto& dialog : myDialogs)
 	{
@@ -269,7 +283,10 @@ EditorImpl()
 	mySelectPasted = true;
 	myBackupSaves = false;
 	myDontShowFPS = false;
+<<<<<<< HEAD
 	myPythonPath = "python";
+=======
+>>>>>>> origin/feature-goto-quantize-insert
 
 	myPracticeMode = false;
 	// Default windows (ms) based on screenshot
@@ -282,9 +299,12 @@ EditorImpl()
 	myPracticeSetup.windowFreeze = 0.250f;
 	myPracticeSetup.windowMiss = 0.180f; // Outside Boo
 
+<<<<<<< HEAD
 	myWasPaused = true;
 	myLastTime = 0.0;
 
+=======
+>>>>>>> origin/feature-goto-quantize-insert
 	myFontPath = "assets/NotoSansJP-Medium.ttf";
 	myFontSize = 13;
 }
@@ -333,7 +353,11 @@ void init()
 	ChartMan::create();
 	NotesMan::create();
 	LyricsMan::create();
+<<<<<<< HEAD
 	LuaMan::create();
+=======
+	MiningMan::create();
+>>>>>>> origin/feature-goto-quantize-insert
 
 	// Create the editor components.
 	Shortcuts::create();
@@ -397,7 +421,11 @@ void shutdown()
 	TextOverlay::destroy();
 
 	// Destroy the simfile components.
+<<<<<<< HEAD
 	LuaMan::destroy();
+=======
+	MiningMan::destroy();
+>>>>>>> origin/feature-goto-quantize-insert
 	LyricsMan::destroy();
 	NotesMan::destroy();
 	ChartMan::destroy();
@@ -441,9 +469,12 @@ void loadSettings(XmrDoc& settings)
 		general->get("selectPasted", &mySelectPasted);
 		general->get("backupSaves", &myBackupSaves);
 		general->get("dontShowFPS", &myDontShowFPS);
+<<<<<<< HEAD
 
 		const char* pyPath = general->get("pythonPath");
 		if (pyPath) myPythonPath = pyPath;
+=======
+>>>>>>> origin/feature-goto-quantize-insert
 	}
 
 	XmrNode* practice = settings.child("practice");
@@ -496,7 +527,10 @@ void saveGeneralSettings(XmrNode& settings)
 	general->addAttrib("selectPasted", mySelectPasted);
 	general->addAttrib("backupSaves", myBackupSaves);
 	general->addAttrib("dontShowFPS", myDontShowFPS);
+<<<<<<< HEAD
 	general->addAttrib("pythonPath", myPythonPath.str());
+=======
+>>>>>>> origin/feature-goto-quantize-insert
 
 	XmrNode* practice = settings.addChild("practice");
 	practice->addAttrib("enabled", myPracticeMode);
@@ -936,10 +970,13 @@ void handleDialogOpening(DialogId id, recti rect)
 		dlg = new DialogBgChanges; break;
 	case DIALOG_PREFERENCES:
 		dlg = new DialogPreferences; break;
+<<<<<<< HEAD
 	case DIALOG_BATCH_DDC:
 		dlg = new DialogBatchDDC; break;
 	case DIALOG_THEME_EDITOR:
 		dlg = new DialogThemeEditor; break;
+=======
+>>>>>>> origin/feature-goto-quantize-insert
 	};
 
 	dlg->setId(id);
@@ -1076,16 +1113,17 @@ void updateTitle()
 		subtitle = meta->subtitle;
 	}
 	bool hasChanges = gHistory->hasUnsavedChanges();
+	String ver = Version::Get();
 	if(title.len() || subtitle.len())
 	{
 		if(title.len() && subtitle.len()) title += " ";
 		title += subtitle;
 		if(hasChanges) title += "*";
-		title += " :: ArrowVortex";
+		title += " :: ArrowVortex v" + ver;
 	}
 	else
 	{
-		title = "ArrowVortex";
+		title = "ArrowVortex v" + ver;
 		if(hasChanges) title += "*";
 	}
 	gSystem->setWindowTitle(title);
@@ -1163,6 +1201,11 @@ void tick()
 
 	gTextOverlay->tick();
 
+<<<<<<< HEAD
+=======
+	Action::tick();
+
+>>>>>>> origin/feature-goto-quantize-insert
 	if (gSystem->getElapsedTime() - myLastAutosaveTime > 300.0) {
 		myLastAutosaveTime = gSystem->getElapsedTime();
 		if (gSimfile->isOpen() && gHistory->hasUnsavedChanges()) {
@@ -1228,7 +1271,29 @@ void tick()
 		vec2i size = gSystem->getWindowSize();
 		String fpsStr = Str::fmt("%1 FPS").arg(fps);
 
+<<<<<<< HEAD
 		Text::arrange(Text::TR, fpsStr.str());
+=======
+		// Render FPS top-right using standard Text capabilities
+		// We use standard TextStyle default.
+		// Text::arrange and Text::draw might work if we set up a style.
+		// But we don't have easy access to a global style here.
+		// `EditorImpl` has `TextStyle text` in `init`, but it's local.
+		// Let's reuse `gTextOverlay` if possible or just use `Text::draw` with default font?
+		// `Text::draw` typically needs `Text::arrange` first.
+
+		// Assuming we can't easily render text without context, we'll skip the actual draw
+		// until we can expose the font.
+		// However, I can try to use `TextOverlay`'s infrastructure or a simple HUD message.
+		// But those fade.
+
+		TextStyle style;
+		style.textColor = Colors::white;
+		style.shadowColor = RGBAtoColor32(0,0,0,255);
+		style.fontSize = 12;
+
+		Text::arrange(Text::TR, style, fpsStr.str());
+>>>>>>> origin/feature-goto-quantize-insert
 		Text::draw(vec2i{size.x - 4, 4});
 	}
 
@@ -1294,9 +1359,12 @@ void setBackupSaves(bool b) { myBackupSaves = b; }
 
 bool getDontShowFPS() const { return myDontShowFPS; }
 void setDontShowFPS(bool b) { myDontShowFPS = b; }
+<<<<<<< HEAD
 StringRef getPythonPath() const { return myPythonPath; }
 void setPythonPath(StringRef path) { myPythonPath = path; }
 
+=======
+>>>>>>> origin/feature-goto-quantize-insert
 
 bool isPracticeMode() const { return myPracticeMode; }
 void setPracticeMode(bool b) { myPracticeMode = b; }
