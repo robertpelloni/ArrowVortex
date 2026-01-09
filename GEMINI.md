@@ -5,4 +5,4 @@
 This file provides specific guidance to Gemini models when working with code in this repository.
 
 Specific to Gemini:
-- Leverage search capabilities to find library docs (e.g., Gist, Bobcoin if public).
+- Leverage search capabilities to find library docs (e.g., Gist, Qt, StepMania).
