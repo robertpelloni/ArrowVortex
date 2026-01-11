@@ -404,3 +404,4 @@ build/VisualStudio/ArrowVortex.vcxproj
 /bin/ArrowVortex.exe
 /bin/settings/recent files.txt
 /bin/settings/settings.txt
+lib/ddc/
