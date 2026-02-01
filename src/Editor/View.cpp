@@ -1,6 +1,7 @@
 #include <Editor/View.h>
 
 #include <algorithm>
+#include <cmath>
 
 #include <Core/String.h>
 #include <Core/Utils.h>
@@ -462,10 +463,10 @@ void tick()
 	if(myUseTimeBasedView)
 	{
 		double chartScrollTime = myCursorTime;
-		if (scrollCursor && abs(myPixPerSec) > 0.1)
+		if (scrollCursor && std::abs(myPixPerSec) > 0.1)
 		{
 			// Page duration based on screen height
-			double screenDuration = rect_.h / abs(myPixPerSec);
+			double screenDuration = rect_.h / std::abs(myPixPerSec);
 			double pageStart = floor(myCursorTime / screenDuration) * screenDuration;
 			chartScrollTime = pageStart;
 
@@ -477,10 +478,10 @@ void tick()
 	else
 	{
 		double chartScrollBeat = myCursorBeat;
-		if (scrollCursor && abs(myPixPerRow) > 0.1)
+		if (scrollCursor && std::abs(myPixPerRow) > 0.1)
 		{
 			// Page duration based on screen height (in beats)
-			double pixelsPerBeat = ROWS_PER_BEAT * abs(myPixPerRow);
+			double pixelsPerBeat = ROWS_PER_BEAT * std::abs(myPixPerRow);
 			double screenBeats = rect_.h / pixelsPerBeat;
 			double pageStartBeat = floor(myCursorBeat / screenBeats) * screenBeats;
 			chartScrollBeat = pageStartBeat;

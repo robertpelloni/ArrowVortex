@@ -3,7 +3,7 @@
 #include <algorithm>
 #include <set>
 #include <random>
-#include <math.h>
+#include <cmath>
 
 #include <Core/Utils.h>
 #include <Core/StringUtils.h>
@@ -187,7 +187,7 @@ void onKeyPress(KeyPress& evt) override
 					double t = gTempo->rowToTime(back->row);
 					double diff = t - currentTime;
 					if (diff < -range) break;
-					if (back->col == col && abs(diff) < abs(bestDiff)) {
+					if (back->col == col && std::abs(diff) < std::abs(bestDiff)) {
 						bestDiff = diff;
 						bestNote = &(*back);
 					}
@@ -199,17 +199,17 @@ void onKeyPress(KeyPress& evt) override
 					double t = gTempo->rowToTime(fwd->row);
 					double diff = t - currentTime;
 					if (diff > range) break;
-					if (fwd->col == col && abs(diff) < abs(bestDiff)) {
+					if (fwd->col == col && std::abs(diff) < std::abs(bestDiff)) {
 						bestDiff = diff;
 						bestNote = &(*fwd);
 					}
 					++fwd;
 				}
 
-				if (bestNote && abs(bestDiff) <= setup.windowBoo)
+				if (bestNote && std::abs(bestDiff) <= setup.windowBoo)
 				{
 					const char* judge = "Boo";
-					double absDiff = abs(bestDiff);
+					double absDiff = std::abs(bestDiff);
 					if (absDiff <= setup.windowMarvelous) judge = "{tc:AAF}Marvelous{tc}";
 					else if (absDiff <= setup.windowPerfect) judge = "{tc:DD4}Perfect{tc}";
 					else if (absDiff <= setup.windowGreat) judge = "{tc:4D4}Great{tc}";
