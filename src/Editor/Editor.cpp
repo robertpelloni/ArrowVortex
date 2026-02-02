@@ -7,6 +7,7 @@
 #include <Core/Draw.h>
 #include <Core/Shader.h>
 #include <Core/StringUtils.h>
+#include <Core/Text.h>
 
 #include <System/System.h>
 #include <System/File.h>
@@ -1127,21 +1128,8 @@ void tick()
 		vec2i size = gSystem->getWindowSize();
 		String fpsStr = Str::fmt("%1 FPS").arg(fps);
 
-		// Render FPS top-right using standard Text capabilities
-		// We use standard TextStyle default.
-		// Text::arrange and Text::draw might work if we set up a style.
-		// But we don't have easy access to a global style here.
-		// `EditorImpl` has `TextStyle text` in `init`, but it's local.
-		// Let's reuse `gTextOverlay` if possible or just use `Text::draw` with default font?
-		// `Text::draw` typically needs `Text::arrange` first.
-
-		// Assuming we can't easily render text without context, we'll skip the actual draw
-		// until we can expose the font.
-		// However, I can try to use `TextOverlay`'s infrastructure or a simple HUD message.
-		// But those fade.
-
-		// I will leave this block as "Logic Implemented, Rendering Pending"
-		// to avoid breaking the build with unknown Font objects.
+		Text::arrange(Text::TR, fpsStr.str());
+		Text::draw(vec2i{size.x - 4, 4});
 	}
 
 	GuiMain::frameEnd();

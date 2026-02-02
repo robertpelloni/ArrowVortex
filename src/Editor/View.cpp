@@ -1,6 +1,7 @@
 #include <Editor/View.h>
 
 #include <algorithm>
+#include <cmath>
 
 #include <Core/String.h>
 #include <Core/Utils.h>
@@ -45,6 +46,7 @@ double myPixPerSec, myPixPerRow;
 int myCursorRow;
 
 int myReceptorY, myReceptorX;
+int myVisualReceptorY;
 double myZoomLevel, myScaleLevel;
 bool myIsDraggingReceptors;
 bool myIsDraggingBeat;
@@ -70,6 +72,7 @@ ViewImpl()
 	, myCursorBeat(0.0)
 	, myCursorRow(0)
 	, myReceptorY(192)
+	, myVisualReceptorY(192)
 	, myReceptorX(0)
 	, myZoomLevel(8)
 	, myScaleLevel(4)
@@ -453,46 +456,40 @@ void tick()
 	myReceptorY = min(max(myReceptorY, rect_.y), BottomY(rect_));
 	myReceptorX = min(max(myReceptorX, minRecepX), maxRecepX);
 
-	// Scroll Cursor Effect: Move cursor instead of chart?
-	// If enabled: Cursor stays still? No, "Enable scrolling cursor effect" -> Cursor moves.
-	// DDream: "Cursor stays still during playback" (Unchecked) implies Scrolling Cursor.
-	// Wait, DDream's "Scrolling cursor effect" (Checked) usually means the cursor MOVES across the screen and the chart is STATIC?
-	// Or simply that the cursor has a visual effect?
-	// Given the tooltip "Uncheck: Cursor stays still during playback", it means:
-	// Checked: Cursor moves (and Chart stays still? Or Chart scrolls and Cursor moves relative?)
-	// Actually, typically editors have:
-	// 1. Fixed Receptors (Standard): Receptors at top/center, Chart moves.
-	// 2. Moving Receptors (Page/Scroll): Chart fixed, Receptors move.
+	// Handle Scroll Cursor Effect
+	myVisualReceptorY = myReceptorY;
+	bool scrollCursor = gEditor->getScrollCursorEffect() && !gMusic->isPaused();
 
-	// If ArrowVortex uses Fixed Receptors (myReceptorY is clamped to rect), then we just scroll.
-	// If we want "Cursor moves", we need to adjust myReceptorY based on playback time?
-	// But `myReceptorY` is set by dragging or resize.
-
-	// Let's implement a simple version:
-	// If "Scrolling Cursor Effect" is ON, we might want the cursor to move slightly or handle smooth scrolling differently?
-	// Actually, maybe this refers to the visual "Cursor" (Selection) vs "Receptors" (Playhead).
-	// In View::tick, myReceptorY is stable.
-
-	// I will skip complex "Moving Receptors" implementation for now as it fundamentally changes the view engine.
-	// I'll assume "Scrolling Cursor Effect" might just be about smoothing or the "Cursor Line" following playback?
-	// Currently `myCursorRow` follows playback.
-
-	// Re-reading tooltip: "Enable scrolling cursor effect... Uncheck: Cursor stays still".
-	// This likely refers to the "Beat Lines" or "Grid" moving vs "Cursor" moving.
-	// If unchecked (Cursor stays still), it's standard AV.
-	// If checked, maybe the playhead moves?
-	// Let's leave it as a TODO or minor tweak if I can't determine the exact behavior.
-	// I'll stick to Standard behavior for now but use the preference to toggle something if obvious.
-	// Actually, let's look at `myReceptorY` logic. It's updated by dragging.
-
-	// Store the y-position of time zero.
 	if(myUseTimeBasedView)
 	{
-		myChartTopY = floor((double)myReceptorY - myCursorTime * myPixPerSec);
+		double chartScrollTime = myCursorTime;
+		if (scrollCursor && std::abs(myPixPerSec) > 0.1)
+		{
+			// Page duration based on screen height
+			double screenDuration = rect_.h / std::abs(myPixPerSec);
+			double pageStart = floor(myCursorTime / screenDuration) * screenDuration;
+			chartScrollTime = pageStart;
+
+			// Visual receptor moves with time
+			myVisualReceptorY = (int)(myReceptorY + (myCursorTime - pageStart) * myPixPerSec);
+		}
+		myChartTopY = floor((double)myReceptorY - chartScrollTime * myPixPerSec);
 	}
 	else
 	{
-		myChartTopY = floor((double)myReceptorY - myCursorBeat * ROWS_PER_BEAT * myPixPerRow);
+		double chartScrollBeat = myCursorBeat;
+		if (scrollCursor && std::abs(myPixPerRow) > 0.1)
+		{
+			// Page duration based on screen height (in beats)
+			double pixelsPerBeat = ROWS_PER_BEAT * std::abs(myPixPerRow);
+			double screenBeats = rect_.h / pixelsPerBeat;
+			double pageStartBeat = floor(myCursorBeat / screenBeats) * screenBeats;
+			chartScrollBeat = pageStartBeat;
+
+			// Visual receptor moves with beats
+			myVisualReceptorY = (int)(myReceptorY + (myCursorBeat - pageStartBeat) * ROWS_PER_BEAT * myPixPerRow);
+		}
+		myChartTopY = floor((double)myReceptorY - chartScrollBeat * ROWS_PER_BEAT * myPixPerRow);
 	}
 }
 
@@ -726,7 +723,7 @@ Coords getReceptorCoords() const
 {
 	Coords out;
 	auto noteskin = gNoteskin->get();	
-	out.y = rect_.y + myReceptorY;
+	out.y = rect_.y + myVisualReceptorY;
 	out.xc = rect_.x + rect_.w / 2 + myReceptorX;
 	if(noteskin)
 	{
@@ -940,7 +937,7 @@ bool isMouseOverReceptors(int x, int y) const
 	{
 		auto c = getReceptorCoords();
 		int dy = applyZoom(gChart->isClosed() ? 8 : 32);
-		return (x >= c.xl && x < c.xr && abs(y - myReceptorY) <= dy);
+			return (x >= c.xl && x < c.xr && abs(y - c.y) <= dy);
 	}
 	return false;
 }
