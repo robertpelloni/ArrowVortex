@@ -937,7 +937,7 @@ bool isMouseOverReceptors(int x, int y) const
 	{
 		auto c = getReceptorCoords();
 		int dy = applyZoom(gChart->isClosed() ? 8 : 32);
-			return (x >= c.xl && x < c.xr && abs(y - c.y) <= dy);
+		return (x >= c.xl && x < c.xr && std::abs(y - c.y) <= dy);
 	}
 	return false;
 }

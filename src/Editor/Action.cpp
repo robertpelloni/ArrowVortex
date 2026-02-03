@@ -23,6 +23,7 @@
 #include <algorithm>
 #include <thread>
 #include <chrono>
+#include <cmath>
 
 #include <Managers/MetadataMan.h>
 #include <Managers/NoteskinMan.h>
@@ -707,7 +708,7 @@ void Action::perform(Type action)
 					// Optimization: maintain index
 					for(const auto& onset : onsets) {
 						double t = (double)onset.pos / samplerate;
-						double diff = abs(t - currentTime);
+						double diff = std::abs(t - currentTime);
 						if (diff < minDiff) {
 							minDiff = diff;
 							bestTime = t;
