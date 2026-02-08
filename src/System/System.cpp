@@ -20,6 +20,7 @@
 #define UNICODE
 
 #define WIN32_LEAN_AND_MEAN
+#define NOMINMAX
 #include <windows.h>
 #include <winuser.h>
 #include <shellapi.h>
@@ -482,7 +483,11 @@ void CALLBACK messageLoop()
 
 		// End of frame
 		auto curTime = Debug::getElapsedTime();
+<<<<<<< HEAD
 		deltaTime = duration<double>(std::min(std::max(0.0, duration<double>(curTime - prevTime).count()), 0.25));
+=======
+		deltaTime = duration<double>((float)std::min(std::max(0.0, duration<double>(curTime - prevTime).count()), 0.25));
+>>>>>>> origin/stdminmax
 		prevTime = curTime;
 
 #ifdef DEBUG
@@ -601,7 +606,11 @@ LPCWSTR getCursorResource()
 	{
 		IDC_ARROW, IDC_HAND, IDC_IBEAM, IDC_SIZEALL, IDC_SIZEWE, IDC_SIZENS, IDC_SIZENESW, IDC_SIZENWSE,
 	};
+<<<<<<< HEAD
 	return cursorMap[std::min(std::max(0, static_cast<int>(myCursor)), Cursor::NUM_CURSORS - 1)];
+=======
+	return cursorMap[std::min(std::max(0, (int)(myCursor)), Cursor::NUM_CURSORS - 1)];
+>>>>>>> origin/stdminmax
 }
 
 int getKeyFlags() const

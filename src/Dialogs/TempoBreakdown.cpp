@@ -11,16 +11,21 @@
 #include <Simfile/SegmentList.h>
 #include <Simfile/SegmentGroup.h>
 
+<<<<<<< HEAD
 #include <System/System.h>
 
 #define ITEM_H static_cast<int>(16 * gSystem->getScaleFactor())
 #define ITEM_HEADER static_cast<int>(20 * gSystem->getScaleFactor())
+=======
+#include <algorithm>
+>>>>>>> origin/stdminmax
 
 namespace Vortex {
 
 // ================================================================================================
 // ChartList
 
+<<<<<<< HEAD
 static int GetTempoListH() {
     auto segments = gTempo->getSegments();
     int h = 0;
@@ -32,6 +37,23 @@ static int GetTempoListH() {
         }
     }
     return max(h, ITEM_H);
+=======
+static int GetTempoListH()
+{
+	auto segments = gTempo->getSegments();
+	int h = 0;
+	if(segments)
+	{
+		for(auto list = segments->begin(), listEnd = segments->end(); list != listEnd; ++list)
+		{
+			if(list->size())
+			{
+				h += 26 + list->size() * 16;
+			}
+		}
+	}
+	return std::max(h, 16);
+>>>>>>> origin/stdminmax
 }
 
 struct DialogTempoBreakdown::TempoList : public WgScrollRegion {
@@ -161,11 +183,29 @@ void DialogTempoBreakdown::onUpdateSize() {
     setMaximumHeight(min(1024, h));
 }
 
+<<<<<<< HEAD
 void DialogTempoBreakdown::onTick() {
     myList->arrange(getInnerRect());
     myList->tick();
+=======
+void DialogTempoBreakdown::onUpdateSize()
+{
+	myList->updateSize();
+	int h = myList->getScrollHeight();
+	setMinimumHeight(std::min(64, h));
+	setMaximumHeight(std::min(1024, h));
+>>>>>>> origin/stdminmax
 }
 
 void DialogTempoBreakdown::onDraw() { myList->draw(); }
 
+<<<<<<< HEAD
 };  // namespace Vortex
+=======
+void DialogTempoBreakdown::onDraw()
+{
+	myList->draw();
+}
+
+}; // namespace Vortex
+>>>>>>> origin/stdminmax

@@ -16,6 +16,8 @@
 
 #include <System/Debug.h>
 
+#include <algorithm>
+
 namespace Vortex {
 namespace {
 
@@ -85,8 +87,16 @@ static void handleTooltip() {
         if (GUI->tooltipText.length() && GUI->tooltipTimer > 1.0f) {
             TextStyle style;
 
+<<<<<<< HEAD
             int alpha = clamp(static_cast<int>(GUI->tooltipTimer * 1000 - 1000),
                               0, 255);
+=======
+			int alpha = std::clamp((int)(GUI->tooltipTimer * 1000 - 1000, 0, 255);
+			
+			style.textColor = Color32(0, alpha);
+			style.shadowColor = Colors::blank;
+			style.fontSize = 11;
+>>>>>>> origin/stdminmax
 
             style.textColor = Color32(0, alpha);
             style.shadowColor = Colors::blank;
@@ -95,6 +105,7 @@ static void handleTooltip() {
             Text::arrange(Text::TL, style, 256, GUI->tooltipText.c_str());
             vec2i textSize = Text::getSize();
 
+<<<<<<< HEAD
             vec2i& pos = GUI->tooltipPos;
             if (pos.x == INT_MAX) {
                 pos.x = GUI->mousePos.x + 2;
@@ -104,6 +115,10 @@ static void handleTooltip() {
                     pos.y = GUI->mousePos.y + 24;
                 }
             }
+=======
+			pos.x = std::clamp(pos.x, 4, GUI->viewSize.x - textSize.x - 4);
+			pos.y = std::clamp(pos.y, 4, GUI->viewSize.y - textSize.y - 4);
+>>>>>>> origin/stdminmax
 
             pos.x = clamp(pos.x, 4, GUI->viewSize.x - textSize.x - 4);
             pos.y = clamp(pos.y, 4, GUI->viewSize.y - textSize.y - 4);

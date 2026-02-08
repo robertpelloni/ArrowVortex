@@ -4,6 +4,8 @@
 #include <Core/MapUtils.h>
 #include <Core/VectorUtils.h>
 
+#include <algorithm>
+
 namespace Vortex {
 
 GuiContext::~GuiContext() = default;
@@ -95,8 +97,120 @@ void GuiContextImpl::grabFocus(GuiWidget* w) {
     focus_widgets_.push_back(w);
 }
 
+<<<<<<< HEAD
 void GuiContextImpl::releaseFocus(GuiWidget* w) {
     focus_widgets_.erase_values(w);
+=======
+float GuiContextImpl::getDeltaTime()
+{
+	return delta_time_;
+}
+
+InputEvents& GuiContextImpl::getEvents()
+{
+	return *input_events_;
+}
+
+void GuiContextImpl::tick(recti view, float deltaTime, InputEvents& events)
+{
+	view_rect_ = view;
+
+	view_rect_.w = std::max(view_rect_.w, 0);
+	view_rect_.h = std::max(view_rect_.h, 0);
+
+	delta_time_ = deltaTime;
+	input_events_ = &events;
+
+	// Update the mouse position.
+	for(MouseMove* move = nullptr; events.next(move);)
+	{
+		mouse_position_ = {move->x, move->y};
+	}
+
+	// Rearrange or delete dialogs if requested.
+	FOR_VECTOR_REVERSE(dialogs_, i)
+	{
+		auto dialog = dialogs_[i];
+		if(dialog->request_close_)
+		{
+			dialogs_.erase_values(dialog);
+			delete dialog;
+		}
+		else if(dialog->request_move_to_top_)
+		{
+			dialogs_.erase(i);
+			dialogs_.push_back(dialog);
+			dialog->request_move_to_top_ = 0;
+		}
+	}
+
+	// Arrange the dialogs and widgets.
+	FOR_VECTOR_REVERSE(dialogs_, i)
+	{
+		dialogs_[i]->arrange();
+	}
+
+	// Tick widgets with focus first.
+	FOR_VECTOR_REVERSE(focus_widgets_, i)
+	{
+		if(focus_widgets_[i]->isEnabled())
+		{
+			focus_widgets_[i]->onTick();
+		}
+	}
+
+	// Tick the dialogs.
+	FOR_VECTOR_REVERSE(dialogs_, i)
+	{
+		dialogs_[i]->tick();
+	}
+
+	input_events_ = nullptr;
+}
+
+void GuiContextImpl::draw()
+{
+	// Draw the dialogs.
+	FOR_VECTOR_FORWARD(dialogs_, i)
+	{
+		dialogs_[i]->draw();
+	}
+
+	// Draw widgets with focus at the top.
+	FOR_VECTOR_FORWARD(focus_widgets_, i)
+	{
+		focus_widgets_[i]->onDraw();
+	}
+}
+
+void GuiContextImpl::removeWidget(GuiWidget* w)
+{
+	focus_widgets_.erase_values(w);
+}
+
+void GuiContextImpl::addDialog(DialogData* f)
+{
+	dialogs_.push_back(f);
+}
+
+void GuiContextImpl::removeDialog(DialogData* f)
+{
+	dialogs_.erase_values(f);
+}
+
+void GuiContextImpl::grabFocus(GuiWidget* w)
+{
+	FOR_VECTOR_FORWARD(focus_widgets_, i)
+	{
+		if(focus_widgets_[i] == w) return;
+	}
+	focus_widgets_.push_back(w);
+}
+
+void GuiContextImpl::releaseFocus(GuiWidget* w)
+{
+	focus_widgets_.erase_values(w);
+>>>>>>> origin/stdminmax
 }
 
 // ================================================================================================

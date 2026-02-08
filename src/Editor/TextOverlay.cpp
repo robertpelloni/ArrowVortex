@@ -18,6 +18,8 @@
 #include <Editor/Shortcuts.h>
 #include <Editor/Action.h>
 
+#include <algorithm>
+
 namespace Vortex {
 
 namespace {
@@ -195,8 +197,8 @@ void UpdateScrollValues()
 
 	if(textOverlayMode_ == MESSAGE_LOG)
 	{
-		textOverlayPageSize_ = max(0, (size.y - 32) / 16);
-		textOverlayScrollEnd_ = max(0, logEntries_.size() - textOverlayPageSize_);
+		textOverlayPageSize_ = std::max(0, (size.y - 32) / 16);
+		textOverlayScrollEnd_ = std::max(0, logEntries_.size() - textOverlayPageSize_);
 	}
 	else if(textOverlayMode_ == SHORTCUTS)
 	{
@@ -206,7 +208,7 @@ void UpdateScrollValues()
 		{
 			textOverlayScrollEnd_ += e.isHeader ? 24 : 18;
 		}
-		textOverlayScrollEnd_ = max(0, textOverlayScrollEnd_ - textOverlayPageSize_);
+		textOverlayScrollEnd_ = std::max(0, textOverlayScrollEnd_ - textOverlayPageSize_);
 	}
 	else
 	{
@@ -214,7 +216,7 @@ void UpdateScrollValues()
 		textOverlayScrollEnd_ = 0;
 	}
 
-	textOverlayScrollPos_ = min(max(0, textOverlayScrollPos_), textOverlayScrollEnd_);
+	textOverlayScrollPos_ = std::min(std::max(0, textOverlayScrollPos_), textOverlayScrollEnd_);
 }
 
 void tick()
@@ -254,8 +256,8 @@ void onMouseScroll(MouseScroll& evt) override
 	if(textOverlayMode_ != HUD && !evt.handled)
 	{
 		int delta = evt.up ? -1 : +1;
-		textOverlayScrollPos_ += delta * max(1, textOverlayPageSize_ / 10);
-		textOverlayScrollPos_ = min(max(0, textOverlayScrollPos_), textOverlayScrollEnd_);
+		textOverlayScrollPos_ += delta * std::max(1, textOverlayPageSize_ / 10);
+		textOverlayScrollPos_ = std::min(std::max(0, textOverlayScrollPos_), textOverlayScrollEnd_);
 		evt.handled = true;
 	}
 }
@@ -413,7 +415,7 @@ void tickHud()
 		{
 			fade += 0.5f;
 		}
-		float delta = clamp(deltaTime.count() * fade, 0.0, 1.0);
+		float delta = std::clamp(deltaTime.count() * fade, 0.0, 1.0);
 
 		hudEntries_[i].timeLeft -= delta;
 		if(hudEntries_[i].timeLeft <= -0.5f) hudEntries_.erase(i);
@@ -444,7 +446,7 @@ void drawHud()
 	x = 4, y = 4;
 	for(auto& m : hudEntries_)
 	{
-		int a = clamp((int)(m.timeLeft * 512.0f + 256.0f), 0, 255);
+		int a = std::clamp((int)(m.timeLeft * 512.0f + 256.0f), 0, 255);
 
 		textStyle.textColor = Color32a(textStyle.textColor, a);
 		textStyle.shadowColor = Color32a(textStyle.shadowColor, a);
@@ -628,12 +630,18 @@ void drawAbout()
 
 	DrawTitleText("ABOUT", "[ESC] close", nullptr);
 
+<<<<<<< HEAD
 	if (!gEditor->getDontShowFPS())
 	{
 		auto fps = Str::fmt("%1 FPS").arg(1.0f / max(deltaTime.count(), 0.0001), 0, 0);
 		Text::arrange(Text::TR, fps);
 		Text::draw(vec2i{size.x - 4, 4});
 	}
+=======
+	auto fps = Str::fmt("%1 FPS").arg(1.0f / std::max(deltaTime.count(), 0.0001), 0, 0);
+	Text::arrange(Text::TR, fps);
+	Text::draw(vec2i{size.x - 4, 4});
+>>>>>>> origin/stdminmax
 }
 
 }; // TextOverlayImpl
@@ -668,7 +676,7 @@ void InfoBoxWithProgress::draw(recti r)
 
 void InfoBoxWithProgress::setProgress(double rate)
 {
-	int progress = clamp((int)(rate * 100.0f + 0.5f), 0, 100);
+	int progress = std::clamp((int)(rate * 100.0f + 0.5f), 0, 100);
 	right = Str::val(progress) + '%';
 }
 

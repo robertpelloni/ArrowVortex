@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <fstream>
+#include <algorithm>
 
 #include <Core/Utils.h>
 
@@ -51,10 +52,19 @@ int WavLoader::readFrames(int frames, short* buffer) {
     int numFramesToRead = min(numFramesLeft, frames);
     numFramesLeft -= numFramesToRead;
 
+<<<<<<< HEAD
     std::streamsize bytesPerFrame =
         static_cast<std::streamsize>(bytesPerSample) * numChannels;
     file.read(reinterpret_cast<char*>(buffer), bytesPerFrame * numFramesToRead);
     return static_cast<int>(file.gcount() / bytesPerFrame);
+=======
+int WavLoader::readFrames(int frames, short* buffer)
+{
+	int numFramesToRead = std::min(numFramesLeft, frames);
+	numFramesLeft -= numFramesToRead;
+	file.read(reinterpret_cast<char*>(buffer), bytesPerSample * numChannels * numFramesToRead);
+    return static_cast<int>(file.gcount());
+>>>>>>> origin/stdminmax
 }
 
 };  // anonymous namespace

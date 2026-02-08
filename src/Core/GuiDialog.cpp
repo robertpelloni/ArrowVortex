@@ -6,6 +6,8 @@
 #include <Core/GuiWidget.h>
 #include <System/System.h>
 
+#include <algorithm>
+
 namespace Vortex {
 
 #define MY_GUI ((GuiContextImpl*)gui_)
@@ -179,6 +181,7 @@ void DialogData::ClampRect() {
         rect_.y = pinned_position_.y;
     }
 
+<<<<<<< HEAD
     if (current_action_ && current_action_->type >= ACT_RESIZE) {
         auto a = static_cast<ResizeAction*>(current_action_);
         if (a->dirH < 0) rect_.w = min(rect_.w, a->anchor.x - bounds.x);
@@ -191,6 +194,19 @@ void DialogData::ClampRect() {
 
     rect_.w = max(min_size_.x, min(max_size_.x, min(bounds.w, rect_.w)));
     rect_.h = max(min_size_.y, min(max_size_.y, min(bounds.h, rect_.h)));
+=======
+	if(current_action_ && current_action_->type >= ACT_RESIZE)
+	{
+		auto a = (ResizeAction*)current_action_;
+		if(a->dirH < 0) rect_.w = std::min(rect_.w, a->anchor.x - bounds.x);
+		if(a->dirH > 0) rect_.w = std::min(rect_.w, bounds.x + bounds.w - a->anchor.x);
+		if(a->dirV < 0) rect_.h = std::min(rect_.h, a->anchor.y - bounds.y);
+		if(a->dirV > 0) rect_.h = std::min(rect_.h, bounds.y + bounds.h - a->anchor.y);
+	}
+
+	rect_.w = std::max(min_size_.x, std::min(max_size_.x, std::min(bounds.w, rect_.w)));
+	rect_.h = std::max(min_size_.y, std::min(max_size_.y, std::min(bounds.h, rect_.h)));
+>>>>>>> origin/stdminmax
 
     if (current_action_ && current_action_->type >= ACT_RESIZE) {
         auto a = static_cast<ResizeAction*>(current_action_);
@@ -198,9 +214,15 @@ void DialogData::ClampRect() {
         if (a->dirV < 0) rect_.y = a->anchor.y - rect_.h;
     }
 
+<<<<<<< HEAD
     int marginH = minimized_state_ ? (FRAME_PADDING * -2) : rect_.h;
     rect_.x = max(min(rect_.x, bounds.x + bounds.w - rect_.w), bounds.x);
     rect_.y = max(min(rect_.y, bounds.y + bounds.h - marginH), bounds.y);
+=======
+	int marginH = minimized_state_ ? (FRAME_PADDING * -2) : rect_.h;
+	rect_.x = std::max(std::min(rect_.x, bounds.x + bounds.w - rect_.w), bounds.x);
+	rect_.y = std::max(std::min(rect_.y, bounds.y + bounds.h - marginH), bounds.y);
+>>>>>>> origin/stdminmax
 }
 
 void DialogData::arrange() {
@@ -467,4 +489,102 @@ recti GuiDialog::getInnerRect() const { return DATA->rect_; }
 
 bool GuiDialog::isPinned() const { return DATA->pinned_state_; }
 
+<<<<<<< HEAD
 };  // namespace Vortex
+=======
+void GuiDialog::onDraw()
+{
+}
+
+void GuiDialog::requestClose()
+{
+	DATA->request_close_ = 1;
+}
+
+void GuiDialog::requestPin()
+{
+	DATA->request_pin_ = 1;
+}
+
+void GuiDialog::setPosition(int x, int y)
+{
+	DATA->rect_.x = x;
+	DATA->rect_.y = y;
+}
+
+void GuiDialog::setTitle(StringRef str)
+{
+	DATA->dialog_title_ = str;
+}
+
+void GuiDialog::setWidth(int w)
+{
+	DATA->rect_.w = w;
+}
+
+void GuiDialog::setHeight(int h)
+{
+	DATA->rect_.h = h;
+}
+
+void GuiDialog::setMinimumWidth(int w)
+{
+	DATA->min_size_.x = std::max(0, w);
+}
+
+void GuiDialog::setMinimumHeight(int h)
+{
+	DATA->min_size_.y = std::max(0, h);
+}
+
+void GuiDialog::setMaximumWidth(int w)
+{
+	DATA->max_size_.x = std::max(0, w);
+}
+
+void GuiDialog::setMaximumHeight(int h)
+{
+	DATA->max_size_.y = std::max(0, h);
+}
+
+void GuiDialog::setCloseable(bool enable)
+{
+	DATA->is_closeable_ = 1;
+}
+
+void GuiDialog::setMinimizable(bool enable)
+{
+	DATA->is_minimizable_ = 1;
+}
+
+void GuiDialog::setResizeable(bool horizontal, bool vertical)
+{
+	DATA->is_horizontally_resizable_ = horizontal;
+	DATA->is_vertically_resizable_ = vertical;
+}
+
+GuiContext* GuiDialog::getGui() const
+{
+	return DATA->gui_;
+}
+
+recti GuiDialog::getOuterRect() const
+{
+	int pad = FRAME_PADDING;
+	recti r = Expand(DATA->rect_, pad, pad + FRAME_TITLEBAR_H, pad, pad);
+	if(DATA->minimized_state_) r.h = FRAME_TITLEBAR_H + pad;
+	return r;
+}
+
+recti GuiDialog::getInnerRect() const
+{
+	return DATA->rect_;
+}
+
+bool GuiDialog::isPinned() const
+{
+	return DATA->pinned_state_;
+}
+
+}; // namespace Vortex
+>>>>>>> origin/stdminmax

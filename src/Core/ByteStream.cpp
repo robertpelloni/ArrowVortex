@@ -6,6 +6,8 @@
 #include <stdlib.h>
 #include <stdint.h>
 
+#include <algorithm>
+
 namespace Vortex {
 
 // ================================================================================================
@@ -44,8 +46,13 @@ void WriteStream::write(const void* in, int bytes)
 	}
 	else if(!is_external_buffer_)
 	{
+<<<<<<< HEAD
 		capacity_ = max(capacity_ << 1, newSize);
 		buffer_ = (uchar*)realloc(buffer_, capacity_);
+=======
+		capacity_ = std::max(capacity_ << 1, newSize);
+		buffer_ = (uint8_t*)realloc(buffer_, capacity_);
+>>>>>>> origin/stdminmax
 		memcpy(buffer_ + current_size_, in, bytes);
 		current_size_ = newSize;
 	}

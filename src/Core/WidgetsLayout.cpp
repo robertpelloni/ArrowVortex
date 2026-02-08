@@ -6,6 +6,8 @@
 
 #include <math.h>
 
+#include <algorithm>
+
 namespace Vortex {
 
 // ================================================================================================
@@ -66,6 +68,7 @@ void RowLayout::onUpdateSize() {
                 x = 0, c = 0, h = 0;
             }
 
+<<<<<<< HEAD
             if (*widget) {
                 (*widget)->updateSize();
                 vec2i size = (*widget)->getSize();
@@ -80,6 +83,23 @@ void RowLayout::onUpdateSize() {
             width_ = max(width_, x);
             x += row_spacing_;
         }
+=======
+			if(*widget)
+			{
+				(*widget)->updateSize();
+				vec2i size = (*widget)->getSize();
+				h = std::max(h, size.y);
+				if(cols[c].adjust)
+				{
+					cols[c].width = std::max(cols[c].width, (uint32_t)size.x);
+				}
+			}
+
+			x += cols[c].width;
+			width_ = std::max(width_, x);
+			x += row_spacing_;
+		}
+>>>>>>> origin/stdminmax
 
         y += h;
         height_ = y;
@@ -90,7 +110,11 @@ void RowLayout::onUpdateSize() {
 void RowLayout::onArrange(recti r) {
     int y = r.y;
 
+<<<<<<< HEAD
     int extraW = max(0, r.w - width_);
+=======
+	int extraW = std::max(0, r.w - width_);
+>>>>>>> origin/stdminmax
 
     for (auto& row : row_list_) {
         bool expanded = false;
@@ -114,11 +138,20 @@ void RowLayout::onArrange(recti r) {
                 expanded = true;
             }
 
+<<<<<<< HEAD
             if (*widget) {
                 vec2i size = (*widget)->getSize();
                 (*widget)->arrange({x, y, colW, size.y});
                 h = max(h, size.y);
             }
+=======
+			if(*widget)
+			{
+				vec2i size = (*widget)->getSize();
+				(*widget)->arrange({x, y, colW, size.y});
+				h = std::max(h, size.y);
+			}
+>>>>>>> origin/stdminmax
 
             x += cols[c].width + row_spacing_;
         }

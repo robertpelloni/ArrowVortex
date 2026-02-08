@@ -7,7 +7,11 @@
       "inheritEnvironments": [ "msvc_x64_x64" ],
       "buildRoot": "${projectDir}\\out\\build\\${name}",
       "installRoot": "${projectDir}\\out\\install\\${name}",
+<<<<<<< HEAD
       "cmakeCommandArgs": "",
+=======
+      "cmakeCommandArgs": "-DVCPKG_TARGET_TRIPLET=x64-windows-static-md",
+>>>>>>> origin/stdminmax
       "buildCommandArgs": "",
       "ctestCommandArgs": ""
     },
@@ -17,10 +21,18 @@
       "configurationType": "RelWithDebInfo",
       "buildRoot": "${projectDir}\\out\\build\\${name}",
       "installRoot": "${projectDir}\\out\\install\\${name}",
+<<<<<<< HEAD
       "cmakeCommandArgs": "",
+=======
+      "cmakeCommandArgs": "-DVCPKG_TARGET_TRIPLET=x64-windows-static-md",
+>>>>>>> origin/stdminmax
       "buildCommandArgs": "",
       "ctestCommandArgs": "",
       "inheritEnvironments": [ "msvc_x64_x64" ]
     }
   ]
+<<<<<<< HEAD
 }
+=======
+}
+>>>>>>> origin/stdminmax

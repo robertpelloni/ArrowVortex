@@ -230,6 +230,7 @@ static TimingPoint* GetTimingPoint(OsuFile& osu, double time) {
     return &(it->second);
 }
 
+<<<<<<< HEAD
 static void ParseHitObjects(OsuFile& out, Parser& parser) {
     while (ReadProperty(parser)) {
         const char* p = parser.prop.c_str();
@@ -250,6 +251,28 @@ static void ParseHitObjects(OsuFile& out, Parser& parser) {
                 break;
         };
     }
+=======
+static void ParseHitObjects(OsuFile& out, Parser& parser)
+{
+	while(ReadProperty(parser))
+	{
+		const char* p = parser.prop.str();
+		int x = std::max(0, NoteVal(p)), y = NoteVal(p);
+		double time = NoteVal(p) * 0.001;
+		int type = NoteVal(p);
+		switch(type)
+		{
+		case 1: // Regular step.
+			out.hitObjects.push_back({x, time, time});
+			break;
+		case 128: // Hold note.
+			int hitSound = NoteVal(p);
+			double endTime = std::max(time, NoteVal(p) * 0.001);
+			out.hitObjects.push_back({x, time, endTime});
+			break;
+		};
+	}
+>>>>>>> origin/stdminmax
 }
 
 static void ParseTag(OsuFile& osu, Parser& parser) {
@@ -338,6 +361,7 @@ static void AssignDifficulties(Simfile* sim,
         }
     }
 
+<<<<<<< HEAD
     // Assign difficulties based on the best match.
     if (bestNumMatches > 0) {
         for (auto& chart : charts) {
@@ -360,6 +384,36 @@ static void AssignDifficulties(Simfile* sim,
                 std::min(offset + i, static_cast<int>(NUM_DIFFICULTIES - 1)));
         }
     }
+=======
+	// Assign difficulties based on the best match.
+	if(bestNumMatches > 0)
+	{
+		for(auto& chart : charts)
+		{
+			chart->difficulty = DIFF_EDIT;
+		}
+		for(int i = 0; i < 5; ++i)
+		{
+			if(bestMatches[i])
+			{
+				bestMatches[i]->difficulty = (Difficulty)i;
+			}
+		}
+	}
+	else // No matches, sort by number of notes and assign upwards.
+	{
+		std::sort(charts.begin(), charts.end(),
+		[](const Chart* a, const Chart* b)
+		{
+			return a->notes.size() < b->notes.size();
+		});
+		int offset = std::max(0, std::min(charts[0]->meter / 2, 5 - charts.size()));
+		for(int i = 0; i < charts.size(); ++i)
+		{
+			charts[i]->difficulty = (Difficulty)(offset + i);
+		}
+	}
+>>>>>>> origin/stdminmax
 }
 
 // ================================================================================================
@@ -421,6 +475,7 @@ static void ConvertNotes(Simfile* sim, OsuFile& osu, Chart& chart) {
         std::sort(osu.hitObjects.begin(), osu.hitObjects.end(), LessThan);
     }
 
+<<<<<<< HEAD
     // Then assign rows to notes based on the time stamps.
     TimingData timing;
     timing.update(sim->tempo);
@@ -430,6 +485,17 @@ static void ConvertNotes(Simfile* sim, OsuFile& osu, Chart& chart) {
         // (inclusive).
         int colWidth = 512 / max(osu.numCols, 1);
         int col = min(max(0, hitObject.x / colWidth), osu.numCols);
+=======
+	// Then assign rows to notes based on the time stamps.
+	TimingData timing;
+	timing.update(sim->tempo);
+	TempoRowTracker tracker(timing);
+	for(auto& hitObject : osu.hitObjects)
+	{
+		// x ranges from 0 to 512 (inclusive), y ranges from 0 to 384 (inclusive).
+		int colWidth = 512 / std::max(osu.numCols, 1);
+		int col = std::min(std::max(0, hitObject.x / colWidth), osu.numCols);
+>>>>>>> origin/stdminmax
 
         // Convert time and endtime to rows.
         int row = tracker.advance(hitObject.time);

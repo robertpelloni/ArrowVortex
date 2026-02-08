@@ -4,7 +4,11 @@
 #include <Core/Utils.h>
 #include <Core/GuiDraw.h>
 
+<<<<<<< HEAD
 #include <System/System.h>
+=======
+#include <algorithm>
+>>>>>>> origin/stdminmax
 
 namespace Vortex {
 
@@ -83,12 +87,23 @@ void WgSelectList::onArrange(recti r) {
     scrollbar_->arrange({r.x + r.w - w - 2, r.y + 3, w, r.h - 6});
 }
 
+<<<<<<< HEAD
 void WgSelectList::onTick() {
     scrollbar_->setEnd(selectlist_items_.size() * ITEM_H);
     scrollbar_->setPage(ItemRect().h);
     scrollbar_->tick();
 
     GuiWidget::onTick();
+=======
+void WgSelectList::scroll(bool up)
+{
+	if(HasScrollBar())
+	{
+		int end = selectlist_items_.size() * ITEM_H - ItemRect().h;
+		int delta = up ? -ITEM_H : ITEM_H;
+		scroll_position_ = std::min(std::max(scroll_position_ + delta, 0), end);
+	}
+>>>>>>> origin/stdminmax
 }
 
 void WgSelectList::onDraw() {
@@ -174,6 +189,7 @@ WgDroplist::WgDroplist(GuiContext* gui) : GuiWidget(gui) {
     selectlist_widget_ = nullptr;
 }
 
+<<<<<<< HEAD
 void WgDroplist::onMousePress(MousePress& evt) {
     if (selectlist_widget_) {
         recti r = selectlist_widget_->getRect();
@@ -193,6 +209,30 @@ void WgDroplist::onMousePress(MousePress& evt) {
             selectlist_widget_->setHeight(h);
             selectlist_widget_->onArrange(r);
             selectlist_widget_->hideBackground();
+=======
+void WgDroplist::onMousePress(MousePress& evt)
+{
+	if(selectlist_widget_)
+	{
+		recti r = selectlist_widget_->getRect();
+		if(evt.button == Mouse::RMB || !IsInside(r, evt.x, evt.y))
+		{
+			CloseDroplist();
+			evt.setHandled();
+		}
+	}
+	else if(isMouseOver())
+	{
+		int numItems = droplist_items_.size();
+		if(isEnabled() && numItems && evt.button == Mouse::LMB && evt.unhandled())
+		{
+			int h = std::min(numItems * 18 + 8, 128);
+			recti r = {rect_.x, rect_.y + rect_.h, rect_.w, h};
+			selectlist_widget_ = new WgSelectList(gui_);
+			selectlist_widget_->setHeight(h);
+			selectlist_widget_->onArrange(r);
+			selectlist_widget_->hideBackground();
+>>>>>>> origin/stdminmax
 
             for (int i = 0; i < numItems; ++i) {
                 selectlist_widget_->addItem(droplist_items_[i].c_str());

@@ -6,6 +6,8 @@
 #include <Core/Draw.h>
 #include <Core/Canvas.h>
 
+#include <algorithm>
+
 #include <System/Debug.h>
 #include <System/OpenGL.h>
 

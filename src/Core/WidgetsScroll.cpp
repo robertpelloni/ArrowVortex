@@ -5,6 +5,7 @@
 #include <Core/GuiDraw.h>
 
 #include <stdint.h>
+#include <algorithm>
 
 namespace Vortex {
 namespace {
@@ -31,6 +32,7 @@ struct ScrollButtonData {
     int pos, size;
 };
 
+<<<<<<< HEAD
 static ScrollButtonData GetButton(int size, int end, int page, int scroll) {
     ScrollButtonData out = {0, size};
     if (end > page) {
@@ -56,6 +58,32 @@ static int GetScroll(int size, int end, int page, int pos) {
         out = max(0, min(out, end - page));
     }
     return out;
+=======
+static ScrollButtonData GetButton(int size, int end, int page, int scroll)
+{
+	ScrollButtonData out = {0, size};
+	if(end > page)
+	{
+		out.size = (int)(0.5 + size * (double)page / (double)end);
+		out.size = std::max(16, out.size);
+
+		out.pos = (int)(0.5 + scroll * (double)(size - out.size) / (double)(end - page));
+		out.pos = std::max(0, std::min(out.pos, size - out.size));
+	}
+	return out;
+}
+
+static int GetScroll(int size, int end, int page, int pos)
+{
+	int out = 0;
+	if(end > page)
+	{
+		ScrollButtonData button = GetButton(size, end, page, 0);
+		out = (int)(0.5 + pos * (double)(end - page) / (double)(size - button.size));
+		out = std::max(0, std::min(out, end - page));
+	}
+	return out;
+>>>>>>> origin/stdminmax
 }
 
 static void DrawScrollbar(recti bar, ScrollButtonData button, bool vertical,
@@ -87,10 +115,18 @@ static void DrawScrollbar(recti bar, ScrollButtonData button, bool vertical,
     }
 }
 
+<<<<<<< HEAD
 void ApplyScrollOffset(int& offset, int page, int scroll, bool up) {
     int delta = max(1, page / 8);
     if (up) delta = -delta;
     offset = max(0, min(offset + delta, scroll - page));
+=======
+void ApplyScrollOffset(int& offset, int page, int scroll, bool up)
+{
+	int delta = std::max(1, page / 8);
+	if(up) delta = -delta;
+	offset = std::max(0, std::min(offset + delta, scroll - page));
+>>>>>>> origin/stdminmax
 }
 
 };  // anonymous namespace.
@@ -202,7 +238,17 @@ uint32_t WgScrollbar::GetScrollbarActionAtPosition(int x, int y) {
     return ACT_NONE;
 }
 
+<<<<<<< HEAD
 WgScrollbarV::WgScrollbarV(GuiContext* gui) : WgScrollbar(gui) { width_ = 14; }
+=======
+void WgScrollbar::ScrollbarUpdateValue(int v)
+{
+	double prev = value.get();
+	v = std::max(0, std::min(scrollbar_end_, v));
+	value.set(v);
+	if(value.get() != prev) onChange.call();
+}
+>>>>>>> origin/stdminmax
 
 bool WgScrollbarV::isVertical() const { return true; }
 
@@ -314,6 +360,7 @@ int WgScrollRegion::getViewWidth() const {
     return rect_.w - is_vertical_scrollbar_active_ * SCROLLBAR_SIZE;
 }
 
+<<<<<<< HEAD
 int WgScrollRegion::getViewHeight() const {
     return rect_.h - is_horizontal_scrollbar_active_ * SCROLLBAR_SIZE;
 }
@@ -351,6 +398,16 @@ void WgScrollRegion::PreTick() {
                   mpos.x, mpos.y)) {
         blockMouseOver();
     }
+=======
+void WgScrollRegion::setScrollW(int width)
+{
+	scroll_width_ = std::max(0, width);
+}
+
+void WgScrollRegion::setScrollH(int height)
+{
+	scroll_height_ = std::max(0, height);
+>>>>>>> origin/stdminmax
 }
 
 void WgScrollRegion::PostTick() {
@@ -395,4 +452,85 @@ void WgScrollRegion::ClampScrollPositions() {
         max(0, min(scroll_position_y_, scroll_height_ - getViewHeight()));
 }
 
+<<<<<<< HEAD
 };  // namespace Vortex
+=======
+int WgScrollRegion::getScrollHeight() const
+{
+	return scroll_height_;
+}
+
+void WgScrollRegion::PreTick()
+{
+	vec2i mpos = gui_->getMousePos();
+
+	int sh = scroll_type_horizontal_;
+	int sv = scroll_type_vertical_;
+
+	is_horizontal_scrollbar_active_ = (sh == SCROLL_ALWAYS || (sh == SCROLL_WHEN_NEEDED && scroll_width_ > rect_.w));
+	is_vertical_scrollbar_active_ = (sv == SCROLL_ALWAYS || (sv == SCROLL_WHEN_NEEDED && scroll_height_ > rect_.h));
+
+	if(scroll_region_action_ == ACT_DRAGGING_H)
+	{
+		int w = getViewWidth();
+		int buttonPos = gui_->getMousePos().x - rect_.x - scroll_region_grab_position_;
+		scroll_position_x_ = GetScroll(w, scroll_width_, w, buttonPos);
+	}
+	else if(scroll_region_action_ == ACT_DRAGGING_V)
+	{
+		int h = getViewHeight();
+		int buttonPos = gui_->getMousePos().y - rect_.y - scroll_region_grab_position_;
+		scroll_position_y_ = GetScroll(h, scroll_height_, h, buttonPos);
+	}
+
+	if(!IsInside(recti{rect_.x, rect_.y, getViewWidth(), getViewHeight()}, mpos.x, mpos.y))
+	{
+		blockMouseOver();
+	}
+}
+
+void WgScrollRegion::PostTick()
+{
+	unblockMouseOver();
+
+	GuiWidget::onTick();
+}
+
+uint32_t WgScrollRegion::getScrollRegionActionAt_(int x, int y)
+{
+	if(scroll_region_action_) return scroll_region_action_;
+
+	if(!IsInside(rect_, x, y)) return ACT_NONE;
+
+	x -= rect_.x;
+	y -= rect_.y;
+
+	int viewW = getViewWidth();
+	int viewH = getViewHeight();
+	if(is_vertical_scrollbar_active_ && x >= viewW && y < viewH)
+	{
+		auto button = GetButton(viewH, scroll_height_, viewH, scroll_position_y_);
+		if(y < button.pos) return ACT_HOVER_BUMP_UP;
+		if(y < button.pos + button.size) return ACT_HOVER_BUTTON_V;
+		return ACT_HOVER_BUMP_DOWN;
+	}
+
+	if(is_horizontal_scrollbar_active_ && y >= viewH && x < viewW)
+	{
+		auto button = GetButton(viewW, scroll_width_, viewW, scroll_position_x_);
+		if(x < button.pos) return ACT_HOVER_BUMP_LEFT;
+		if(x < button.pos + button.size) return ACT_HOVER_BUTTON_H;
+		return ACT_HOVER_BUMP_RIGHT;
+	}
+
+	return ACT_NONE;
+}
+
+void WgScrollRegion::ClampScrollPositions()
+{
+	scroll_position_x_ = std::max(0, std::min(scroll_position_x_, scroll_width_ - getViewWidth()));
+	scroll_position_y_ = std::max(0, std::min(scroll_position_y_, scroll_height_ - getViewHeight()));
+}
+
+}; // namespace Vortex
+>>>>>>> origin/stdminmax

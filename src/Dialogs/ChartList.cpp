@@ -14,9 +14,14 @@
 
 #include <Editor/Common.h>
 
+<<<<<<< HEAD
 #include <System/System.h>
 
 #define TEXT_H static_cast<int>(20 * gSystem->getScaleFactor())
+=======
+#include <algorithm>
+
+>>>>>>> origin/stdminmax
 namespace Vortex {
 
 // ================================================================================================
@@ -67,9 +72,19 @@ struct DialogChartList::ChartButton : public GuiWidget {
             uint32_t color = ToColor(chart->difficulty);
             myBar->draw(left, 0, color);
 
+<<<<<<< HEAD
             Text::arrange(Text::ML, textStyle,
                           GetDifficultyName(chart->difficulty));
             Text::draw(vec2i{left.x + 4, left.y + TEXT_H / 2});
+=======
+	const Chart* chart = gSimfile->getChart(myChartIndex);
+	if(chart)
+	{
+		// Draw the left-side colored bar with difficulty and meter.
+		recti left = {rect_.x, rect_.y, std::min(r.w, 128), 20};
+		uint32_t color = ToColor(chart->difficulty);
+		myBar->draw(left, 0, color);
+>>>>>>> origin/stdminmax
 
             Text::arrange(Text::MR, textStyle, Str::val(chart->meter).c_str());
             Text::draw(vec2i{left.x + left.w - 6, left.y + TEXT_H / 2});
@@ -105,6 +120,7 @@ struct DialogChartList::ChartButton : public GuiWidget {
 // ================================================================================================
 // ChartList
 
+<<<<<<< HEAD
 static int GetChartListH() {
     int h = 0;
     const Style* style = nullptr;
@@ -117,6 +133,23 @@ static int GetChartListH() {
         h += TEXT_H - 3;
     }
     return max(TEXT_H, h);
+=======
+static int GetChartListH()
+{
+	int h = 0;
+	const Style* style = nullptr;
+	for(int i = 0; i < gSimfile->getNumCharts(); ++i)
+	{
+		auto chart = gSimfile->getChart(i);
+		if(style != chart->style)
+		{
+			style = chart->style;
+			h += 24;
+		}
+		h += 21;
+	}
+	return std::max(24, h);
+>>>>>>> origin/stdminmax
 }
 
 struct DialogChartList::ChartList : public WgScrollRegion {
@@ -249,6 +282,7 @@ void DialogChartList::onChanges(int changes) {
     }
 }
 
+<<<<<<< HEAD
 void DialogChartList::onUpdateSize() {
     myList->updateSize();
     int h = myList->getScrollHeight();
@@ -259,6 +293,26 @@ void DialogChartList::onUpdateSize() {
 void DialogChartList::onTick() {
     myList->arrange(getInnerRect());
     myList->tick();
+=======
+void DialogChartList::onChanges(int changes)
+{
+	if(changes & VCM_CHART_LIST_CHANGED)
+	{
+		myList->updateButtons();
+		int h = GetChartListH();
+		h = std::min(h, getGui()->getView().h - 128);
+		h = std::max(h, 32);
+		setHeight(h);
+	}
+}
+
+void DialogChartList::onUpdateSize()
+{
+	myList->updateSize();
+	int h = myList->getScrollHeight();
+	setMinimumHeight(std::min(64, h));
+	setMaximumHeight(std::min(1024, h));
+>>>>>>> origin/stdminmax
 }
 
 void DialogChartList::onDraw() { myList->draw(); }

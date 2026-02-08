@@ -5,12 +5,16 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <math.h>
+<<<<<<< HEAD
+#include <algorithm>
+=======
+
 #include <algorithm>
 
-namespace Vortex {
+# pragma warning(disable : 4996) // stricmp.
+>>>>>>> origin/stdminmax
 
-inline int min(int a, int b) { return (a > b) ? b : a; }
-inline int max(int a, int b) { return (a < b) ? b : a; }
+namespace Vortex {
 
 inline char ToUpper(char c) { return (c >= 'a' && c <= 'z') ? (c & ~0x20) : c; }
 inline char ToLower(char c) { return (c >= 'A' && c <= 'Z') ? (c | 0x20) : c; }
@@ -230,6 +234,7 @@ void Str::simplify(std::string& s) {
     s.erase(it, s.end());
 }
 
+<<<<<<< HEAD
 void Str::erase(std::string& s, size_t pos, size_t n) {
     auto len = s.length();
     if (pos < 0) {
@@ -241,6 +246,21 @@ void Str::erase(std::string& s, size_t pos, size_t n) {
         n = min(n, len - pos);
         s.erase(s.begin() + pos, s.begin() + pos + n);
     }
+=======
+void Str::erase(String& s, int pos, int n)
+{
+	int len = s.len();
+	if(pos < 0)	{ n += pos, pos = 0; }
+	if(pos == 0 && n >= len)
+	{
+		s.clear();
+	}
+	else if(pos < len && n > 0)
+	{
+		n = std::min(n, len - pos);
+		Str2::closeGap(s, pos, n);
+	}
+>>>>>>> origin/stdminmax
 }
 
 void Str::pop_back(std::string& s) {
@@ -280,6 +300,7 @@ void Str::toLower(std::string& s) {
 // ================================================================================================
 // Information functions
 
+<<<<<<< HEAD
 std::string Str::substr(const std::string& s, size_t pos, size_t n) {
     auto len = s.length();
     if (pos < 0) {
@@ -292,6 +313,22 @@ std::string Str::substr(const std::string& s, size_t pos, size_t n) {
         return s.substr(pos, n);
     }
     return {};
+=======
+String Str::substr(StringRef s, int pos, int n)
+{
+	int len = s.len();
+	if(pos < 0) { n += pos, pos = 0; }
+	if(pos == 0 && n >= len)
+	{
+		return s;
+	}
+	else if(pos < len && n > 0)
+	{
+		n = std::min(n, len - pos);
+		return String(s.string_ + pos, n);
+	}
+	return {};
+>>>>>>> origin/stdminmax
 }
 
 size_t Str::nextChar(const std::string& s, size_t pos) {
@@ -318,6 +355,7 @@ bool Str::isUnicode(const std::string& s) {
     return false;
 }
 
+<<<<<<< HEAD
 size_t Str::find(const std::string& s, char c, size_t pos) {
     auto len = s.length();
     pos = max(pos, 0);
@@ -328,12 +366,27 @@ size_t Str::find(const std::string& s, char c, size_t pos) {
 size_t Str::find(const std::string& s, const char* str, size_t pos) {
     pos = max(pos, 0);
     auto len = s.length();
+=======
+int Str::find(StringRef s, char c, int pos)
+{
+	int len = s.len();
+	pos = std::max(pos, 0);
+	while(pos < len && s.string_[pos] != c) ++pos;
+	return (pos < len) ? pos : String::npos;
+}
+
+int Str::find(StringRef s, const char* str, int pos)
+{
+	pos = std::max(pos, 0);
+	int len = s.len();
+>>>>>>> origin/stdminmax
 
     if (*str == 0 && pos <= len) return pos;
 
     return s.find(str, pos);
 }
 
+<<<<<<< HEAD
 size_t Str::findLast(const std::string& s, char c, size_t pos) {
     auto len = s.length();
     pos = min(pos, len - 1);
@@ -368,6 +421,42 @@ size_t Str::findLastOf(const std::string& s, const char* c, size_t pos) {
         --pos;
     }
     return (pos >= 0) ? pos : -1;
+=======
+int Str::findLast(StringRef s, char c, int pos)
+{
+	int len = s.len();
+	pos = std::min(pos, len - 1);
+	while(pos >= 0 && s.string_[pos] != c) --pos;
+	return (pos >= 0) ? pos : -1;
+}
+
+int Str::findAnyOf(StringRef s, const char* c, int pos)
+{
+	int len = s.len();
+	pos = std::max(pos, 0);
+	while(pos < len)
+	{
+		const char a = s.string_[pos], *b = c;
+		while(*b && *b != a) ++b;
+		if(*b) break;
+		++pos;
+	}
+	return (pos < len) ? pos : String::npos;
+}
+
+int Str::findLastOf(StringRef s, const char* c, int pos)
+{
+	int len = s.len();
+	pos = std::min(pos, len - 1);
+	while(pos >= 0)
+	{
+		const char a = s.string_[pos], *b = c;
+		while(*b && *b != a) ++b;
+		if(*b) break;
+		--pos;
+	}
+	return (pos >= 0) ? pos : -1;
+>>>>>>> origin/stdminmax
 }
 
 // ================================================================================================
@@ -478,9 +567,16 @@ static int PrintUint(char* buf, uint32_t v, int minDig, bool hex) {
     return (len < 0) ? INT_BUFLEN : len;
 }
 
+<<<<<<< HEAD
 static int PrintDouble(char* buf, double v, int minDec, int maxDec) {
     minDec = min(max(minDec, 0), 16);
     maxDec = min(max(minDec, maxDec), 16);
+=======
+static int PrintDouble(char* buf, double v, int minDec, int maxDec)
+{
+	minDec = std::min(std::max(minDec, 0), 16);
+	maxDec = std::min(std::max(minDec, maxDec), 16);
+>>>>>>> origin/stdminmax
 
     // Print the value.
     int len = _snprintf(buf, DBL_BUFLEN, "%.*f", maxDec, v);

@@ -13,6 +13,8 @@
 #include <Managers/SimfileMan.h>
 #include <Managers/StyleMan.h>
 
+#include <algorithm>
+
 namespace Vortex {
 
 static const char* SpacingStrings[] = {"4th",  "8th",  "12th",
@@ -77,6 +79,7 @@ void DialogGenerateNotes::myCreateWidgets() {
     onChanges(VCM_ALL_CHANGES);
 }
 
+<<<<<<< HEAD
 void DialogGenerateNotes::onChanges(int changes) {
     if (changes & VCM_CHART_CHANGED) {
         int w = 180;
@@ -86,6 +89,20 @@ void DialogGenerateNotes::onChanges(int changes) {
             streamGenerator_.feetCols = style->padInitialFeetCols[0];
         }
     }
+=======
+void DialogGenerateNotes::onChanges(int changes)
+{
+	if(changes & VCM_CHART_CHANGED)
+	{
+		int w = 180;
+		auto style = gStyle->get();
+		if(style && style->padWidth > 0)
+		{
+			w = std::max(w, gStyle->getNumCols() * (IFP_SIZE + IFP_SPACING);
+			streamGenerator_.feetCols = style->padInitialFeetCols[0];
+		}
+	}
+>>>>>>> origin/stdminmax
 }
 
 void DialogGenerateNotes::myGenerateNotes() {
@@ -100,4 +117,8 @@ void DialogGenerateNotes::myGenerateNotes() {
     }
 }
 
+<<<<<<< HEAD
 };  // namespace Vortex
+=======
+}; // namespace Vortex
+>>>>>>> origin/stdminmax

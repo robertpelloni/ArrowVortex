@@ -15,6 +15,8 @@
 #include <Editor/Common.h>
 #include <Managers/ChartMan.h>
 
+#include <algorithm>
+
 namespace Vortex {
 
 enum Result {
@@ -198,11 +200,19 @@ void DialogChartProperties::myUpdateNoteInfo() {
         myNoteInfo[i]->text.set(Str::val(count[i]));
     }
 
+<<<<<<< HEAD
     double density = 0.0;
     if (gNotes->begin() < gNotes->end()) {
         density = static_cast<double>(count[0]) /
                   max(1.0, (gNotes->end() - 1)->time - gNotes->begin()->time);
     }
+=======
+	double density = 0.0;
+	if(gNotes->begin() < gNotes->end())
+	{
+		density = (double)count[0] / std::max(1.0, gNotes->end() - 1)->time - gNotes->begin()->time);
+	}
+>>>>>>> origin/stdminmax
 
     myNoteDensity->text.set(
         Str::fmt("Note density: %1 NPS").arg(density, 1, 1).str);
@@ -308,9 +318,39 @@ void DialogChartProperties::BreakdownWidget::updateBreakdown(
     measureCount->text.set(Str::fmt("Stream measures: %1").arg(measures).str);
 }
 
+<<<<<<< HEAD
 void DialogChartProperties::BreakdownWidget::selectStream(vec2i rows) {
     gView->setCursorRow(rows.x);
     gSelection->selectRegion(rows.x, rows.y);
+=======
+void DialogChartProperties::BreakdownWidget::updateBreakdown(WgLabel* measureCount)
+{
+	int measures = 0;
+	auto breakdown = gChart->getStreamBreakdown(&measures);
+	for(int i = 0; i < breakdown.size(); ++i)
+	{
+		auto& item = breakdown[i];
+
+		Text::arrange(Text::TL, TextStyle(), item.text.str());
+		int w = std::max(16, Text::getSize().x + 8);
+
+		if(i >= myButtons.size())
+		{
+			myButtons.push_back(new WgButton(getGui()));
+		}
+
+		WgButton* button = myButtons[i];
+		button->text.set(item.text.str());
+		button->setSize(w, 20);
+		button->onPress.bind(this, &BreakdownWidget::selectStream, vec2i{item.row, item.endrow});
+	}
+	while(myButtons.size() > breakdown.size())
+	{
+		delete myButtons.back();
+		myButtons.pop_back();
+	}
+	measureCount->text.set(Str::fmt("Stream measures: %1").arg(measures).str);
+>>>>>>> origin/stdminmax
 }
 
 void DialogChartProperties::BreakdownWidget::onUpdateSize() {

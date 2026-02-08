@@ -11,6 +11,8 @@
 #include <cctype>
 #include <stdint.h>
 
+#include <algorithm>
+
 namespace Vortex {
 namespace {
 
@@ -158,6 +160,7 @@ static void ReadShadowColor(const uint8_t* param, int len) {
 static void ReadFontSize(const uint8_t* param, int len) {
     int fontSize = static_cast<int>(ReadNumber(param, len) + 0.5);
 
+<<<<<<< HEAD
     if (len == 0) {
         fontSize = LD->baseFontSize;
     } else if (param[len - 1] == '%') {
@@ -170,6 +173,22 @@ static void ReadFontSize(const uint8_t* param, int len) {
     }
     LD->fontSize = min(max(1, fontSize), 256);
     SetLineMetrics();
+=======
+	if(len == 0)
+	{
+		fontSize = LD->baseFontSize;
+	}
+	else if(param[len - 1] == '%')
+	{
+		fontSize = (int)(ReadNumber(param, len) * (double)LD->baseFontSize / 100.0 + 0.5);
+	}
+	else
+	{
+		fontSize = (int)(ReadNumber(param, len) + 0.5);
+	}	
+	LD->fontSize = std::min(std::max(1, fontSize), 256);
+	SetLineMetrics();
+>>>>>>> origin/stdminmax
 }
 
 static void ReadFontChange(const uint8_t* param, int len) {
@@ -319,9 +338,16 @@ static const Glyph* GetGlyph(int charcode) {
     return glyph;
 }
 
+<<<<<<< HEAD
 static void SetLineMetrics() {
     LD->lineTop = min(LD->lineTop, -LD->fontSize);
     LD->lineBottom = max(LD->lineBottom, LD->fontSize / 4);
+=======
+static void SetLineMetrics()
+{
+	LD->lineTop    = std::min(LD->lineTop, -LD->fontSize);
+	LD->lineBottom = std::max(LD->lineBottom, LD->fontSize / 4);
+>>>>>>> origin/stdminmax
 }
 
 static const Glyph* ReadGlyph(const uint8_t* str) {
@@ -353,10 +379,18 @@ static const Glyph* ReadGlyph(const uint8_t* str) {
     return GetGlyph(charcode);
 }
 
+<<<<<<< HEAD
 static void AddEllipsesToLine() {
     const Glyph* ellipsesGlyph = GetGlyph('.');
     int ellipsesW = ellipsesGlyph->advance * 3;
     int maxLineW = max(0, LD->maxLineW - ellipsesW);
+=======
+static void AddEllipsesToLine()
+{
+	const Glyph* ellipsesGlyph = GetGlyph('.');
+	int ellipsesW = ellipsesGlyph->advance * 3;
+	int maxLineW = std::max(0, LD->maxLineW - ellipsesW);
+>>>>>>> origin/stdminmax
 
     // In order to do ellipses, the line must contain atleast one glyph.
     if (LD->lineBeginGlyph == LD->glyphs.size()) return;
@@ -386,6 +420,7 @@ static void AddEllipsesToLine() {
         LD->lineW = 0;
     }
 
+<<<<<<< HEAD
     // Clamp foreground/background quads to the new line width.
     for (auto& quad : LD->fgQuads) {
         if (quad.line == LD->lineIndex) {
@@ -397,6 +432,23 @@ static void AddEllipsesToLine() {
             quad.w = min(quad.w, max(0, LD->lineW - quad.x));
         }
     }
+=======
+	// Clamp foreground/background quads to the new line width.
+	for(auto& quad : LD->fgQuads)
+	{
+		if(quad.line == LD->lineIndex)
+		{
+			quad.w = std::min(quad.w, std::max(0, LD->lineW - quad.x));
+		}
+	}
+	for(auto& quad : LD->bgQuads)
+	{
+		if(quad.line == LD->lineIndex)
+		{
+			quad.w = std::min(quad.w, std::max(0, LD->lineW - quad.x));
+		}
+	}
+>>>>>>> origin/stdminmax
 
     // Append three ellipses glyphs after the last glyph.
     LD->glyphs.resize(lastGlyph + 1, LGlyph());
@@ -463,9 +515,15 @@ static void FinishCurrentLine(bool last) {
     line.top = LD->lineTop;
     line.bottom = LD->lineBottom;
 
+<<<<<<< HEAD
     // Update the size of the text area.
     LD->textW = max(LD->textW, LD->lineW);
     LD->textH = lineY + LD->lineBottom;
+=======
+	// Update the size of the text area.
+	LD->textW = std::max(LD->textW, LD->lineW);
+	LD->textH = lineY + LD->lineBottom;
+>>>>>>> origin/stdminmax
 
     // advance to the next line.
     LD->lineBeginGlyph = LD->glyphs.size();
@@ -678,8 +736,14 @@ vec2i Text::arrange(Text::Align align, const char* text) {
     return ArrangeText(LD->defaultStyle, NO_MAX_LINE_WIDTH, align, text);
 }
 
+<<<<<<< HEAD
 vec2i Text::arrange(Text::Align align, int maxLineWidth, const char* text) {
     return ArrangeText(LD->defaultStyle, max(maxLineWidth, 0), align, text);
+=======
+vec2i Text::arrange(Text::Align align, int maxLineWidth, const char* text)
+{
+	return ArrangeText(LD->defaultStyle, std::max(maxLineWidth, 0), align, text);
+>>>>>>> origin/stdminmax
 }
 
 vec2i Text::arrange(Text::Align align, const TextStyle& style,
@@ -687,9 +751,15 @@ vec2i Text::arrange(Text::Align align, const TextStyle& style,
     return ArrangeText(style, NO_MAX_LINE_WIDTH, align, text);
 }
 
+<<<<<<< HEAD
 vec2i Text::arrange(Text::Align align, const TextStyle& style, int maxLineWidth,
                     const char* text) {
     return ArrangeText(style, max(maxLineWidth, 0), align, text);
+=======
+vec2i Text::arrange(Text::Align align, const TextStyle& style, int maxLineWidth, const char* text)
+{
+	return ArrangeText(style, std::max(maxLineWidth, 0), align, text);
+>>>>>>> origin/stdminmax
 }
 
 vec2i Text::getSize() { return {LD->textW, LD->textH}; }
@@ -792,4 +862,35 @@ int Text::getEscapedCharIndex(const char* str, int index) {
     return offset;
 }
 
+<<<<<<< HEAD
 };  // namespace Vortex
+=======
+String Text::escapeMarkup(const char* str)
+{
+	String out;
+	for(; *str; ++str)
+	{
+		if(*str == '{')
+		{
+			Str::append(out, "{lb}", 4);
+		}
+		else
+		{
+			Str::append(out, *str);
+		}
+	}
+	return out;
+}
+
+int Text::getEscapedCharIndex(const char* str, int index)
+{
+	int offset = index;
+	for(int i = 0; i < index && str[i]; ++i)
+	{
+		if(str[i] == '{') offset += 3;
+	}
+	return offset;
+}
+
+};
+>>>>>>> origin/stdminmax

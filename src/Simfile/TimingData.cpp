@@ -14,6 +14,8 @@
 
 #include <float.h>
 
+#include <algorithm>
+
 namespace Vortex {
 namespace {
 
@@ -86,10 +88,17 @@ static WarpResult HandleWarp(Vector<Event>& out, MergedTS* it, MergedTS* end,
     double time = entry->endTime;
     double targetTime = entry->time;
 
+<<<<<<< HEAD
     // Modify the current entry, make it the start of the warp.
     entry->rowTime = targetTime = max(targetTime, entry->rowTime);
     entry->endTime = targetTime = max(targetTime, entry->endTime);
     entry->spr = 0.0;
+=======
+	// Modify the current entry, make it the start of the warp.
+	entry->rowTime = targetTime = std::max(targetTime, entry->rowTime);
+	entry->endTime = targetTime = std::max(targetTime, entry->endTime);
+	entry->spr = 0.0;
+>>>>>>> origin/stdminmax
 
     // Skip all segments that end inside the warp.
     int prevRow = entry->row;
@@ -214,6 +223,7 @@ static void CreateEvents(Vector<Event>& out, double time, MergedTS* it,
 // ================================================================================================
 // Timing signature processing.
 
+<<<<<<< HEAD
 static void CreateTimeSigs(Vector<TimeSig>& out, const TimeSignature* it,
                            const TimeSignature* end) {
     int row = 0, measure = 0;
@@ -293,6 +303,32 @@ static void CreateScrollFakes(Vector<ScrollFake>& out, const Fake* it,
         out.push_back({it->row, it->numRows});
         ++it;
     }
+=======
+static void CreateTimeSigs(Vector<TimeSig>& out, const TimeSignature* it, const TimeSignature* end)
+{
+	int row = 0, measure = 0;
+	while(it != end)
+	{
+		int beatsPerMeasure = std::max(it->rowsPerMeasure / ROWS_PER_BEAT, 1);
+		int rowsPerMeasure = beatsPerMeasure * ROWS_PER_BEAT;
+		out.push_back({row, measure, rowsPerMeasure});
+		if(++it != end)
+		{
+			int passedMeasures = (it->row - row + rowsPerMeasure - 1) / rowsPerMeasure;
+			row += passedMeasures * rowsPerMeasure;
+			measure += passedMeasures;
+			auto next = it + 1;
+			while(next != end && next->row <= row)
+			{
+				++it, ++next;
+			}
+		}
+	}
+	if(out.empty())
+	{
+		out.push_back({0, 0, ROWS_PER_BEAT * 4});
+	}
+>>>>>>> origin/stdminmax
 }
 
 // ================================================================================================
@@ -621,4 +657,8 @@ int TempoRowTracker::lookAhead(double time) const {
     return TimeToRow(tmpIt, time);
 }
 
+<<<<<<< HEAD
 };  // namespace Vortex
+=======
+}; // namespace Vortex
+>>>>>>> origin/stdminmax

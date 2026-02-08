@@ -5,6 +5,8 @@
 #include <Core/GuiDraw.h>
 #include <System/System.h>
 
+#include <algorithm>
+
 namespace Vortex {
 
 // ================================================================================================
@@ -212,6 +214,7 @@ void WgSlider::onDraw() {
     }
 }
 
+<<<<<<< HEAD
 void WgSlider::SliderUpdateValue(double v) {
     double prev = value.get();
     v = min(v, max(slider_begin_, slider_end_));
@@ -230,3 +233,53 @@ void WgSlider::SliderDrag(int x, int y) {
 }
 
 };  // namespace Vortex
+=======
+void WgSlider::onDraw()
+{
+	recti r = rect_;
+
+	auto& button = GuiDraw::getButton();
+
+	// Draw the the entire bar graphic.
+	recti bar = {r.x + 3, r.y + r.h / 2 - 1, r.w - 6, 1};
+	Draw::fill(bar, Color32(0, 255));
+	bar.y += 1;
+	Draw::fill(bar, Color32(77, 255));
+
+	// Draw the draggable button graphic.
+	if(slider_begin_ != slider_end_)
+	{
+		int boxX = (int)((double)bar.w * (value.get() - slider_begin_) / (slider_end_ - slider_begin_));
+		recti box = {bar.x + std::min(std::max(boxX, 0), bar.w) - 4, bar.y - 8, 8, 16};
+		
+		button.base.draw(box, 0);
+		if(isCapturingMouse())
+		{
+			button.pressed.draw(box, 0);
+		}
+		else if(isMouseOver())
+		{
+			button.hover.draw(box, 0);
+		}
+	}
+}
+
+void WgSlider::SliderUpdateValue(double v)
+{
+	double prev = value.get();
+	v = std::min(v, std::max(slider_begin_, slider_end_));
+	v = std::max(v, std::min(slider_begin_, slider_end_));
+	value.set(v);
+	if(value.get() != prev) onChange.call();
+}
+
+void WgSlider::SliderDrag(int x, int y)
+{
+	recti r = rect_;
+	r.w = std::max(r.w, 1);
+	double val = slider_begin_ + (slider_end_ - slider_begin_) * ((double)(x - r.x) / (double)r.w);
+	SliderUpdateValue(val);
+}
+
+}; // namespace Vortex
+>>>>>>> origin/stdminmax

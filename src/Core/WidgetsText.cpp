@@ -55,6 +55,7 @@ void WgLineEdit::onKeyPress(KeyPress& evt) {
     lineedit_drag_ = DT_NOT_DRAGGING;
     lineedit_blink_time_ = 0.f;
 
+<<<<<<< HEAD
     Key::Code key = evt.key;
     if (evt.keyflags == Keyflag::CTRL) {
         if (key == Key::X || key == Key::C) {
@@ -97,6 +98,65 @@ void WgLineEdit::onKeyPress(KeyPress& evt) {
             if (key == Key::RIGHT) cx = cy = Str::nextChar(lineedit_text_, cy);
         }
     }
+=======
+	Key::Code key = evt.key;
+	if(evt.keyflags == Keyflag::CTRL)
+	{
+		if(key == Key::X || key == Key::C)
+		{
+			if(lineedit_cursor_.x == lineedit_cursor_.y)
+			{
+				GuiMain::setClipboardText(String());
+			}
+			else
+			{
+				int a = lineedit_cursor_.x, b = lineedit_cursor_.y;
+				if(a > b) swapValues(a, b);
+				String substring(lineedit_text_.begin() + a, b - a);
+				GuiMain::setClipboardText(substring.str());
+				if(key == Key::X) DeleteSection();
+			}
+			evt.handled = true;
+		}
+		else if(key == Key::V)
+		{
+			String clip = GuiMain::getClipboardText();
+			TextInput evt = {clip.str(), false};
+			onTextInput(evt);
+			evt.handled = true;
+		}
+		else if(key == Key::A)
+		{
+			lineedit_cursor_.x = 0;
+			lineedit_cursor_.y = lineedit_text_.len();
+			evt.handled = true;
+		}
+	}
+	else if(evt.keyflags == Keyflag::SHIFT)
+	{
+		int& cy = lineedit_cursor_.y;
+		if(key == Key::HOME) cy = 0;
+		if(key == Key::END) cy = lineedit_text_.len();
+		if(key == Key::LEFT) cy = Str::prevChar(lineedit_text_, cy);
+		if(key == Key::RIGHT) cy = Str::nextChar(lineedit_text_, cy);
+	}
+	else
+	{
+		int& cy = lineedit_cursor_.y, &cx = lineedit_cursor_.x;
+		if(key == Key::HOME) cx = cy = 0;
+		if(key == Key::END) cx = cy = lineedit_text_.len();
+		if(cx != cy)
+		{
+			if(key == Key::LEFT) cx = cy = std::min(cx, cy); 
+			if(key == Key::RIGHT) cx = cy = std::max(cx, cy);
+		}
+		else
+		{
+			if(key == Key::LEFT) cx = cy = Str::prevChar(lineedit_text_, cy);
+			if(key == Key::RIGHT) cx = cy = Str::nextChar(lineedit_text_, cy);
+		}
+	}
+>>>>>>> origin/stdminmax
 
     if (key == Key::DELETE || key == Key::BACKSPACE) {
         if (lineedit_cursor_.x == lineedit_cursor_.y) {
@@ -111,9 +171,15 @@ void WgLineEdit::onKeyPress(KeyPress& evt) {
         DeleteSection();
     }
 
+<<<<<<< HEAD
     int len = static_cast<int>(lineedit_text_.length());
     lineedit_cursor_.x = clamp(lineedit_cursor_.x, 0, len);
     lineedit_cursor_.y = clamp(lineedit_cursor_.y, 0, len);
+=======
+	int len = lineedit_text_.len();
+	lineedit_cursor_.x = std::clamp(lineedit_cursor_.x, 0, len);
+	lineedit_cursor_.y = std::clamp(lineedit_cursor_.y, 0, len);
+>>>>>>> origin/stdminmax
 }
 
 void WgLineEdit::onKeyRelease(KeyRelease& evt) {
@@ -226,6 +292,7 @@ void WgLineEdit::onTick() {
 
     Text::arrange(Text::ML, lineedit_style_, lineedit_text_.c_str());
 
+<<<<<<< HEAD
     // Update cursor position.
     vec2i tp = TextPosition();
     if (lineedit_drag_ != DT_NOT_DRAGGING) {
@@ -249,6 +316,32 @@ void WgLineEdit::onTick() {
     float target =
         min(max(lineedit_scroll_offset_, cursorX - barW + 12), cursorX - 12);
     target = max(0.f, min(target, textW - barW));
+=======
+	// Update cursor position.
+	vec2i tp = TextPosition();
+	if(lineedit_drag_ != DT_NOT_DRAGGING)
+	{
+		vec2i mp = gui_->getMousePos();
+		lineedit_cursor_.y = Text::getCharIndex(vec2i{tp.x, tp.y}, {mp.x, tp.y});
+		lineedit_blink_time_ = 0.f;
+	}
+	lineedit_cursor_.x = std::min(std::max(lineedit_cursor_.x, 0), (int)lineedit_text_.len());
+	lineedit_cursor_.y = std::min(std::max(lineedit_cursor_.y, 0), (int)lineedit_text_.len());
+
+	// Update text offset
+	
+	float dt = gui_->getDeltaTime();
+	float barW = (float)(rect_.w - 12);
+	float textW = (float)Text::getSize().x;
+	float cursorX = (float)Text::getCursorPos(vec2i{0, 0}, lineedit_cursor_.y).x;
+	float target = std::min(std::max(lineedit_scroll_offset_, cursorX - barW + 12), cursorX - 12);
+	target = std::max(0.f, std::min(target, textW - barW));
+
+	float delta = std::max((float)fabs(lineedit_scroll_offset_ - target) * 10.f * dt, dt * 256.f);
+	float smooth = (lineedit_scroll_offset_ < target) ? std::min(lineedit_scroll_offset_ + delta, target) : std::max(lineedit_scroll_offset_ - delta, target);
+	lineedit_scroll_offset_ = force_scroll_update_ ? target : smooth;
+	force_scroll_update_ = false;
+>>>>>>> origin/stdminmax
 
     float delta =
         max(fabs(lineedit_scroll_offset_ - target) * 10.f * dt, dt * 256.f);
@@ -336,9 +429,42 @@ void WgLineEdit::DeleteSection() {
     }
 }
 
+<<<<<<< HEAD
 vec2i WgLineEdit::TextPosition() const {
     recti r = rect_;
     return {r.x - static_cast<int>(lineedit_scroll_offset_) + 6, r.y + r.h / 2};
+=======
+void WgLineEdit::setMaxLength(int n)
+{
+	lineedit_max_length_ = std::max(0, n);
+}
+
+void WgLineEdit::setNumerical(bool numerical)
+{
+	is_numerical_ = numerical;
+}
+
+void WgLineEdit::setEditable(bool editable)
+{
+	is_editable_ = editable;
+}
+
+void WgLineEdit::DeleteSection()
+{
+	if(is_editable_ && lineedit_cursor_.x != lineedit_cursor_.y)
+	{
+		if(lineedit_cursor_.x > lineedit_cursor_.y) swapValues(lineedit_cursor_.x, lineedit_cursor_.y);
+		Str::erase(lineedit_text_, lineedit_cursor_.x, lineedit_cursor_.y - lineedit_cursor_.x);
+		lineedit_cursor_.y = lineedit_cursor_.x;
+		force_scroll_update_ = true;
+	}
+}
+
+vec2i WgLineEdit::TextPosition() const
+{
+	recti r = rect_;
+	return{r.x - (int)lineedit_scroll_offset_ + 6, r.y + r.h / 2};
+>>>>>>> origin/stdminmax
 }
 
 // ================================================================================================
@@ -495,6 +621,7 @@ void WgSpinner::SpinnerUpdateText() {
                    spinner_min_decimal_places_, spinner_max_decimal_places_);
 }
 
+<<<<<<< HEAD
 void WgSpinner::SpinnerOnTextChange() {
     double v = 0.0;
     if (Str::parse(spinner_text_.c_str(), v)) {
@@ -502,6 +629,14 @@ void WgSpinner::SpinnerOnTextChange() {
     } else {
         SpinnerUpdateText();
     }
+=======
+void WgSpinner::SpinnerUpdateValue(double v)
+{
+	double prev = value.get();
+	value.set(std::max(spinner_min_, std::min(spinner_max_, v)));
+	SpinnerUpdateText();
+	if(value.get() != prev) onChange.call();
+>>>>>>> origin/stdminmax
 }
 
 recti WgSpinner::SpinnerButtonRect() { return SideR(rect_, 14); }

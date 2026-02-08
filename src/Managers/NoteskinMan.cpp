@@ -15,6 +15,8 @@
 
 #include <Managers/StyleMan.h>
 
+#include <algorithm>
+
 namespace Vortex {
 namespace {
 
@@ -452,11 +454,24 @@ struct NoteskinManImpl : public NoteskinMan {
         XmrNode* view = settings.child("view");
         if (!view) view = settings.addChild("view");
 
+<<<<<<< HEAD
         // Save the noteskin preferences.
         Vector<const char*> prefs;
         for (int i : myPriorities) prefs.push_back(myTypes[i].name.c_str());
         view->addAttrib("noteskinPrefs", prefs.data(), min(prefs.size(), 5));
     }
+=======
+void saveSettings(XmrNode& settings)
+{
+	XmrNode* view = settings.child("view");
+	if(!view) view = settings.addChild("view");
+	
+	// Save the noteskin preferences.
+	Vector<const char*> prefs;
+	for(int i : myPriorities) prefs.push_back(myTypes[i].name.str());
+	view->addAttrib("noteskinPrefs", prefs.data(), std::min(prefs.size(), 5));
+}
+>>>>>>> origin/stdminmax
 
     // ================================================================================================
     // NoteskinManImpl :: member functions.
@@ -526,6 +541,7 @@ struct NoteskinManImpl : public NoteskinMan {
         myPriorities.insert(0, type, 1);
     }
 
+<<<<<<< HEAD
     void setType(int type) override {
         type = clamp(type, 0, myTypes.size());
         if (myActiveSkin && myActiveSkin->type != type) {
@@ -535,6 +551,19 @@ struct NoteskinManImpl : public NoteskinMan {
             gMenubar->update(Menubar::VIEW_NOTESKIN);
         }
     }
+=======
+void setType(int type)
+{
+	type = std::clamp(type, 0, myTypes.size());
+	if(myActiveSkin && myActiveSkin->type != type)
+	{
+		LoadNoteskin(myActiveSkin, myTypes[type]);
+		myActiveSkin->type = type;
+		giveTopPriority(type);
+		gMenubar->update(Menubar::VIEW_NOTESKIN);
+	}
+}
+>>>>>>> origin/stdminmax
 
     int getType() const override {
         return myActiveSkin ? myActiveSkin->type : 0;

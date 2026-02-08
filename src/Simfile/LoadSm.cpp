@@ -402,6 +402,19 @@ static void ReadNoteRow(ReadNoteData& data, int row, char* p, int quantization)
 				auto* hold = data.notes->begin() + holdPos - 1;
 				hold->endrow = row;
 				hold->type = data.holdType[col];
+<<<<<<< HEAD
+=======
+				// Make sure we set the note to its largest quantization to avoid data loss
+				if (data.quants[col] > 0 && hold->quant > 0)
+				{
+					hold->quant = std::min(192u, quantization * hold->quant / gcd(quantization, hold->quant));
+				}
+				else // There was some error, so always play safe and use 192
+				{
+					HudError("Bug: couldn't get hold quantization in row %d", row);
+					hold->quant = 192;
+				}
+>>>>>>> origin/stdminmax
 				data.holdPos[col] = 0;
 			}
 		}

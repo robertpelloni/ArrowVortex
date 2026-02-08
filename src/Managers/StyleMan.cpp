@@ -8,6 +8,8 @@
 #include <Managers/NoteskinMan.h>
 #include <Managers/ChartMan.h>
 
+#include <algorithm>
+
 namespace Vortex {
 namespace {
 
@@ -119,6 +121,7 @@ Style* CreateStyle(const std::string& id, int numCols, int numPlayers) {
 
     out->name = IdToName(out->id);
 
+<<<<<<< HEAD
     if (numCols < 1 || numCols > SIM_MAX_COLUMNS) {
         int old = numCols;
         numCols = clamp<int>(numCols, 1, SIM_MAX_COLUMNS);
@@ -136,6 +139,23 @@ Style* CreateStyle(const std::string& id, int numCols, int numPlayers) {
             "players.",
             id.c_str(), old, SIM_MAX_PLAYERS, numPlayers);
     }
+=======
+	if(numCols < 1 || numCols > SIM_MAX_COLUMNS)
+	{
+		int old = numCols;
+		numCols = std::clamp<int>(numCols, 1, SIM_MAX_COLUMNS);
+		HudError("Style %s has %i columns, ArrowVortex only supports 1-%i, using %i columns.",
+			id.str(), old, SIM_MAX_COLUMNS, numCols);
+	}
+
+	if(numPlayers < 1 || numPlayers > SIM_MAX_PLAYERS)
+	{
+		int old = numPlayers;
+		numPlayers = std::clamp<int>(numPlayers, 1, SIM_MAX_PLAYERS);
+		HudError("Style %s has %i players, ArrowVortex only supports 1-%i, using %i players.",
+			id.str(), old, SIM_MAX_PLAYERS, numPlayers);
+	}
+>>>>>>> origin/stdminmax
 
     out->numCols = numCols;
     out->numPlayers = numPlayers;
@@ -201,6 +221,7 @@ Style* CreateStyle(const XmrNode* node) {
         }
     }
 
+<<<<<<< HEAD
     // Read the initial foot positions.
     if (out->padWidth > 0) {
         auto cols = ReadColumnPairs(node, "feetPos", numCols);
@@ -209,6 +230,37 @@ Style* CreateStyle(const XmrNode* node) {
         memcpy(out->padInitialFeetCols, cols.data(),
                sizeof(vec2i) * numPlayers);
     }
+=======
+	// Read pad layout.
+	XmrNode* padNode = node->child("pad");
+	if(padNode)
+	{
+		int width = 0;
+		int height = 0;
+		Vector<vec2i> pos(numCols, {0, 0});
+		ForXmrAttribsNamed(row, padNode, "row")
+		{
+			const char* buttons = row->values[0];
+			for(int x = 0; buttons[x]; ++x)
+			{
+				int col = buttons[x] - 'A';
+				if(col >= 0 && col < numCols)
+				{
+					pos[col] = {x, height};
+				}
+				width = std::max(width, x + 1);
+			}
+			++height;
+		}
+		if(width > 0 && height > 0)
+		{
+			out->padWidth = width;
+			out->padHeight = height;
+			out->padColPositions = new vec2i[numCols];
+			memcpy(out->padColPositions, pos.data(), sizeof(vec2i) * numCols);
+		}
+	}
+>>>>>>> origin/stdminmax
 
     // Read column/row pairs for mirror operations.
     out->mirrorTableH = CreateMirrorTable(node, "mirrorH", numCols);

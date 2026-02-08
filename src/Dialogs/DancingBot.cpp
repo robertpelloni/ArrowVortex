@@ -17,6 +17,8 @@
 #define _USE_MATH_DEFINES
 #include <math.h>
 
+#include <algorithm>
+
 namespace Vortex {
 
 enum TileType {
@@ -317,6 +319,7 @@ void DialogDancingBot::onUpdateSize() {
     setHeight(h);
 }
 
+<<<<<<< HEAD
 void DialogDancingBot::onDraw() {
     EditorDialog::onDraw();
 
@@ -412,6 +415,99 @@ void DialogDancingBot::onChanges(int changes) {
     if (changes & VCM_NOTES_CHANGED) {
         myAssignFeetToNotes();
     }
+=======
+void DialogDancingBot::onUpdateSize()
+{
+	int w = 200, h = 64;
+	auto style = gStyle->get();
+	if(style && style->padWidth > 0)
+	{
+		w = std::max(w, style->padWidth * 64 + 8);
+		h = std::max(h, style->padHeight * 64 + 24);
+	}
+	setWidth(w);
+	setHeight(h);
+}
+
+void DialogDancingBot::onDraw()
+{
+	EditorDialog::onDraw();
+
+	Renderer::pushScissorRect(getInnerRect());
+	auto style = gStyle->get();
+	if(style && style->padWidth > 0)
+	{
+		double time = gView->getCursorTime();
+
+		auto notes = gNotes->begin();
+
+		auto prevNotes = gNotes->getNotesBeforeTime(time);
+
+		Renderer::bindShader(Renderer::SH_TEXTURE);
+		Renderer::bindTexture(myPadTex.handle());
+
+		// Pad layout.
+		auto batch = Renderer::batchTC();
+		BatchSprite::setScale(256);
+		for(int x = 0; x < style->padWidth; ++x)
+		{
+			for(int y = 0; y < style->padHeight; ++y)
+			{
+				int tile = myPadLayout[y * style->padWidth + x];
+				vec2i pos = myGetDrawPos({x, y});
+				myPadSpr[tile].draw(&batch, pos.x, pos.y, (uint8_t)255);
+				if(tile == TT_BUTTON) myPushArrow(&batch, x, y);
+			}
+		}
+
+		// Panel highlights.
+		for(int col = 0; col < prevNotes.size(); ++col)
+		{
+			auto n = prevNotes[col];
+			double dist = n ? (time - n->endtime) : 1000.0;
+			int alpha = std::min(std::max((int)((1.5 - dist * 6.0) * 255.0, 0), 255);
+			if(alpha > 0)
+			{
+				vec2i pos = myGetDrawPos(style->padColPositions[col]);
+				myPadSpr[2].draw(&batch, pos.x, pos.y, (uint8_t)alpha);
+			}
+		}
+		batch.flush();
+
+		// Feet sprites.
+		Renderer::bindTexture(myFeetTex.handle());
+		batch = Renderer::batchTC();
+		BatchSprite::setScale(160);
+		for(int p = 0; p < gStyle->getNumPlayers(); ++p)
+		{
+			uint32_t color = p ? ToColor32({.5f, .5f, 1, 1}) : ToColor32({1, .5f, .5f, 1});
+
+			// Get current and target note for each foot.
+			vec3f feetPos[2];
+			myGetFeetPositions(feetPos, p);
+			vec3f l(feetPos[0]), r(feetPos[1]);
+
+			// Determine feet rotations.
+			float rotation = 0.f;
+			if(abs(l.x - r.x) + abs(l.y - r.y) > 0.1f)
+			{
+				rotation = atan2(r.y - l.y, r.x - l.x);
+				rotation = std::min(std::max(rotation, -0.8f), 0.8f);
+			}
+
+			// Draw the feet.
+			myFeetSpr[0].draw(&batch, l.x, l.y, rotation, l.z, color);
+			myFeetSpr[1].draw(&batch, r.x, r.y, rotation, r.z, color);
+		}
+		batch.flush();
+	}
+	else // If there is no pad layout information.
+	{
+		Text::arrange(Text::MC, 12, "- nothing to dance -");
+		Text::draw(getInnerRect());
+	}
+	Renderer::popScissorRect();
+>>>>>>> origin/stdminmax
 }
 
 void DialogDancingBot::onDoFootswitchesChanged() { myAssignFeetToNotes(); }
@@ -521,4 +617,112 @@ void DialogDancingBot::myGetFeetPositions(vec3f* out, int pn) {
     }
 }
 
+<<<<<<< HEAD
 };  // namespace Vortex
+=======
+vec2i DialogDancingBot::myGetDrawPos(vec2i colRow)
+{
+	recti r = getInnerRect();
+	return{r.x + 36 + colRow.x * 64, r.y + 52 + colRow.y * 64};
+}
+
+void DialogDancingBot::myAssignFeetToNotes()
+{
+	myFeetBits.release();
+	int numNotes = gNotes->end() - gNotes->begin();
+	auto style = gStyle->get();
+	if(numNotes > 0 && style && style->padWidth > 0)
+	{
+		myFeetBits.resize(numNotes / 32 + 1);
+		memset(myFeetBits.data(), 0, sizeof(uint32_t) * myFeetBits.size());
+		for(int pn = 0; pn != gStyle->getNumPlayers(); ++pn)
+		{
+			FeetPlanner planner;
+			planner.style = style;
+			planner.outBits = myFeetBits.data();
+			planner.crossover = myDoCrossovers;
+			planner.footswitch = myDoFootswitches;
+			planner.plan(pn);
+		}
+	}
+}
+
+void DialogDancingBot::myGetFeetPositions(vec3f* out, int pn)
+{
+	auto style = gStyle->get();
+
+	int prevNote[2] = {-1, -1};
+	int nextNote[2] = {-1, -1};
+
+	double time = gView->getCursorTime();
+	auto notes = gNotes->begin();
+	int noteCount = gNotes->end() - gNotes->begin();
+	auto feetbits = myFeetBits.data();
+
+	// Find the previous note for each foot.
+	for(int n = 0; n != noteCount && notes[n].time < time; ++n)
+	{
+		int foot = (feetbits[n >> 5] >> (n & 31)) & 1;
+		if(notes[n].isMine || notes[n].player != pn) continue;
+		prevNote[foot] = n;
+	}
+
+	// Find the next note for each foot.
+	for(int n = noteCount - 1; n != -1 && notes[n].time > time; --n)
+	{
+		int foot = (feetbits[n >> 5] >> (n & 31)) & 1;
+		if(notes[n].isMine || notes[n].player != pn) continue;
+		nextNote[foot] = n;
+	}
+
+	// Determine interpolated feet positions.
+	vec2i initialPos[2] =
+	{
+		style->padColPositions[style->padInitialFeetCols[pn].x],
+		style->padColPositions[style->padInitialFeetCols[pn].y]
+	};
+	for(int f = 0; f < 2; ++f)
+	{
+		// Position of current button.
+		double curTime;
+		vec2i curButton;
+		if(prevNote[f] >= 0)
+		{
+			curButton = style->padColPositions[notes[prevNote[f]].col];
+			curTime = notes[prevNote[f]].time;
+		}
+		else
+		{
+			curButton = initialPos[f];
+			curTime = 0.0;
+		}
+
+		// Position of next button.
+		double endtime = curTime;
+		vec2i endButton = curButton;
+		if(nextNote[f] >= 0)
+		{
+			endButton = style->padColPositions[notes[nextNote[f]].col];
+			endtime = notes[nextNote[f]].time;
+		}
+
+		// Interpolated feet position.
+		vec2f curPos = ToVec2f(myGetDrawPos(curButton));
+		vec2f endPos = ToVec2f(myGetDrawPos(endButton));
+		if(endtime > curTime)
+		{
+			double startTime = std::max(curTime, endtime - 0.5);
+			double delta = LerpDelta(startTime, endtime, time);
+			curPos = SmoothStep(curPos, endPos, (float)std::min(std::max(delta, 0.0), 1.0));
+		}
+
+		// Determine feet scale.
+		double dt = std::min(fabs(curTime - time), fabs(endtime - time));
+		float scale = (float)std::min(1.0, 0.8 + dt * 6.0);
+
+		out[f] = {curPos.x, curPos.y, scale};
+	}
+}
+
+}; // namespace Vortex
+>>>>>>> origin/stdminmax
