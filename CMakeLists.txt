@@ -27,12 +27,25 @@ find_package(Ogg CONFIG REQUIRED)
 find_package(Vorbis REQUIRED)
 find_package(OpenGL REQUIRED)
 
-add_subdirectory(src/Core)
-add_subdirectory(src/Dialogs)
-add_subdirectory(src/Editor)
-add_subdirectory(src/Managers)
-add_subdirectory(src/Simfile)
-add_subdirectory(src/System)
+file(GLOB SRC "${CMAKE_CURRENT_SOURCE_DIR}/src/*/*.cpp")
+add_executable(ArrowVortex WIN32
+	${SRC}
+	"${CMAKE_CURRENT_SOURCE_DIR}/src/System/ArrowVortex.rc"
+)
+add_custom_command(
+	TARGET ArrowVortex POST_BUILD
+	COMMAND ${CMAKE_COMMAND} -E copy_directory
+		${PROJECT_SOURCE_DIR}/bin
+		$<TARGET_FILE_DIR:ArrowVortex>)
+target_link_libraries(ArrowVortex PRIVATE
+	Freetype::Freetype
+	OpenGL::GL
+	MAD::MAD
+	Vorbis::vorbisfile
+	Vorbis::vorbis
+	winmm
+	Ogg::ogg
+)
 
 install(TARGETS ArrowVortex RUNTIME)
 install(DIRECTORY bin/assets DESTINATION ${CMAKE_INSTALL_PREFIX}/bin)
