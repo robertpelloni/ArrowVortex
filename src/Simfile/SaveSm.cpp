@@ -1,5 +1,4 @@
 ﻿#include <Core/StringUtils.h>
-#include <Core/Utils.h>
 
 #include <System/File.h>
 
@@ -11,6 +10,8 @@
 #include <Simfile/TimingData.h>
 
 #include <Managers/StyleMan.h>
+
+#include <cmath>
 #include <list>
 
 namespace Vortex {
@@ -58,7 +59,7 @@ static String Escape(const char* name, const char* str)
 	Str::replace(s, "\\", "\\\\");
 	Str::replace(s, ":", "\\:");
 	Str::replace(s, ";", "\\;");
-	Str::replace(s, "#", "\\#");
+	Str::replace(s, ";", "\\#");
 	return s;
 }
 
@@ -81,7 +82,7 @@ static void WriteTag(ExportData& data, const char* tag, double value, ForceWrite
 {
 	if(ShouldWrite(data, when, value != 0, sscOnly))
 	{
-		data.file.printf("#%s:%.6f;\n", tag, value);
+		data.file.printf("#%s:%.3f;\n", tag, value);
 	}
 }
 
@@ -182,7 +183,7 @@ static void WriteBpms(ExportData& data, const Tempo* tempo)
 	WriteSegments<BpmChange>(data, "BPMS", tempo, START_OF_LINE, ',', SONG_ONLY, false,
 	[&](const BpmChange& change)
 	{
-		data.file.printf("%.6f=%.6f",
+		data.file.printf("%.3f=%.6f",
 			ToBeat(change.row), change.bpm);
 	});
 }
@@ -192,7 +193,7 @@ static void WriteStops(ExportData& data, const Tempo* tempo)
 	WriteSegments<Stop>(data, "STOPS", tempo, START_OF_LINE, ',', SONG_ONLY, false,
 	[&](const Stop& stop)
 	{
-		data.file.printf("%.6f=%.6f",
+		data.file.printf("%.3f=%.3f",
 			ToBeat(stop.row), stop.seconds);
 	});
 }
@@ -202,7 +203,7 @@ static void WriteDelays(ExportData& data, const Tempo* tempo)
 	WriteSegments<Delay>(data, "DELAYS", tempo, END_OF_LINE, ',', NEVER, true,
 	[&](const Delay& delay)
 	{
-		data.file.printf("%.6f=%.6f",
+		data.file.printf("%.3f=%.3f",
 			ToBeat(delay.row), delay.seconds);
 	});
 }
@@ -212,7 +213,7 @@ static void WriteWarps(ExportData& data, const Tempo* tempo)
 	WriteSegments<Warp>(data, "WARPS", tempo, END_OF_LINE, ',', NEVER, true,
 	[&](const Warp& warp)
 	{
-		data.file.printf("%.6f=%.6f",
+		data.file.printf("%.3f=%.3f",
 			ToBeat(warp.row), ToBeat(warp.numRows));
 	});
 }
@@ -222,7 +223,7 @@ static void WriteSpeeds(ExportData& data, const Tempo* tempo)
 	WriteSegments<Speed>(data, "SPEEDS", tempo, END_OF_LINE, ',', NEVER, true,
 	[&](const Speed& speed)
 	{
-		data.file.printf("%.6f=%.6f=%.6f=%i",
+		data.file.printf("%.3f=%.3f=%.3f=%i",
 			ToBeat(speed.row), speed.ratio, speed.delay, speed.unit);
 	});
 }
@@ -232,7 +233,7 @@ static void WriteScrolls(ExportData& data, const Tempo* tempo)
 	WriteSegments<Scroll>(data, "SCROLLS", tempo, END_OF_LINE, ',', NEVER, true,
 	[&](const Scroll& scroll)
 	{
-		data.file.printf("%.6f=%.6f",
+		data.file.printf("%.3f=%.3f",
 			ToBeat(scroll.row), scroll.ratio);
 	});
 }
@@ -242,7 +243,7 @@ static void WriteTickCounts(ExportData& data, const Tempo* tempo)
 	WriteSegments<TickCount>(data, "TICKCOUNTS", tempo, END_OF_LINE, ',', NEVER, true,
 	[&](const TickCount& tick)
 	{
-		data.file.printf("%.6f=%i",
+		data.file.printf("%.3f=%i",
 			ToBeat(tick.row), tick.ticks);
 	});
 }
@@ -252,7 +253,7 @@ static void WriteTimeSignatures(ExportData& data, const Tempo* tempo)
 	WriteSegments<TimeSignature>(data, "TIMESIGNATURES", tempo, END_OF_LINE, ',', NEVER, true,
 	[&](const TimeSignature& sig)
 	{
-		data.file.printf("%.6f=%i=%i",
+		data.file.printf("%.3f=%i=%i",
 			ToBeat(sig.row), (int)ToBeat(sig.rowsPerMeasure), sig.beatNote);
 	});
 }
@@ -262,7 +263,7 @@ static void WriteLabels(ExportData& data, const Tempo* tempo)
 	WriteSegments<Label>(data, "LABELS", tempo, END_OF_LINE, ',', NEVER, true,
 	[&](const Label& label)
 	{
-		data.file.printf("%.6f=%s",
+		data.file.printf("%.3f=%s",
 			ToBeat(label.row), label.str.str());
 	});
 }
@@ -272,8 +273,8 @@ static void WriteAttacks(ExportData& data, const Tempo* tempo)
 	WriteTag(data, "ATTACKS", tempo->attacks, START_OF_LINE, ':', NEVER, true,
 	[&](const Attack& attack)
 	{
-		data.file.printf("TIME=%.6f:", attack.time);
-		data.file.printf((attack.unit == ATTACK_END) ? "END=%.6f:" : "LEN=%.6f:", attack.duration);
+		data.file.printf("TIME=%.3f:", attack.time);
+		data.file.printf((attack.unit == ATTACK_END) ? "END=%.3f:" : "LEN=%.3f:", attack.duration);
 		data.file.printf("MODS=%s", attack.mods.str());
 	});
 }
@@ -292,7 +293,7 @@ static void WriteCombos(ExportData& data, const Tempo* tempo)
 	WriteSegments<Combo>(data, "COMBOS", tempo, END_OF_LINE, ',', NEVER, true,
 	[&](const Combo& combo)
 	{
-		data.file.printf("%.6f=%i", ToBeat(combo.row), combo.hitCombo);
+		data.file.printf("%.3f=%i", ToBeat(combo.row), combo.hitCombo);
 		if(combo.hitCombo != combo.missCombo)
 		{
 			data.file.printf("=%i", combo.missCombo);
@@ -305,7 +306,7 @@ static void WriteFakes(ExportData& data, const Tempo* tempo)
 	WriteSegments<Fake>(data, "FAKES", tempo, END_OF_LINE, ',', NEVER, true,
 	[&](const Fake& fake)
 	{
-		data.file.printf("%.6f=%.6f",
+		data.file.printf("%.3f=%.3f",
 			ToBeat(fake.row), ToBeat(fake.numRows));
 	});
 }
@@ -368,14 +369,14 @@ static void WriteBgChanges(ExportData& data, const char* tag, const Vector<BgCha
 	{
 		if(bg.effect.empty() && bg.file2.empty() && bg.transition.empty() && bg.color.empty() && bg.color2.empty())
 		{
-			data.file.printf("%.6f=%s=%.6f=0=0=1",
+			data.file.printf("%.3f=%s=%.3f=0=0=1",
 				bg.startBeat,
 				bg.file.str(),
 				bg.rate);
 		}
 		else
 		{
-			data.file.printf("%.6f=%s=%.6f=%d=%d=%d=%s=%s=%s=%s=%s",
+			data.file.printf("%.3f=%s=%.3f=%d=%d=%d=%s=%s=%s=%s=%s",
 				bg.startBeat,
 				bg.file.str(),
 				bg.rate,
@@ -451,35 +452,93 @@ static const char* GetDifficultyString(Difficulty difficulty)
 	return "Edit";
 }
 
-static inline bool TestSectionCompression(const char* section, int width, int quant)
+static int gcd(int a, int b)
 {
-	String zeroline(width, '0');
-	float mod = (float)ROWS_PER_NOTE_SECTION / quant;
-	for (int j = 0; j < ROWS_PER_NOTE_SECTION; ++j)
+	if (a == 0)
 	{
-		float rem = round(fmod(j, mod));
-		// Check all the compressed rows and make sure they are empty
-		if (rem > 0 && rem < static_cast<int>(mod)
-			&& memcmp(section + j * width, zeroline.str(), width))
-		{
-			return false;
-		}
+		return b;
 	}
-	return quant >= MIN_SECTIONS_PER_MEASURE;
+	if (b == 0)
+	{
+		return a;
+	}
+	if (a > b)
+	{
+		return gcd(a - b, b);
+	}
+	else
+	{
+		return gcd(a, b - a);
+	}
 }
 
-static void GetSectionCompression(const char* section, int width, int& count, int& pitch)
+static void GetSectionCompression(const char* section, int width, std::list<uint> quantVec, int& count, int& pitch)
 {
-	count = ROWS_PER_NOTE_SECTION;
 	// Determines the best compression for the given section.
-	// We actually don't care about custom snaps for this at all, since we want to save 192nds for non-standard-compressible snaps.
-	for (int i = 0; i < NUM_MEASURE_SUBDIV - 1; i++)
+	int best = ROWS_PER_NOTE_SECTION;
+	String zeroline(width, '0');
+	std::list<uint>::iterator it;
+	int lcm = 1;
+	for (it = quantVec.begin(); it != quantVec.end(); it++)
 	{
-		if (TestSectionCompression(section, width, MEASURE_SUBDIV[i]))
+		if (*it <= 0)
 		{
-			count = MEASURE_SUBDIV[i];
+			HudError("Bug: zero or negative quantization recorded in chart.");
+			continue;
+		}
+		lcm = lcm * *it / gcd(lcm, *it);
+		if (lcm > ROWS_PER_NOTE_SECTION)
+		{
+			lcm = ROWS_PER_NOTE_SECTION;
 			break;
 		}
+	}
+
+	// Set whole and half step measures to be quarter notes by default
+	if (lcm <= MIN_SECTIONS_PER_MEASURE)
+	{
+		count = MIN_SECTIONS_PER_MEASURE;
+	}
+	else
+	{
+	// Determines the best compression for the given section.
+    // Maybe lcm is the best factor, so just keep that.
+		count = lcm;
+		String zeroline(width, '0');
+
+		//The factor list is small, just check them all by hand
+		for (int i = lcm / 2; i >= 2; i--)
+		{
+			// Skip anything that isn't a lcm factor
+			if (lcm % i > 0) continue;
+
+			bool valid = true;
+			float mod = (float) ROWS_PER_NOTE_SECTION / i;
+			for (int j = 0; valid && j < ROWS_PER_NOTE_SECTION; ++j)
+			{
+				float rem = std::round(std::fmod(j, mod));
+				// Check all the compressed rows and make sure they are empty
+				if (rem > 0 && rem < static_cast<int>(mod)
+					&& memcmp(section + j * width, zeroline.str(), width))
+				{ 
+					valid = false;
+					break;
+				}
+			}
+
+			// The first (largest) match is always the best
+			if (valid && i >= MIN_SECTIONS_PER_MEASURE)
+			{
+				count = i;
+				break;
+			}
+		}
+	}
+	// Is our factor a standard snap? If so, use it.
+	// If not, save the measure as 192nds for SM5 Editor compatibility.
+	if (ROWS_PER_NOTE_SECTION % count != 0)
+	{
+		count = ROWS_PER_NOTE_SECTION;
 	}
 	pitch = (ROWS_PER_NOTE_SECTION * width) / count;
 }
@@ -531,10 +590,12 @@ static void WriteSections(ExportData& data)
 					if(it->row == it->endrow)
 					{
 						section[pos] = GetNoteChar(it->type);
+						quantVec.push_front(it->quant);
 					}
 					else
 					{
 						section[pos] = GetHoldChar(it->type);
+						quantVec.push_front(it->quant);
 						auto hold = holds[it->col];
 						if(hold)
 						{
@@ -542,6 +603,7 @@ static void WriteSections(ExportData& data)
 							{
 								int pos = ((int)hold->endrow - startRow) * numCols + (int)hold->col;
 								section[pos] = '3';
+								quantVec.push_front(it->quant);
 								--remainingHolds;
 							}
 						}
@@ -564,6 +626,7 @@ static void WriteSections(ExportData& data)
 							int pos = (hold->endrow - startRow) * numCols + hold->col;
 							section[pos] = '3';
 							holds[col] = nullptr;
+							quantVec.push_front(it->quant);
 							--remainingHolds;
 						}
 					}
@@ -574,7 +637,7 @@ static void WriteSections(ExportData& data)
 			int count, pitch;
 			const char* m = section;
 			quantVec.unique();
-			GetSectionCompression(m, numCols, count, pitch);
+			GetSectionCompression(m, numCols, quantVec, count, pitch);
 			quantVec.clear();
 			if (ROWS_PER_NOTE_SECTION % count != 0)
 			{

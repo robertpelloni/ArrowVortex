@@ -2,40 +2,33 @@
 
 #include <Core/WideString.h>
 
-#include <System/OpenGL.h>
-
 #include <io.h>
 #include <fcntl.h>
 #include <stdio.h>
-#include <time.h>
+#include <chrono>
+
+#define WIN32_LEAN_AND_MEAN
+#include <windows.h>
+#include <GL/gl.h>
+#undef ERROR
 
 namespace Vortex {
 namespace Debug {
 
 // ================================================================================================
 // Debug :: timing functions.
+using namespace std::chrono;
 
-static double GetTimeFreq()
+steady_clock::time_point getElapsedTime()
 {
-	LARGE_INTEGER i;
-	if(QueryPerformanceFrequency(&i))
-	{
-		return 1.0 / (double)i.QuadPart;
-	}
-	return 1.0;
+	return std::chrono::steady_clock::now();
 }
 
-double getElapsedTime()
+double getElapsedTime(steady_clock::time_point startTime)
 {
-	static double sTimerFreq = GetTimeFreq();
-	LARGE_INTEGER i;
-	QueryPerformanceCounter(&i);
-	return (double)i.QuadPart * sTimerFreq;
-}
-
-double getElapsedTime(double startTime)
-{
-	return getElapsedTime() - startTime;
+	auto currentTime = steady_clock::now();
+	const duration<double> deltaTime = currentTime - startTime;
+	return deltaTime.count();
 }
 
 // ================================================================================================

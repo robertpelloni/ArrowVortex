@@ -1,7 +1,6 @@
 #include <Editor/View.h>
 
 #include <algorithm>
-#include <cmath>
 
 #include <Core/String.h>
 #include <Core/Utils.h>
@@ -29,39 +28,10 @@
 #include <Editor/Common.h>
 #include <Editor/Waveform.h>
 
+#include <cmath>
+
 namespace Vortex {
 namespace {
-
-	bool isMouseOverBeat(int x, int y, int& row)
-	{
-		if (!gView->isTimeBased())
-			return false;
-
-		const int hitbox = gView->applyZoom(4);
-		const View::Coords notefieldCoords = gView->getNotefieldCoords();
-		if (x < notefieldCoords.xl || x > notefieldCoords.xr)
-			return false;
-
-		// Find the beat the mouse is closest to
-		const double time = gView->offsetToTime(gView->yToOffset(y));
-		int closestRow = gTempo->timeToRow(time);
-
-		// We want to snap to ANY visible grid line, not just 4ths?
-		// snapRow uses the current snap setting (View::SNAP_CLOSEST).
-		// If snap is set to 16ths, closestRow will be a 16th.
-		closestRow = gView->snapRow(closestRow, View::SNAP_CLOSEST);
-
-		// Check if the mouse is close enough to the beat
-		const double beatTime = gTempo->rowToTime(closestRow);
-		const int beatY = gView->timeToY(beatTime);
-
-		if (abs(y - beatY) <= hitbox) {
-			row = closestRow;
-			return true;
-		}
-
-		return false;
-	}
 
 }; // anonymous namespace
 
@@ -79,9 +49,6 @@ int myCursorRow;
 int myReceptorY, myReceptorX;
 double myZoomLevel, myScaleLevel;
 bool myIsDraggingReceptors;
-bool myIsDraggingBeat;
-int myDraggedBeatRow;
-int myHoveredBeatRow;
 bool myUseTimeBasedView;
 bool myUseReverseScroll;
 bool myUseChartPreview;
@@ -106,14 +73,11 @@ ViewImpl()
 	, myZoomLevel(8)
 	, myScaleLevel(4)
 	, mySnapType(ST_NONE)
-	, myCustomSnap(20)
+	, myCustomSnap(1)
 	, myUseTimeBasedView(true)
 	, myUseReverseScroll(false)
 	, myUseChartPreview(false)
 	, myIsDraggingReceptors(false)
-	, myIsDraggingBeat(false)
-	, myDraggedBeatRow(-1)
-	, myHoveredBeatRow(-1)
 	, myPixPerSec(32)
 	, myPixPerRow(16 * BEATS_PER_ROW)
 {
@@ -138,7 +102,7 @@ void loadSettings(XmrNode& settings)
 		view->get("receptorX", &myReceptorX);
 		view->get("receptorY", &myReceptorY);
 
-		myCustomSnap = min(max(myCustomSnap, 5), 191);
+		myCustomSnap = min(max(myCustomSnap, 1), 192);
 		myZoomLevel = min(max(myZoomLevel, -2.0), 16.0);
 		myScaleLevel = min(max(myScaleLevel, 1.0), 10.0);
 	}
@@ -197,39 +161,12 @@ void onMousePress(MousePress& evt) override
 		myIsDraggingReceptors = true;
 		evt.setHandled();
 	}
-	if (evt.button == Mouse::LMB && myHoveredBeatRow != -1 && evt.unhandled())
-	{
-		myIsDraggingBeat = true;
-		myDraggedBeatRow = myHoveredBeatRow;
-		gTempo->startTweakingDrag();
-		evt.setHandled();
-	}
 
 	if (evt.unhandled() && evt.button == Mouse::MMB) {
-		if (gEditor->getMiddleMouseInsertBeat())
-		{
-			// Perform Insert Beat
-			// We can invoke action or call Editing directly.
-			// Action::perform(INSERT_BEAT) acts on cursor.
-			// Let's move cursor to mouse pos first?
-			// DDream behavior: MMB inserts beat at mouse cursor?
-			// Or at playhead? Usually at mouse cursor.
-			// Let's set cursor to mouse pos, then insert.
-			Vortex::vec2i mouse_pos = gSystem->getMousePos();
-			Vortex::ChartOffset ofs = gView->yToOffset(mouse_pos.y);
-			setCursorRow(snapRow(offsetToRow(ofs), SnapDir::SNAP_CLOSEST));
+		Vortex::vec2i mouse_pos = gSystem->getMousePos();
+		Vortex::ChartOffset ofs = gView->yToOffset(mouse_pos.y);
 
-			// Call insert beat logic
-			// Using Action:
-			Action::perform(Action::INSERT_BEAT);
-		}
-		else
-		{
-			// Autoscroll / Jump to cursor (Default behavior)
-			Vortex::vec2i mouse_pos = gSystem->getMousePos();
-			Vortex::ChartOffset ofs = gView->yToOffset(mouse_pos.y);
-			setCursorRow(snapRow(offsetToRow(ofs), SnapDir::SNAP_CLOSEST));
-		}
+		setCursorRow(snapRow(offsetToRow(ofs), SnapDir::SNAP_CLOSEST));
 		evt.setHandled();
 	}
 }
@@ -240,23 +177,6 @@ void onMouseRelease(MouseRelease& evt) override
 	if(evt.button == Mouse::LMB && myIsDraggingReceptors)
 	{
 		myIsDraggingReceptors = false;
-	}
-	if (evt.button == Mouse::LMB && myIsDraggingBeat)
-	{
-		myIsDraggingBeat = false;
-
-		// Commit drag
-		gTempo->stopTweaking(false); // Clear tweak mode
-
-		// Apply final move
-		const double time = offsetToTime(yToOffset(gSystem->getMousePos().y));
-<<<<<<< HEAD
-		bool ripple = (gSystem->getKeyboardState() & Keyflag::SHIFT) != 0;
-=======
-		bool ripple = (gSystem->isKeyDown(Key::SHIFT_L) || gSystem->isKeyDown(Key::SHIFT_R));
->>>>>>> origin/feature-goto-quantize-insert
-		gTempo->moveBeat(myDraggedBeatRow, time, ripple);
-		gTempo->injectBoundingBpmChange(myDraggedBeatRow);
 	}
 }
 
@@ -294,44 +214,6 @@ void onKeyRelease(KeyRelease& evt) override
 // ================================================================================================
 // ViewImpl :: member functions.
 
-<<<<<<< HEAD
-namespace {
-
-	bool isMouseOverBeat(int x, int y, int& row)
-	{
-		if (!gView->isTimeBased())
-			return false;
-
-		const int hitbox = gView->applyZoom(4);
-		const View::Coords notefieldCoords = gView->getNotefieldCoords();
-		if (x < notefieldCoords.xl || x > notefieldCoords.xr)
-			return false;
-
-		// Find the beat the mouse is closest to
-		const double time = gView->offsetToTime(gView->yToOffset(y));
-		int closestRow = gTempo->timeToRow(time);
-
-		// We want to snap to ANY visible grid line, not just 4ths?
-		// snapRow uses the current snap setting (View::SNAP_CLOSEST).
-		// If snap is set to 16ths, closestRow will be a 16th.
-		closestRow = gView->snapRow(closestRow, View::SNAP_CLOSEST);
-
-		// Check if the mouse is close enough to the beat
-		const double beatTime = gTempo->rowToTime(closestRow);
-		const int beatY = gView->timeToY(beatTime);
-
-		if (abs(y - beatY) <= hitbox) {
-			row = closestRow;
-			return true;
-		}
-
-		return false;
-	}
-
-} // anonymous namespace
-
-=======
->>>>>>> origin/feature-goto-quantize-insert
 double getZoomLevel() const
 {
 	return myZoomLevel;
@@ -414,11 +296,6 @@ double getCursorOffset() const
 	return myUseTimeBasedView ? myCursorTime : myCursorRow;
 }
 
-int getHoveredBeatRow() const
-{
-	return myHoveredBeatRow;
-}
-
 void onChanges(int changes)
 {
 	if(changes & VCM_TEMPO_CHANGED)
@@ -441,31 +318,11 @@ void tick()
 		myReceptorY = gSystem->getMousePos().y - rect_.y;
 	}
 
-	// Handle beat dragging.
-	if (myIsDraggingBeat)
-	{
-		const double time = offsetToTime(yToOffset(gSystem->getMousePos().y));
-<<<<<<< HEAD
-		bool ripple = (gSystem->getKeyboardState() & Keyflag::SHIFT) != 0;
-=======
-		bool ripple = (gSystem->isKeyDown(Key::SHIFT_L) || gSystem->isKeyDown(Key::SHIFT_R));
->>>>>>> origin/feature-goto-quantize-insert
-		gTempo->updateDragBeat(myDraggedBeatRow, time, ripple);
-	}
-
 	// Set cursor to arrows when hovering over/dragging the receptors.
 	vec2i mpos = gSystem->getMousePos();
 	if(myIsDraggingReceptors || isMouseOverReceptors(mpos.x, mpos.y))
 	{
 		gSystem->setCursor(Cursor::SIZE_ALL);
-	}
-	else if (myIsDraggingBeat || isMouseOverBeat(mpos.x, mpos.y, myHoveredBeatRow))
-	{
-		gSystem->setCursor(Cursor::SIZE_NS);
-	}
-	else
-	{
-		myHoveredBeatRow = -1;
 	}
 
 	// Update the cursor time.
@@ -496,73 +353,21 @@ void tick()
 	myReceptorY = min(max(myReceptorY, rect_.y), BottomY(rect_));
 	myReceptorX = min(max(myReceptorX, minRecepX), maxRecepX);
 
-	// Scroll Cursor Effect: Move cursor instead of chart?
-	// If enabled: Cursor stays still? No, "Enable scrolling cursor effect" -> Cursor moves.
-	// DDream: "Cursor stays still during playback" (Unchecked) implies Scrolling Cursor.
-	// Wait, DDream's "Scrolling cursor effect" (Checked) usually means the cursor MOVES across the screen and the chart is STATIC?
-	// Or simply that the cursor has a visual effect?
-	// Given the tooltip "Uncheck: Cursor stays still during playback", it means:
-	// Checked: Cursor moves (and Chart stays still? Or Chart scrolls and Cursor moves relative?)
-	// Actually, typically editors have:
-	// 1. Fixed Receptors (Standard): Receptors at top/center, Chart moves.
-	// 2. Moving Receptors (Page/Scroll): Chart fixed, Receptors move.
-
-	// If ArrowVortex uses Fixed Receptors (myReceptorY is clamped to rect), then we just scroll.
-	// If we want "Cursor moves", we need to adjust myReceptorY based on playback time?
-	// But `myReceptorY` is set by dragging or resize.
-
-	// Let's implement a simple version:
-	// If "Scrolling Cursor Effect" is ON, we might want the cursor to move slightly or handle smooth scrolling differently?
-	// Actually, maybe this refers to the visual "Cursor" (Selection) vs "Receptors" (Playhead).
-	// In View::tick, myReceptorY is stable.
-
-	// I will skip complex "Moving Receptors" implementation for now as it fundamentally changes the view engine.
-	// I'll assume "Scrolling Cursor Effect" might just be about smoothing or the "Cursor Line" following playback?
-	// Currently `myCursorRow` follows playback.
-
-	// Re-reading tooltip: "Enable scrolling cursor effect... Uncheck: Cursor stays still".
-	// This likely refers to the "Beat Lines" or "Grid" moving vs "Cursor" moving.
-	// If unchecked (Cursor stays still), it's standard AV.
-	// If checked, maybe the playhead moves?
-	// Let's leave it as a TODO or minor tweak if I can't determine the exact behavior.
-	// I'll stick to Standard behavior for now but use the preference to toggle something if obvious.
-	// Actually, let's look at `myReceptorY` logic. It's updated by dragging.
-
 	// Store the y-position of time zero.
 	if(myUseTimeBasedView)
 	{
-		if (gEditor->getScrollCursorEffect() && !gMusic->isPaused())
-		{
-			// "Scroll Cursor Effect" (DDream style):
-			// The chart is static (paged), and the cursor (receptors) moves.
-			double pageH = (double)rect_.h;
-			if (pageH > 0)
-			{
-				double cursorY_virtual = myCursorTime * myPixPerSec;
-				double pageTop_virtual = floor(cursorY_virtual / pageH) * pageH;
-
-				// Fix the chart top to the current page start
-				myChartTopY = -pageTop_virtual;
-
-				// Move the receptors to the current cursor position within the page
-				myReceptorY = (int)(myChartTopY + cursorY_virtual);
-			}
-		}
-		else
-		{
-			myChartTopY = floor((double)myReceptorY - myCursorTime * myPixPerSec);
-		}
+		myChartTopY = std::floor((double)myReceptorY - myCursorTime * myPixPerSec);
 	}
 	else
 	{
-		myChartTopY = floor((double)myReceptorY - myCursorBeat * ROWS_PER_BEAT * myPixPerRow);
+		myChartTopY = std::floor((double)myReceptorY - myCursorBeat * ROWS_PER_BEAT * myPixPerRow);
 	}
 }
 
 void updateScrollValues()
 {
-	myPixPerSec = round(21.077 * pow(1.518, myZoomLevel));
-	myPixPerRow = round(11.588 * pow(1.48, myZoomLevel)) * BEATS_PER_ROW;
+	myPixPerSec = std::round(21.077 * std::pow(1.518, myZoomLevel));
+	myPixPerRow = std::round(11.588 * std::pow(1.48, myZoomLevel)) * BEATS_PER_ROW;
 	if(myUseReverseScroll)
 	{
 		myPixPerSec = -myPixPerSec;
@@ -575,7 +380,7 @@ void updateCustomSnapSteps()
 	double inc = 192.0 / myCustomSnap;
 	for (int i = 0; i <= myCustomSnap; ++i)
 	{
-		myCustomSnapSteps[i] = static_cast<int>(round(inc * i));
+		myCustomSnapSteps[i] = static_cast<int>(std::round(inc * i));
 	}
 }
 
@@ -638,7 +443,7 @@ void setSnapType(int type)
 
 void setCustomSnap(int size)
 {
-	if (size < 4) size = 4;
+	if (size < 1) size = 1;
 	if (size > 192) size = 192;
 	// If the custom snap is a non-custom value, set the snap to that value instead
 	for (int i = 0; i < ST_CUSTOM; i++)
@@ -651,9 +456,11 @@ void setCustomSnap(int size)
 	}
 	if (myCustomSnap != size)
 	{
+		String snap = OrdinalSuffix(myCustomSnap);
+
 		myCustomSnap = size;
 		updateCustomSnapSteps();
-		HudNote("Custom Snap: %s", OrdinalSuffix(myCustomSnap));
+		HudNote("Custom Snap: %s", &snap);
 		setSnapType(ST_CUSTOM);
 	}
 }

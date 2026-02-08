@@ -17,16 +17,10 @@ public:
 	void writeNum(uint num);
 	void writeStr(StringRef str);
 
-	template <unsigned int S>
-	inline void writeSz(const void* val)
-	{
-		write(val, S);
-	}
-
 	template <typename T>
 	inline void write(const T& val)
 	{
-		writeSz<sizeof(T)>(&val);
+		write(&val, sizeof(T));
 	}
 
 	// Returns true if all write operations have succeeded.
@@ -60,23 +54,17 @@ public:
 	void readNum(uint& num);
 	void readStr(String& str);
 
-	template <size_t S>
-	inline void readSz(void* out)
-	{
-		read(out, S);
-	}
-
 	template <typename T>
 	inline void read(T& out)
 	{
-		readSz<sizeof(T)>(&out);
+		read(&out, sizeof(T));
 	}
 
 	template <typename T>
 	inline T read()
 	{
 		T out = T();
-		readSz<sizeof(T)>(&out);
+		read(&out, sizeof(T));
 		return out;
 	}
 
@@ -96,53 +84,5 @@ private:
 	const uchar* read_position_, *end_position_;
 	bool is_read_successful_;
 };
-
-template <>
-inline void WriteStream::writeSz<1>(const void* val)
-{
-	write8(val);
-}
-
-template <>
-inline void WriteStream::writeSz<2>(const void* val)
-{
-	write16(val);
-}
-
-template <>
-inline void WriteStream::writeSz<4>(const void* val)
-{
-	write32(val);
-}
-
-template <>
-inline void WriteStream::writeSz<8>(const void* val)
-{
-	write64(val);
-}
-
-template <>
-inline void ReadStream::readSz<1>(void* out)
-{
-	read8(out);
-}
-
-template <>
-inline void ReadStream::readSz<2>(void* out)
-{
-	read16(out);
-}
-
-template <>
-inline void ReadStream::readSz<4>(void* out)
-{
-	read32(out);
-}
-
-template <>
-inline void ReadStream::readSz<8>(void* out)
-{
-	read64(out);
-}
 
 }; // namespace Vortex

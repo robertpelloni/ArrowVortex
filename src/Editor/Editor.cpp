@@ -51,6 +51,8 @@
 #include <Dialogs/WaveformSettings.h>
 #include <Dialogs/Zoom.h>
 
+#include <algorithm>
+
 namespace Vortex {
 
 extern String VerifySaveLoadIdentity(const Simfile& simfile);

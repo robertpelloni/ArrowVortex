@@ -19,15 +19,24 @@
 
 #define UNICODE
 
-#include <System/OpenGL.h>
+#define WIN32_LEAN_AND_MEAN
+#include <windows.h>
+#include <winuser.h>
 #include <shellapi.h>
 #include <shlwapi.h>
 #include <commdlg.h>
+#include <GL/gl.h>
 #undef ERROR
 
+#include <algorithm>
+#include <chrono>
+#include <thread>
+#include <numeric>
 #include <stdio.h>
 #include <ctime>
 #include <bitset>
+#include <list>
+#include <vector>
 
 #undef DELETE
 
@@ -38,7 +47,7 @@ processorArchitecture='*' publicKeyToken='6595b64144ccf1df' language='*'\"")
 
 namespace Vortex {
 
-float deltaTime; // Defined in <Core/Core.h>
+std::chrono::duration<double> deltaTime; // Defined in <Core/Core.h>
 
 namespace {
 
@@ -144,9 +153,19 @@ static bool LogCheckpoint(bool result, const char* description)
 	}
 	else
 	{
+		char lpMsgBuf[100];
 		DWORD code = GetLastError();
+		FormatMessageA(
+			FORMAT_MESSAGE_FROM_SYSTEM |
+			FORMAT_MESSAGE_IGNORE_INSERTS,
+			NULL,
+			code,
+			MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+			lpMsgBuf,
+			60, 
+			NULL);
 		Debug::blockBegin(Debug::ERROR, description);
-		Debug::log("windows error code: %i\n", code);
+		Debug::log("windows error code %i: %s", code, lpMsgBuf);
 		Debug::blockEnd();
 	}
 	return !result;
@@ -176,19 +195,24 @@ void MItem::addItem(int item, StringRef text)
 void MItem::addSubmenu(MItem* submenu, StringRef text, bool grayed)
 {
 	int flags = MF_STRING | MF_POPUP | (grayed * MF_GRAYED);
-	AppendMenuW((HMENU)this, MF_STRING | MF_POPUP, (UINT_PTR)submenu, Widen(text).str());
+	AppendMenuW((HMENU)this, MF_STRING | MF_POPUP, reinterpret_cast<UINT_PTR>(submenu), Widen(text).str());
 }
 
 void MItem::replaceSubmenu(int pos, MItem* submenu, StringRef text, bool grayed)
 {
 	int flags = MF_BYPOSITION | MF_STRING | MF_POPUP | (grayed * MF_GRAYED);
 	DeleteMenu((HMENU)this, pos, MF_BYPOSITION);
-	InsertMenuW((HMENU)this, pos, flags, (UINT_PTR)submenu, Widen(text).str());
+	InsertMenuW((HMENU)this, pos, flags, reinterpret_cast<UINT_PTR>(submenu), Widen(text).str());
 }
 
 void MItem::setChecked(int item, bool state)
 {
 	CheckMenuItem((HMENU)this, item, state ? MF_CHECKED : MF_UNCHECKED);
+}
+
+void MItem::setEnabled(int item, bool state)
+{
+	EnableMenuItem((HMENU)this, item, state ? MF_ENABLED : MF_GRAYED);
 }
 
 namespace {
@@ -200,7 +224,7 @@ struct SystemImpl : public System {
 
 wchar_t* myClassName;
 HINSTANCE myInstance;
-double myApplicationStartTime;
+std::chrono::steady_clock::time_point myApplicationStartTime;
 Cursor::Icon myCursor;
 Key::Code myKeyMap[256];
 InputEvents myEvents;
@@ -325,7 +349,7 @@ SystemImpl()
 	Debug::log("swap interval support :: %s\n", wglSwapInterval ? "OK" : "MISSING");
 	if(wglSwapInterval)
 	{
-		wglSwapInterval(1);
+		wglSwapInterval(-1);
 		VortexCheckGlError();
 	}
 
@@ -374,26 +398,39 @@ void createMenu()
 	SetMenu(myHWND, menu);
 }
 
-void messageLoop()
+void CALLBACK messageLoop()
 {
+	using namespace std::chrono;
+
 	if(!myInitSuccesful) return;
 
-	deltaTime = 1.0 / 60.0;
+#ifdef DEBUG
+	long long frames = 0;
+	auto lowcounts = 0;
+	std::list<double> fpsList, sleepList, frameList, inputList, waitList;
+	// Adjust frameGuess to your VSync target if you are testing with VSync enabled
+	auto frameGuess = 960;
+#endif
 
 	Editor::create();
 	forwardArgs();
 	createMenu();
 
+	// Non-vsync FPS max target
+	auto frameTarget = duration<double>(1.0 / 960.0);
+
 	// Enter the message loop.
 	MSG message;
-	double prevTime = Debug::getElapsedTime();
+	auto prevTime = Debug::getElapsedTime();
 	while(!myIsTerminated)
 	{
-		myEvents.clear();
 
+		auto startTime = Debug::getElapsedTime();
+
+		myEvents.clear();
 		// Process all windows messages.
 		myIsInsideMessageLoop = true;
-		while(PeekMessage(&message, nullptr, 0, 0, PM_NOREMOVE))
+		while (PeekMessage(&message, nullptr, 0, 0, PM_NOREMOVE | PM_NOYIELD))
 		{
 			GetMessageW(&message, nullptr, 0, 0);
 			TranslateMessage(&message);
@@ -402,11 +439,10 @@ void messageLoop()
 		myIsInsideMessageLoop = false;
 
 		// Check if there were text input events.
-		if(myInput.size())
+		if (!myInput.empty())
 		{
-			String input = Narrow(myInput);
-			myEvents.addTextInput(input.str());
-			myInput = WideString();
+			myEvents.addTextInput(Narrow(myInput).str());
+			myInput.clear();
 		}
 
 		// Set up the OpenGL view.
@@ -418,16 +454,88 @@ void messageLoop()
 		// Reset the mouse cursor.
 		myCursor = Cursor::ARROW;
 
-		// Tick function.
-		double curTime = Debug::getElapsedTime();
-		deltaTime = (float)std::min(std::max(0.00025, curTime - prevTime), 0.25);
-		prevTime = curTime;
+#ifdef DEBUG
+		auto inputTime = Debug::getElapsedTime();
+#endif
+
+		VortexCheckGlError();
 
 		gEditor->tick();
-		Debug::logBlankLine();
 
 		// Display.
 		SwapBuffers(myHDC);
+
+#ifdef DEBUG
+		auto renderTime = Debug::getElapsedTime();
+#endif
+		// Tick function.
+		duration<double> frameTime = Debug::getElapsedTime() - prevTime;
+		auto waitTime = frameTarget.count() - frameTime.count();
+
+		if (wglSwapInterval)
+		{
+			while (Debug::getElapsedTime() - prevTime < frameTarget)
+			{
+				std::this_thread::yield();
+			}
+		}
+
+		// End of frame
+		auto curTime = Debug::getElapsedTime();
+		deltaTime = duration<double>(std::min(std::max(0.0, duration<double>(curTime - prevTime).count()), 0.25));
+		prevTime = curTime;
+
+#ifdef DEBUG
+		// Do frame statistics
+		// Note that these will be wrong with VSync enabled.
+		fpsList.push_front(deltaTime.count());
+		waitList.push_front(duration<double>(curTime - renderTime).count());
+		frameList.push_front(duration<double>(renderTime - inputTime).count());
+		inputList.push_front(duration<double>(inputTime - startTime).count());
+
+		if (abs(deltaTime.count() - 1.0 / (double)frameGuess) / (1.0 / (double)frameGuess) > 0.01)
+		{
+			lowcounts++;
+		}
+		if (fpsList.size() >= frameGuess * 2)
+		{
+			fpsList.pop_back();
+			frameList.pop_back();
+			inputList.pop_back();
+			waitList.pop_back();
+		}
+		auto min = *std::min_element(fpsList.begin(), fpsList.end());
+		auto max = *std::max_element(fpsList.begin(), fpsList.end());
+		auto maxIndex = std::distance(fpsList.begin(), std::max_element(fpsList.begin(), fpsList.end()));
+		auto siz = fpsList.size();
+		auto avg = std::accumulate(fpsList.begin(), fpsList.end(), 0.0) / siz;
+		auto varianceFunc = [&avg, &siz](double accumulator, double val) {
+			return accumulator + (val - avg) * (val - avg);
+			};
+		auto std = sqrt(std::accumulate(fpsList.begin(), fpsList.end(), 0.0, varianceFunc) / siz);
+		auto frameAvg = std::accumulate(frameList.begin(), frameList.end(), 0.0) / frameList.size();
+		auto frameMax = frameList.begin();
+		std::advance(frameMax, maxIndex);
+		auto inputMax = inputList.begin();
+		std::advance(inputMax, maxIndex);
+		auto waitMax = waitList.begin();
+		std::advance(waitMax, maxIndex);
+		if (frames % (frameGuess * 2) == 0)
+		{
+			Debug::log("frame total average: %f, frame render average %f, std dev %f, lowest FPS %f, highest FPS %f, highest FPS render time %f, highest FPS input time %f, highest FPS wait time %f, lag frames %d\n",
+				avg,
+				frameAvg,
+				std,
+				1.0 / max,
+				1.0 / min,
+				*frameMax,
+				*inputMax,
+				*waitMax,
+				lowcounts);
+			lowcounts = 0;
+		}
+		frames++;
+#endif
 	}
 	Editor::destroy();
 }
@@ -474,6 +582,7 @@ String getClipboardText() const
 		{
 			str = Narrow(src, wcslen(src));
 			GlobalUnlock(hData);
+			Str::replace(str, "\n", "");
 		}
 		CloseClipboard();
 	}
@@ -685,23 +794,30 @@ bool handleMsg(UINT msg, WPARAM wp, LPARAM lp, LRESULT& result)
 		{
 			POINT pos;
 			DragQueryPoint((HDROP)wp, &pos);
-			// Passing 0xFFFFFFFF will return the file count.
-			int numFiles = (int)DragQueryFileW((HDROP)wp, 0xFFFFFFFF, 0, 0);
-			char** files = (char**)malloc(sizeof(char*) * numFiles);
-			for(int i = 0; i < numFiles; ++i)
+
+			// Get the number of files dropped.
+			UINT numFiles = DragQueryFileW((HDROP)wp, 0xFFFFFFFF, nullptr, 0);
+			std::vector<String> files(numFiles);
+
+			for (UINT i = 0; i < numFiles; ++i)
 			{
+				// Get the length of the file path and retrieve it.
 				// Giving 0 for the stringbuffer returns path size without nullbyte.
-				int pathlen = (int)DragQueryFileW((HDROP)wp, i, 0, 0);
-				WideString wstr(pathlen, 0);
-				DragQueryFileW((HDROP)wp, i, wstr.begin(), pathlen + 1);
-				String str = Narrow(wstr);
-				files[i] = (char*)malloc(str.len() + 1);
-				memcpy(files[i], str.begin(), str.len() + 1);
+				UINT pathLen = DragQueryFileW((HDROP)wp, i, nullptr, 0);
+				WideString wstr(pathLen, 0);
+				DragQueryFileW((HDROP)wp, i, wstr.begin(), pathLen + 1);
+				files[i] = Narrow(wstr);
 			}
+
 			DragFinish((HDROP)wp);
-			myEvents.addFileDrop(files, numFiles, pos.x, pos.y);
-			for(int i = 0; i < numFiles; ++i) free(files[i]);
-			free(files);
+
+			// Pass the file drop event to the input handler.
+			std::vector<const char*> filePtrs;
+			for (const auto& file : files)
+			{
+				filePtrs.push_back(file.str());
+			}
+			myEvents.addFileDrop(filePtrs.data(), static_cast<int>(filePtrs.size()), pos.x, pos.y);
 		}
 		break;
 	}

@@ -9,8 +9,8 @@
 
 #include <System/OpenGL.h>
 
-#include <vector>
 #include <algorithm>
+#include <vector>
 
 namespace Vortex {
 
@@ -62,7 +62,7 @@ static GlyphCache* CreateCache(FT_Face face, int size)
 {
 	int texW = 128, texH = 128;
 	while(texW < 1024 && texW < size * 8 + 64) texW *= 2;
-	std::vector<uchar> pixels(texW * texH, 0);
+	std::vector<uchar> pixels(texW * texH);
 
 	auto* cache = new GlyphCache;
 	cache->tex = TextureManager::load(texW, texH, FORMAT, false, pixels.data());
@@ -447,55 +447,55 @@ TextureHandle FontData::getActiveTexture(int size, vec2i& outTexSize)
 
 typedef FontManager FontMan;
 
-#define FONTDATA ((FontData*)myData)
+#define FONTDATA ((FontData*)data_)
 
 Font::~Font()
 {
-	if(myData) FontMan::release(FONTDATA);
+	if(data_) FontMan::release(FONTDATA);
 }
 
 Font::Font()
-	: myData(nullptr)
+	: data_(nullptr)
 {
 }
 
 Font::Font(const char* path, Text::Hinting hint)
-	: myData(nullptr)
+	: data_(nullptr)
 {
-	myData = FontMan::load(path, hint);
+	data_ = FontMan::load(path, hint);
 }
 
 Font::Font(Font&& font)
-	: myData(font.myData)
+	: data_(font.data_)
 {
-	font.myData = nullptr;
+	font.data_ = nullptr;
 }
 
 Font::Font(const Font& font)
-	: myData(font.myData)
+	: data_(font.data_)
 {
-	if(myData) FONTDATA->refs++;
+	if(data_) FONTDATA->refs++;
 }
 
 Font& Font::operator = (Font&& font)
 {
-	if(myData) FontMan::release(FONTDATA);
-	myData = font.myData;
-	font.myData = nullptr;
+	if(data_) FontMan::release(FONTDATA);
+	data_ = font.data_;
+	font.data_ = nullptr;
 	return *this;
 }
 
 Font& Font::operator = (const Font& font)
 {
-	if(myData) FontMan::release(FONTDATA);
-	myData = font.myData;
-	if(myData) FONTDATA->refs++;
+	if(data_) FontMan::release(FONTDATA);
+	data_ = font.data_;
+	if(data_) FONTDATA->refs++;
 	return *this;
 }
 
 TextureHandle Font::texture(int size, vec2i& outTexSize)
 {
-	return myData ? FONTDATA->getActiveTexture(size, outTexSize) : 0;
+	return data_ ? FONTDATA->getActiveTexture(size, outTexSize) : 0;
 }
 
 }; // namespace Vortex

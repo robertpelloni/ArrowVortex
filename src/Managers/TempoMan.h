@@ -1,5 +1,6 @@
 #pragma once
 
+#include <Simfile/SegmentGroup.h>
 #include <Simfile/Tempo.h>
 #include <Simfile/SegmentGroup.h>
 
@@ -139,7 +140,7 @@ struct TempoMan
 	template <typename T>
 	void addSegment(const T& segment)
 	{
-		SegmentEdit edit;
+		SegmentEdit edit = {};
 		edit.add.append(segment);
 		modify(edit);
 	}

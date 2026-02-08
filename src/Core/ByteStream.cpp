@@ -13,45 +13,45 @@ namespace Vortex {
 
 WriteStream::WriteStream()
 {
-	myBuf = (uchar*)malloc(128);
-	mySize = 0;
-	myCap = 128;
-	myExtern = false;
-	mySuccess = true;
+	buffer_ = (uchar*)malloc(128);
+	current_size_ = 0;
+	capacity_ = 128;
+	is_external_buffer_ = false;
+	is_write_successful_ = true;
 }
 
 WriteStream::WriteStream(void* out, int bytes)
 {
-	myBuf = (uchar*)out;
-	mySize = 0;
-	myCap = bytes;
-	myExtern = true;
-	mySuccess = true;
+	buffer_ = (uchar*)out;
+	current_size_ = 0;
+	capacity_ = bytes;
+	is_external_buffer_ = true;
+	is_write_successful_ = true;
 }
 
 WriteStream::~WriteStream()
 {
-	if(!myExtern) free(myBuf);
+	if(!is_external_buffer_) free(buffer_);
 }
 
 void WriteStream::write(const void* in, int bytes)
 {
-	int newSize = mySize + bytes;
-	if(newSize <= myCap)
+	int newSize = current_size_ + bytes;
+	if(newSize <= capacity_)
 	{
-		memcpy(myBuf + mySize, in, bytes);
-		mySize = newSize;
+		memcpy(buffer_ + current_size_, in, bytes);
+		current_size_ = newSize;
 	}
-	else if(!myExtern)
+	else if(!is_external_buffer_)
 	{
-		myCap = max(myCap << 1, newSize);
-		myBuf = (uchar*)realloc(myBuf, myCap);
-		memcpy(myBuf + mySize, in, bytes);
-		mySize = newSize;
+		capacity_ = max(capacity_ << 1, newSize);
+		buffer_ = (uchar*)realloc(buffer_, capacity_);
+		memcpy(buffer_ + current_size_, in, bytes);
+		current_size_ = newSize;
 	}
 	else
 	{
-		mySuccess = false;
+		is_write_successful_ = false;
 	}
 }
 
@@ -59,7 +59,22 @@ void WriteStream::writeNum(uint num)
 {
 	if(num < 0x80)
 	{
-		write(&num, 1);
+		if(current_size_ < capacity_)
+		{
+			buffer_[current_size_] = static_cast<uint8_t>(num);
+			++current_size_;
+		}
+		else if(!is_external_buffer_)
+		{
+			capacity_ <<= 1;
+			buffer_ = (uchar*)realloc(buffer_, capacity_);
+			buffer_[current_size_] = static_cast<uint8_t>(num);
+			++current_size_;
+		}
+		else
+		{
+			is_write_successful_ = false;
+		}
 	}
 	else
 	{
@@ -87,9 +102,9 @@ void WriteStream::writeStr(StringRef str)
 
 ReadStream::ReadStream(const void* in, int bytes)
 {
-	myPos = (const uchar*)in;
-	myEnd = myPos + bytes;
-	mySuccess = true;
+	read_position_ = (const uchar*)in;
+	end_position_ = read_position_ + bytes;
+	is_read_successful_ = true;
 }
 
 ReadStream::~ReadStream()
@@ -98,58 +113,58 @@ ReadStream::~ReadStream()
 
 void ReadStream::skip(int bytes)
 {
-	if(myPos + bytes <= myEnd)
+	if(read_position_ + bytes <= end_position_)
 	{
-		myPos += bytes;
+		read_position_ += bytes;
 	}
 	else
 	{
-		myPos = myEnd;
-		mySuccess = false;
+		read_position_ = end_position_;
+		is_read_successful_ = false;
 	}
 }
 
 void ReadStream::read(void* out, int bytes)
 {
-	if(myPos + bytes <= myEnd)
+	if(read_position_ + bytes <= end_position_)
 	{
-		memcpy(out, myPos, bytes);
-		myPos += bytes;
+		memcpy(out, read_position_, bytes);
+		read_position_ += bytes;
 	}
 	else
 	{
-		myPos = myEnd;
-		mySuccess = false;
+		read_position_ = end_position_;
+		is_read_successful_ = false;
 	}
 }
 
 uint ReadStream::readNum()
 {
 	uint32_t out;
-	if(myPos != myEnd)
+	if(read_position_ != end_position_)
 	{
-		if(*myPos < 0x80)
+		if(*read_position_ < 0x80)
 		{
-			out = *myPos;
-			++myPos;
+			out = *read_position_;
+			++read_position_;
 		}
 		else
 		{
-			out = *myPos & 0x7F;
+			out = *read_position_ & 0x7F;
 			uint shift = 7;
 			while(true)
 			{
-				if(++myPos == myEnd)
+				if(++read_position_ == end_position_)
 				{
 					out = 0;
-					mySuccess = false;
+					is_read_successful_ = false;
 					break;
 				}
-				uint byte = *myPos;
+				uint byte = *read_position_;
 				if((byte & 0x80) == 0)
 				{
 					out |= byte << shift;
-					++myPos;
+					++read_position_;
 					break;
 				}
 				out |= (byte & 0x7F) << shift;
@@ -160,7 +175,7 @@ uint ReadStream::readNum()
 	else
 	{
 		out = 0;
-		mySuccess = false;
+		is_read_successful_ = false;
 	}
 	return out;
 }
@@ -169,15 +184,15 @@ String ReadStream::readStr()
 {
 	String out;
 	uint len = readNum();
-	auto newPos = myPos + len;
-	if(newPos <= myEnd)
+	auto newPos = read_position_ + len;
+	if(newPos <= end_position_)
 	{
-		auto str = myPos;
-		myPos = newPos;
+		auto str = read_position_;
+		read_position_ = newPos;
 		return String((const char*)str, len);
 	}
-	myPos = myEnd;
-	mySuccess = false;
+	read_position_ = end_position_;
+	is_read_successful_ = false;
 	return String();
 }
 
