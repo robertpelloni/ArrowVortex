@@ -1,54 +1,112 @@
 cmake_minimum_required(VERSION 3.30)
 
-# If you're on Linux, you're probably not going to be building
-# with normal tools anytime soon. We'll just assume you have
-# W64-MinGW32.
-if (LINUX)
-	set(CMAKE_SYSTEM_NAME Windows)
-
-	set(CMAKE_C_COMPILER x86_64-w64-mingw32-gcc)
-	set(CMAKE_CXX_COMPILER x86_64-w64-mingw32-g++)
-
-	if (NOT DEFINED CMAKE_FIND_ROOT_PATH)
-		set(CMAKE_FIND_ROOT_PATH /usr/x86_64-w64-mingw32)
-	endif()
-
-	set(MINGW_BASED true)
-
-	option(VCPKG "Use vcpkg for dependencies" ON)
-endif()
-
-if(WIN32)
-	option(VCPKG "Use vcpkg for dependencies" ON)
-else()
-	option(VCPKG "Use vcpkg for dependencies" OFF)
-endif()
-
-if(VCPKG)
-	set(VCPKG_LIBRARY_LINKAGE "static")
-	if(DEFINED ENV{VCPKG_INSTALLATION_ROOT})
-		set(CMAKE_TOOLCHAIN_FILE "$ENV{VCPKG_INSTALLATION_ROOT}/scripts/buildsystems/vcpkg.cmake" CACHE STRING "")
-	elseif(DEFINED ENV{VCPKG_ROOT})
-		set(CMAKE_TOOLCHAIN_FILE "$ENV{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake" CACHE STRING "")
-	endif()
-endif()
-
 set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
 
-set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 
 project(ArrowVortex)
 
-set(CMAKE_CONFIGURATION_TYPES Debug Release)
+set(CMAKE_CONFIGURATION_TYPES Debug;Release;MinSizeRel)
+
+# clang-tidy might not be available on AppleClang systems by default
+find_program(CLANG_TIDY_EXE NAMES "clang-tidy")
+if(CLANG_TIDY_EXE)
+    if("${CMAKE_BUILD_TYPE}" STREQUAL "MinSizeRel")
+        set(tidy_flags "--fix-errors;--fix-notes")
+        set(format_flags "-i")
+    else()
+        set(tidy_flags "--warnings-as-errors=*")
+        set(format_flags "--dry-run")
+    endif()
+    set(CMAKE_CXX_CLANG_TIDY "clang-tidy;${tidy_flags};-extra-arg=/EHsc;-p=build")
+    message(STATUS "clang-tidy found: ${CLANG_TIDY_EXE}")
+else()
+    message(STATUS "clang-tidy not found, skipping static analysis")
+endif()
 
 include_directories("${PROJECT_SOURCE_DIR}/src")
 
+find_package(PkgConfig REQUIRED)
+
+# Some things needed for macOS are available via Homebrew but not vcpkg.
+# To support both, we adjust PKG_CONFIG_PATH to include Homebrew paths.
+if(APPLE)
+    # Homebrew pkg-config paths for macOS
+    if(CMAKE_SYSTEM_PROCESSOR STREQUAL "arm64")
+        # Apple Silicon
+        set(HOMEBREW_PREFIX "/opt/homebrew")
+    else()
+        # Intel Mac
+        set(HOMEBREW_PREFIX "/usr/local")
+    endif()
+    
+    set(ENV{PKG_CONFIG_PATH} "${HOMEBREW_PREFIX}/lib/pkgconfig:$ENV{PKG_CONFIG_PATH}")
+    message(STATUS "Added Homebrew PKG_CONFIG_PATH: ${HOMEBREW_PREFIX}/lib/pkgconfig")
+endif()
+
+find_package(aubio CONFIG QUIET)
+if(NOT aubio_FOUND)
+    pkg_check_modules(aubio REQUIRED IMPORTED_TARGET aubio)
+    message(STATUS "Found aubio via pkg-config (likely Homebrew)")
+    add_library(Aubio::aubio ALIAS PkgConfig::aubio)
+else()
+    message(STATUS "Found aubio via CONFIG (likely vcpkg)")
+endif()
+
+pkg_check_modules(FFMPEG REQUIRED IMPORTED_TARGET libavcodec libavformat libavutil libswscale)
+
 find_package(Freetype REQUIRED)
-find_package(MAD REQUIRED)
-find_package(Ogg CONFIG REQUIRED)
-find_package(Vorbis REQUIRED)
+
+find_package(iir CONFIG QUIET)
+if(NOT iir_FOUND)
+    pkg_check_modules(iir REQUIRED IMPORTED_TARGET iir)
+    message(STATUS "Found iir via pkg-config")
+else()
+    message(STATUS "Found iir via CONFIG")
+endif()
+
+pkg_check_modules(MAD REQUIRED IMPORTED_TARGET mad)
+
+# Without this alias, later references to MAD::MAD could fail
+add_library(MAD::MAD ALIAS PkgConfig::MAD)
+
+find_package(Ogg CONFIG QUIET)
+if(NOT Ogg_FOUND)
+    pkg_check_modules(Ogg REQUIRED IMPORTED_TARGET ogg)
+    message(STATUS "Found Ogg via pkg-config")
+else()
+    message(STATUS "Found Ogg via CONFIG")
+endif()
+
 find_package(OpenGL REQUIRED)
+
+find_package(Stb CONFIG QUIET)
+if(Stb_FOUND OR TARGET unofficial::stb::stb)
+    message(STATUS "Found Stb via CONFIG (vcpkg)")
+else()
+    find_path(STB_INCLUDE_DIR NAMES stb_image.h PATHS 
+        /usr/local/include 
+        /opt/homebrew/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/external
+        ${CMAKE_CURRENT_SOURCE_DIR}/third_party)
+    if(STB_INCLUDE_DIR)
+        message(STATUS "Found stb headers at: ${STB_INCLUDE_DIR}")
+        add_library(stb INTERFACE)
+        target_include_directories(stb INTERFACE ${STB_INCLUDE_DIR})
+        add_library(unofficial::stb::stb ALIAS stb)
+    else()
+        message(FATAL_ERROR "Could not find stb headers")
+    endif()
+endif()
+
+find_package(Vorbis CONFIG QUIET)
+if(NOT Vorbis_FOUND)
+    pkg_check_modules(Vorbis REQUIRED IMPORTED_TARGET vorbis vorbisfile)
+    message(STATUS "Found Vorbis via pkg-config")
+else()
+    message(STATUS "Found Vorbis via CONFIG")
+endif()
 
 add_subdirectory(src/Core)
 add_subdirectory(src/Dialogs)
@@ -61,3 +119,13 @@ install(TARGETS ArrowVortex RUNTIME)
 install(DIRECTORY bin/assets DESTINATION bin)
 install(DIRECTORY bin/noteskins DESTINATION bin)
 install(DIRECTORY bin/settings DESTINATION bin)
+
+file(GLOB_RECURSE path_sources "src/*.cpp" "src/*.hpp" "src/*.c" "src/*.h")
+add_custom_target(format ALL)
+add_custom_command(
+    TARGET format
+    POST_BUILD
+    COMMAND clang-format ${format_flags} -Werror -style=file ${path_sources}
+    USES_TERMINAL
+)
+add_dependencies(format ArrowVortex)
