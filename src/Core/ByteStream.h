@@ -14,11 +14,6 @@ public:
 
 	void write(const void* in, int bytes);
 
-	void write8(const void* val);
-	void write16(const void* val);
-	void write32(const void* val);
-	void write64(const void* val);
-
 	void writeNum(uint num);
 	void writeStr(StringRef str);
 
@@ -58,11 +53,6 @@ public:
 	void skip(int bytes);
 
 	void read(void* out, int bytes);
-
-	void read8(void* out);
-	void read16(void* out);
-	void read32(void* out);
-	void read64(void* out);
 
 	uint readNum();
 	String readStr();

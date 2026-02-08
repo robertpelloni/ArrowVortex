@@ -2,8 +2,7 @@
 
 #include <algorithm>
 #include <set>
-#include <random>
-#include <math.h>
+#include <cmath>
 
 #include <Core/Utils.h>
 #include <Core/StringUtils.h>
@@ -22,13 +21,11 @@
 #include <Editor/Common.h>
 #include <Editor/Editor.h>
 #include <Editor/Menubar.h>
-#include <Dialogs/Dialog.h>
 
 #include <Managers/MetadataMan.h>
 #include <Managers/StyleMan.h>
 #include <Managers/TempoMan.h>
 #include <Managers/SimfileMan.h>
-#include <Managers/MiningMan.h>
 
 #include <Core/Draw.h>
 
@@ -38,7 +35,7 @@ enum TweakMode { TWEAK_NONE, TWEAK_BPM, TWEAK_OFS };
 
 enum PlaceMode { PLACE_NONE, PLACE_NEW, PLACE_AFTER_REMOVE};
 
-struct PlacingNote { int player, startRow, endRow; PlaceMode mode; uint quant; };
+struct PlacingNote { int player, startRow, endRow; PlaceMode mode; };
 
 static int KeyToCol(Key::Code code)
 {
@@ -58,7 +55,6 @@ static Note PlacingNoteToNote(const PlacingNote& pnote, int col)
 	out.endrow = max(pnote.startRow, pnote.endRow);
 	out.player = pnote.player;
 	out.type = NOTE_STEP_OR_HOLD;
-	out.quant = pnote.quant;
 	return out;
 }
 
@@ -75,7 +71,6 @@ PlacingNote myPlacingNotes[SIM_MAX_COLUMNS];
 bool myUseJumpToNextNote;
 bool myUseUndoRedoJump;
 bool myUseTimeBasedCopy;
-bool myIsRecordMode;
 VisualSyncAnchor myVisualSyncAnchor;
 
 // ================================================================================================
@@ -96,7 +91,6 @@ EditingImpl()
 	myUseJumpToNextNote = false;
 	myUseUndoRedoJump = true;
 	myUseTimeBasedCopy = false;
-	myIsRecordMode = false;
 	myVisualSyncAnchor = VisualSyncAnchor::CURSOR;
 }
 
@@ -111,7 +105,6 @@ void loadSettings(XmrNode& settings)
 		editing->get("useJumpToNextNote", &myUseJumpToNextNote);
 		editing->get("useUndoRedoJumps", &myUseUndoRedoJump);
 		editing->get("useTimeBasedCopy", &myUseTimeBasedCopy);
-		editing->get("isRecordMode", &myIsRecordMode);
 	}
 }
 
@@ -122,7 +115,6 @@ void saveSettings(XmrNode& settings)
 	editing->addAttrib("useJumpToNextNote", myUseJumpToNextNote);
 	editing->addAttrib("useUndoRedoJumps", myUseUndoRedoJump);
 	editing->addAttrib("useTimeBasedCopy", myUseTimeBasedCopy);
-	editing->addAttrib("isRecordMode", myIsRecordMode);
 }
 
 // ================================================================================================
@@ -148,7 +140,7 @@ void onKeyPress(KeyPress& evt) override
 		}
 		else if(kc == Key::V)
 		{
-			pasteFromClipboard(evt.keyflags & Keyflag::SHIFT);
+			pasteFromClipboard();
 			evt.handled = true;
 		}
 	}
@@ -174,126 +166,20 @@ void onKeyPress(KeyPress& evt) override
 			{
 				gView->setCursorRow(row);
 			}
-<<<<<<< HEAD
-=======
-			else if (gEditor->isPracticeMode())
-			{
-				// Practice Mode Logic: Judge input instead of editing
-				auto setup = gEditor->getPracticeSetup();
-				double hitTime = gMusic->getPlayTime();
-				// Use largest window for search limit (Miss/Boo)
-				double limit = max(setup.windowBoo, setup.windowMiss);
-				if (limit <= 0) limit = 0.2;
-
-				const ExpandedNote* bestNote = nullptr;
-				double minDiff = 1000.0;
-
-				// Linear search for nearest note in column (optimization possible)
-				for(auto it = gNotes->begin(); it != gNotes->end(); ++it) {
-					if (it->col != col || it->type == NOTE_MINE) continue;
-					double t = gTempo->rowToTime(it->row);
-					double diff = fabs(t - hitTime);
-
-					if (diff < minDiff) {
-						minDiff = diff;
-						bestNote = it;
-					}
-					// If we passed the window, stop
-					if (t > hitTime + limit) break;
-				}
-
-				if (bestNote && minDiff <= limit) {
-					String judge;
-					if (minDiff <= setup.windowMarvelous) judge = "Marvelous!!";
-					else if (minDiff <= setup.windowPerfect) judge = "Perfect!";
-					else if (minDiff <= setup.windowGreat) judge = "Great";
-					else if (minDiff <= setup.windowGood) judge = "Good";
-					else if (minDiff <= setup.windowBoo) judge = "Boo";
-					else judge = "Miss";
-
-					double ms = (gTempo->rowToTime(bestNote->row) - hitTime) * 1000.0;
-					HudNote("%s (%+.0f ms)", judge.str(), ms);
-
-					// Mine Bobcoin based on accuracy
-					float accuracy = 1.0f - (float)(minDiff / limit);
-					int meter = gChart->isOpen() ? gChart->get()->meter : 1;
-					gMining->onNoteHit(accuracy, meter);
-				}
-
-				evt.handled = true;
-				return;
-			}
->>>>>>> origin/feature-goto-quantize-insert
-			else if (!myIsRecordMode)
-			{
-				evt.handled = true;
-				return;
-			}
-
 			NoteEdit edit;
 			auto note = gNotes->getNoteAt(row, col);
-			uint quant = gView->getSnapQuant();
-
-			// Layer Editing Check
-			// If "Edit One Layer" is on, we should only interact if the existing note matches
-			// the type we are trying to place? Or we shouldn't delete if different?
-			// DDream: "Edit on one layer at a time".
-			// Assume standard layer = Tap/Hold. Shift = Mine.
-			// If we are placing Tap (no Shift) and there is a Mine, do we delete it?
-			// If Edit One Layer is ON: NO.
-			// If Edit One Layer is OFF: YES.
-
-			bool targetIsMine = (evt.keyflags & Keyflag::SHIFT);
-			bool noteIsMine = note && (note->type == NOTE_MINE);
-			bool layersMatch = (targetIsMine == noteIsMine);
-
-			bool allowEdit = true;
-			if (gEditor->getEditOneLayer() && note && !layersMatch) {
-				allowEdit = false;
-			}
-
-			if (!allowEdit) {
-				evt.handled = true;
-				return;
-			}
-
 			if(note)
 			{
-				// "Inserting the same arrow will delete it"
-				// If Uncheck: Inserting same arrow won't do anything (i.e. won't delete).
-				// So if note exists, and we are trying to place same type:
-				// If preference is TRUE: Delete it.
-				// If preference is FALSE: Do nothing.
-				// Wait, if note exists, we are toggling?
-				// Standard SM behavior: Clicking existing note deletes it.
-				// DDream option allows disabling this "Toggle" behavior.
-
-				// Logic:
-				// If note exists:
-				//   If Same Arrow Deletes is TRUE -> Delete.
-				//   If Same Arrow Deletes is FALSE -> Do nothing (return).
-
-				// But we also need to check if we are placing the SAME arrow.
-				// If we place a Mine on a Tap, we replace it (unless One Layer prevents it).
-				// If we place a Tap on a Tap, we toggle.
-
-				bool sameType = layersMatch; // Simplified check
-				if (sameType && !gEditor->getInsertSameDeletes()) {
-					// Don't delete
-					evt.handled = true;
-					return;
-				}
-
 				if(gMusic->isPaused())
 				{
-					myPlacingNotes[col] = {myCurPlayer, row, row, PLACE_AFTER_REMOVE, quant};
+					myPlacingNotes[col] = {myCurPlayer, row, row, PLACE_AFTER_REMOVE};
 				}
 				edit.rem.append(CompressNote(*note));
 				gNotes->modify(edit, false);
 			}
 			else
 			{
-				edit.add.append({row, row, (uint)col, (uint)myCurPlayer, NOTE_STEP_OR_HOLD, quant});
+				edit.add.append({row, row, (uint)col, (uint)myCurPlayer, NOTE_STEP_OR_HOLD});
 				if(evt.keyflags & Keyflag::SHIFT)
 				{
 					edit.add.begin()->type = NOTE_MINE;
@@ -301,7 +187,7 @@ void onKeyPress(KeyPress& evt) override
 				}
 				else if(gMusic->isPaused())
 				{
-					myPlacingNotes[col] = {myCurPlayer, row, row, PLACE_NEW, quant};
+					myPlacingNotes[col] = {myCurPlayer, row, row, PLACE_NEW};
 				}
 				else
 				{
@@ -384,9 +270,8 @@ void onKeyRelease(KeyRelease& evt) override
 			noteKeysHeld--;
 			if (noteKeysHeld < 0) noteKeysHeld = 0;
 			finishNotePlacement(col);
-			// Don't advance when we're stepping jumps or when music is playing
-			if (hasJumpToNextNote() && gMusic->isPaused()
-				&& noteKeysHeld == 0 && gView->getSnapType() != ST_NONE)
+			// Don't advance when we're stepping jumps
+			if (hasJumpToNextNote() && noteKeysHeld == 0 && gView->getSnapType() != ST_NONE)
 			{
 				gView->setCursorRow(gView->snapRow(gView->getCursorRow(), gView->hasReverseScroll() ? View::SNAP_UP : View::SNAP_DOWN));
 			}
@@ -401,12 +286,6 @@ void onMousePress(MousePress& evt) override
 	if((evt.button == Mouse::LMB || evt.button == Mouse::RMB) && mode && evt.unhandled())
 	{
 		gTempo->stopTweaking(evt.button == Mouse::LMB);
-		evt.setHandled();
-	}
-
-	if (evt.button == Mouse::RMB && evt.unhandled())
-	{
-		gEditor->openDialog(DIALOG_CONTEXT_MENU);
 		evt.setHandled();
 	}
 }
@@ -446,26 +325,6 @@ void onChanges(int changes)
 // ================================================================================================
 // EditingImpl :: member functions.
 
-static int gcd(int a, int b)
-{
-	if (a == 0)
-	{
-		return b;
-	}
-	if (b == 0)
-	{
-		return a;
-	}
-	if (a > b)
-	{
-		return gcd(a - b, b);
-	}
-	else
-	{
-		return gcd(a, b - a);
-	}
-}
-
 void finishNotePlacement(int col)
 {
 	auto& pnote = myPlacingNotes[col];
@@ -487,14 +346,6 @@ void finishNotePlacement(int col)
 			}
 		}
 
-		if (note.quant > 0 && note.quant <= 192)
-		{
-			note.quant = min(192u, note.quant * gView->getSnapQuant() / gcd(note.quant, gView->getSnapQuant()));
-		}
-		else
-		{
-			note.quant = 192;
-		}
 		NoteEdit edit;
 		edit.add.append(note);
 		gNotes->modify(edit, false);
@@ -549,12 +400,6 @@ void changeHoldsToRolls()
 	{
 		auto* desc = descs + (numRolls ? (numHolds ? 2 : 1) : 0);
 		gNotes->modify(edit, true, desc);
-		
-		// Reselect the notes.
-		if(gSelection->getType() == Selection::NOTES)
-		{
-			gNotes->select(SELECT_SET, edit.add.begin(), edit.add.size());
-		}
 	}
 	else
 	{
@@ -562,7 +407,7 @@ void changeHoldsToRolls()
 	}
 }
 
-void changeHoldsToType(NoteType type)
+void changeHoldsToSteps()
 {
 	NoteEdit edit;
 	gSelection->getSelectedNotes(edit.add);
@@ -572,27 +417,17 @@ void changeHoldsToType(NoteType type)
 	{
 		if(n.endrow > n.row)
 		{
-			n.type = type;
-			if(type != NOTE_ROLL) n.endrow = n.row;
+			n.type = NOTE_STEP_OR_HOLD;
+			n.endrow = n.row;
 			++numHolds;
 		}
 	}
 	if(numHolds > 0)
 	{
-		static const NotesMan::EditDescription descs[NUM_NOTE_TYPES] = {
-			{ "Converted %1 hold to step.", "Converted %1 holds to steps." },
-			{ "Converted %1 hold to mine.", "Converted %1 holds to mines." },
-			{ "Converted %1 hold to roll.", "Converted %1 holds to rolls." },
-			{ "Converted %1 hold to lift.", "Converted %1 holds to lifts." },
-			{ "Converted %1 hold to fake.", "Converted %1 holds to fakes." },
+		static const NotesMan::EditDescription desc = {
+			"Converted %1 hold to step.", "Converted %1 holds to steps."
 		};
-		gNotes->modify(edit, false, &descs[type]);
-
-		// Reselect the notes.
-		if(gSelection->getType() == Selection::NOTES)
-		{
-			gNotes->select(SELECT_SET, edit.add.begin(), edit.add.size());
-		}
+		gNotes->modify(edit, false, &desc);
 	}
 	else
 	{
@@ -600,93 +435,32 @@ void changeHoldsToType(NoteType type)
 	}
 }
 
-void changeNoteTypeToType(NoteType before, NoteType after, const NotesMan::EditDescription* desc)
+void changeNotesToMines()
 {
-	if(before == after || after == NOTE_ROLL)
-	{
-		HudWarning("Invalid conversion type.");
-		return;
-	}
-
 	NoteEdit edit;
 	gSelection->getSelectedNotes(edit.add);
 
 	int numNotes = 0;
 	for(auto& n : edit.add)
 	{
-		if(n.type == before)
+		if(n.type != NOTE_MINE)
 		{
-			n.type = after;
+			n.type = NOTE_MINE;
 			n.endrow = n.row;
 			++numNotes;
 		}
 	}
 	if(numNotes > 0)
 	{
-		gNotes->modify(edit, false, desc);
-
-		// Reselect the notes.
-		if(gSelection->getType() == Selection::NOTES)
-		{
-			gNotes->select(SELECT_SET, edit.add.begin(), edit.add.size());
-		}
+		static const NotesMan::EditDescription desc = {
+			"Converted %1 note to mine.", "Converted %1 notes to mines."
+		};
+		gNotes->modify(edit, false, &desc);
 	}
 	else
 	{
 		HudNote("There are no notes selected.");
 	}
-}
-
-void changeNotesToType(NoteType type)
-{
-	static const NotesMan::EditDescription descs[NUM_NOTE_TYPES] = {
-		{ "Converted %1 step to step.", "Converted %1 steps to steps." },
-		{ "Converted %1 step to mine.", "Converted %1 steps to mines." },
-		{ "Converted %1 step to roll.", "Converted %1 steps to rolls." },
-		{ "Converted %1 step to lift.", "Converted %1 steps to lifts." },
-		{ "Converted %1 step to fake.", "Converted %1 steps to fakes." },
-	};
-
-	changeNoteTypeToType(NOTE_STEP_OR_HOLD, type, &descs[type]);
-}
-
-void changeMinesToType(NoteType type)
-{
-	static const NotesMan::EditDescription descs[NUM_NOTE_TYPES] = {
-		{ "Converted %1 mine to step.", "Converted %1 mines to steps." },
-		{ "Converted %1 mine to mine.", "Converted %1 mines to mines." },
-		{ "Converted %1 mine to roll.", "Converted %1 mines to rolls." },
-		{ "Converted %1 mine to lift.", "Converted %1 mines to lifts." },
-		{ "Converted %1 mine to fake.", "Converted %1 mines to fakes." },
-	};
-
-	changeNoteTypeToType(NOTE_MINE, type, &descs[type]);
-}
-
-void changeFakesToType(NoteType type)
-{
-	static const NotesMan::EditDescription descs[NUM_NOTE_TYPES] = {
-		{ "Converted %1 fake to step.", "Converted %1 fakes to steps." },
-		{ "Converted %1 fake to mine.", "Converted %1 fakes to mines." },
-		{ "Converted %1 fake to roll.", "Converted %1 fakes to rolls." },
-		{ "Converted %1 fake to lift.", "Converted %1 fakes to lifts." },
-		{ "Converted %1 fake to fake.", "Converted %1 fakes to fakes." },
-	};
-
-	changeNoteTypeToType(NOTE_FAKE, type, &descs[type]);
-}
-
-void changeLiftsToType(NoteType type)
-{
-	static const NotesMan::EditDescription descs[NUM_NOTE_TYPES] = {
-		{ "Converted %1 lift to step.", "Converted %1 lifts to steps." },
-		{ "Converted %1 lift to mine.", "Converted %1 lifts to mines." },
-		{ "Converted %1 lift to roll.", "Converted %1 lifts to rolls." },
-		{ "Converted %1 lift to lift.", "Converted %1 lifts to lifts." },
-		{ "Converted %1 lift to fake.", "Converted %1 lifts to fakes." },
-	};
-
-	changeNoteTypeToType(NOTE_LIFT, type, &descs[type]);
 }
 
 void changePlayerNumber()
@@ -893,47 +667,6 @@ void scaleNotes(int numerator, int denominator)
 	}
 }
 
-<<<<<<< HEAD
-void quantizeSelection(int snap)
-{
-	NoteEdit edit;
-	gSelection->getSelectedNotes(edit.add);
-	edit.rem = edit.add;
-
-	if (edit.add.empty()) {
-		HudNote("No notes selected.");
-		return;
-	}
-
-	if (snap <= 0) return;
-
-	for(auto& n : edit.add) {
-		int rem = n.row % snap;
-		if (rem != 0) {
-			if (rem < snap / 2) n.row -= rem;
-			else n.row += (snap - rem);
-		}
-		// Also quantize length for holds?
-		// Standard quantization usually just moves the start row.
-		// If it's a hold, we should probably check if the tail needs quantizing too,
-		// but typically "Quantize" snaps the attack.
-		// Let's also snap the tail if it exists.
-		if (n.type == NoteType::NOTE_HOLD_HEAD || n.type == NoteType::NOTE_ROLL_HEAD) {
-			int tailRow = n.row + n.length; // Assuming length is duration
-			int trem = tailRow % snap;
-			if (trem != 0) {
-				if (trem < snap / 2) tailRow -= trem;
-				else tailRow += (snap - trem);
-			}
-			if (tailRow > (int)n.row) n.length = tailRow - n.row;
-		}
-	}
-
-	static const NotesMan::EditDescription desc = {"Quantized %1 note.", "Quantized %1 notes."};
-	gNotes->modify(edit, true, &desc);
-	if (gSelection->getType() == Selection::NOTES) gNotes->select(SELECT_SET, edit.add.begin(), edit.add.size());
-}
-
 void insertRows(int row, int numRows, bool curChartOnly)
 {
 	if(gSimfile->isOpen())
@@ -961,7 +694,7 @@ int getAnchorRow() {
 }
 
 void injectBoundingBpmChange() {
-	if (gSimfile->isClosed() || !gView->isTimeBased()) {
+	if (gSimfile == nullptr || !gView->isTimeBased()) {
 		return;
 	}
 
@@ -971,7 +704,7 @@ void injectBoundingBpmChange() {
 }
 
 void shiftAnchorRowToMousePosition(bool is_destructive) {
-	if (gSimfile->isClosed() || !gView->isTimeBased()) {
+	if (gSimfile == nullptr || !gView->isTimeBased()) {
 		return;
 	}
 	Vortex::vec2i mouse_pos = gSystem->getMousePos();
@@ -987,13 +720,6 @@ void shiftAnchorRowToMousePosition(bool is_destructive) {
 		gTempo->nonDestructiveShiftRowToTime(anchor_row, target_time);
 	}
 }
-=======
-void quantizeSelection(int snap);
-void insertRows(int row, int numRows, bool curChartOnly);
-int getAnchorRow();
-void injectBoundingBpmChange();
-void shiftAnchorRowToMousePosition(bool is_destructive);
->>>>>>> origin/feature-goto-quantize-insert
 
 /*
 void streamToTriplets()
@@ -1220,13 +946,7 @@ void exportNotesAsLuaTable()
 
 void copySelectionToClipboard(bool remove)
 {
-	if(gSelection->getType() == Selection::NONE)
-	{
-		String time = Str::formatTime(gView->getCursorTime());
-		gSystem->setClipboardText(Str::fmt("%1").arg(time));
-		HudNote("Copied timestamp to Clipboard.");
-	}
-	else if(gSelection->getType() == Selection::TEMPO)
+	if(gSelection->getType() == Selection::TEMPO)
 	{
 		gTempo->copyToClipboard();
 		if(remove) gTempo->removeSelectedSegments();
@@ -1238,80 +958,15 @@ void copySelectionToClipboard(bool remove)
 	}
 }
 
-void pasteFromClipboard(bool insert)
+void pasteFromClipboard()
 {
-	// "Pasting will overwrite old items with the new"
-	// Uncheck: Merge (Standard logic usually merges).
-	// Check: Overwrite (Clears region before paste).
-	// But `pasteFromClipboard` calls `gNotes->pasteFromClipboard(insert)`.
-	// The `insert` param is about shifting existing notes (Insert Time), not overwrite vs merge.
-	// If `insert` is false (standard Paste):
-	//   If `PasteOverwrites` is TRUE: We should clear the target region first?
-	//   Or pass a flag to `pasteFromClipboard`.
-
-	// NotesMan::pasteFromClipboard calls `modify`.
-	// If we want to overwrite, we need to generate `rem` notes for the target area.
-	// `gNotes` doesn't expose `pasteFromClipboard` logic easily to inject deletion.
-
-	// However, `gNotes->pasteFromClipboard` is in `NoteMan.cpp` (implied).
-	// I cannot see `NoteMan.cpp`.
-	// But I can see `gNotes->add` uses `NotesMan::OVERWRITE_ROWS` or similar.
-	// `Editing.cpp` calls `gNotes->pasteFromClipboard`.
-
-	// If I can't modify `NoteMan.cpp`, I can't change the internal logic.
-	// But I can implement "Overwrite" by clearing the selection area if I knew the size of clipboard?
-	// `HasClipboardData` checks tag.
-	// I can peek clipboard?
-	// In `Editing.cpp`, `pasteNotePatterns` was TODO.
-
-	// Let's assume standard behavior is Merge.
-	// Overwrite behavior: Delete notes in range.
-	// I need the range.
-
-	// NotesMan::pasteFromClipboard logic likely decodes and calls modify.
-	// If I can't change that, I can't implement "Overwrite" precisely without decoding twice.
-
-	// Let's try to implement "Select newly pasted items".
-	// This also requires cooperation from `pasteFromClipboard` to return the new notes or select them.
-	// If `gNotes->pasteFromClipboard` doesn't do it, I can't easily do it.
-
-	// However, if I am simulating DDream, maybe I can just implement a "Delete Selection" before paste if Overwrite is on?
-	// But Paste happens at cursor, not selection.
-
-	// Let's defer rigorous implementation of Paste flags if I can't access `NoteMan.cpp`.
-	// Wait, I can read `src/Managers/NoteMan.cpp`.
-
 	if(gChart->isOpen() && HasClipboardData(NotesMan::clipboardTag))
 	{
-		// TODO: Pass overwrite/select flags to NoteMan if possible?
-		// NoteMan isn't in my file list for this turn but I can read it.
-		// For now, I'll stick to standard behavior call.
-		// But I should try to implement `SelectPasted` if I can.
-		// `gNotes->select(SELECT_SET, ...)`
-
-		gNotes->pasteFromClipboard(insert);
-
-		// If Select Pasted is TRUE, we want to select them.
-		// NoteMan::pasteFromClipboard likely selects them by default?
-		// Or maybe not.
-		// If it does, and we want to UNCHECK it, we should deselect.
-		if (!gEditor->getSelectPasted()) {
-			gNotes->deselectAll();
-		}
+		gNotes->pasteFromClipboard();
 	}
 	else if(HasClipboardData(TempoMan::clipboardTag))
 	{
-		gTempo->pasteFromClipboard(insert);
-	}
-	else
-	{
-		String text = gSystem->getClipboardText();
-		double target = Str::readTime(text);
-		if(target > 0)
-		{
-			HudNote("Jump to %s.", Str::formatTime(target));
-			gView->setCursorTime(target);
-		}
+		gTempo->pasteFromClipboard();
 	}
 }
 
@@ -1378,209 +1033,7 @@ VisualSyncAnchor getVisualSyncMode() {
 	return myVisualSyncAnchor;
 }
 
-void shuffleNotes(bool perRow)
-{
-	NoteEdit edit;
-	gSelection->getSelectedNotes(edit.add);
-	if (edit.add.empty()) {
-		HudNote("No notes selected.");
-		return;
-	}
-	edit.rem = edit.add;
-
-	int numCols = gStyle->getNumCols();
-	Vector<int> perm;
-	perm.resize(numCols);
-	for(int i=0; i<numCols; ++i) perm[i] = i;
-
-	std::random_device rd;
-	std::mt19937 g(rd());
-
-	if (!perRow) {
-		std::shuffle(perm.begin(), perm.end(), g);
-		for(auto& n : edit.add) {
-			if (n.col < numCols) n.col = perm[n.col];
-		}
-	} else {
-		std::sort(edit.add.begin(), edit.add.end(), [](const Note& a, const Note& b) { return a.row < b.row; });
-		auto it = edit.add.begin();
-		while(it != edit.add.end()) {
-			int row = it->row;
-			auto start = it;
-			while(it != edit.add.end() && it->row == row) ++it;
-			std::shuffle(perm.begin(), perm.end(), g);
-			for(auto n = start; n != it; ++n) {
-				if (n->col < numCols) n->col = perm[n->col];
-			}
-		}
-	}
-
-	static const NotesMan::EditDescription desc = {"Shuffled %1 note.", "Shuffled %1 notes."};
-	gNotes->modify(edit, false, &desc);
-	if(gSelection->getType() == Selection::NOTES) gNotes->select(SELECT_SET, edit.add.begin(), edit.add.size());
-}
-
-void turnNotes(bool right)
-{
-	NoteEdit edit;
-	gSelection->getSelectedNotes(edit.add);
-	if (edit.add.empty()) {
-		HudNote("No notes selected.");
-		return;
-	}
-	edit.rem = edit.add;
-
-	int numCols = gStyle->getNumCols();
-	auto style = gStyle->get();
-	if (!style || !style->padColPositions) return;
-
-	float cx = style->padWidth / 2.0f;
-	float cy = style->padHeight / 2.0f;
-
-	Vector<int> mapping;
-	mapping.resize(numCols);
-	for(int i=0; i<numCols; ++i) {
-		vec2i p = style->padColPositions[i];
-		float dx = p.x - cx;
-		float dy = p.y - cy;
-		float dx_new, dy_new;
-		if (right) {
-			dx_new = -dy;
-			dy_new = dx;
-		} else {
-			dx_new = dy;
-			dy_new = -dx;
-		}
-
-		float bestDist = 1e9f;
-		int bestCol = i;
-		for(int j=0; j<numCols; ++j) {
-			vec2i p2 = style->padColPositions[j];
-			float dist = sqrt(pow(p2.x - (cx + dx_new), 2) + pow(p2.y - (cy + dy_new), 2));
-			if (dist < bestDist) {
-				bestDist = dist;
-				bestCol = j;
-			}
-		}
-		mapping[i] = bestCol;
-	}
-
-	for(auto& n : edit.add) {
-		if (n.col < numCols) n.col = mapping[n.col];
-	}
-
-	static const NotesMan::EditDescription desc = {"Turned %1 note.", "Turned %1 notes."};
-	gNotes->modify(edit, false, &desc);
-	if(gSelection->getType() == Selection::NOTES) gNotes->select(SELECT_SET, edit.add.begin(), edit.add.size());
-}
-
-void toggleRecordMode()
-{
-	myIsRecordMode = !myIsRecordMode;
-	HudInfo("Record Mode: %s", myIsRecordMode ? "ON" : "OFF");
-	gMenubar->update(Menubar::USE_RECORD_MODE);
-}
-
-bool isRecordMode()
-{
-	return myIsRecordMode;
-}
-
 }; // EditingImpl
-
-void EditingImpl::quantizeSelection(int snap)
-{
-	NoteEdit edit;
-	gSelection->getSelectedNotes(edit.add);
-	edit.rem = edit.add;
-
-	if (edit.add.empty()) {
-		HudNote("No notes selected.");
-		return;
-	}
-
-	if (snap <= 0) return;
-
-	for(auto& n : edit.add) {
-		int rem = n.row % snap;
-		if (rem != 0) {
-			if (rem < snap / 2) n.row -= rem;
-			else n.row += (snap - rem);
-		}
-		// Also quantize length for holds?
-		// Standard quantization usually just moves the start row.
-		// If it's a hold, we should probably check if the tail needs quantizing too,
-		// but typically "Quantize" snaps the attack.
-		// Let's also snap the tail if it exists.
-		if (n.type == NoteType::NOTE_HOLD_HEAD || n.type == NoteType::NOTE_ROLL_HEAD) {
-			int tailRow = n.row + n.length; // Assuming length is duration
-			int trem = tailRow % snap;
-			if (trem != 0) {
-				if (trem < snap / 2) tailRow -= trem;
-				else tailRow += (snap - trem);
-			}
-			if (tailRow > (int)n.row) n.length = tailRow - n.row;
-		}
-	}
-
-	static const NotesMan::EditDescription desc = {"Quantized %1 note.", "Quantized %1 notes."};
-	gNotes->modify(edit, true, &desc);
-	if (gSelection->getType() == Selection::NOTES) gNotes->select(SELECT_SET, edit.add.begin(), edit.add.size());
-}
-
-void EditingImpl::insertRows(int row, int numRows, bool curChartOnly)
-{
-	if(gSimfile->isOpen())
-	{
-		gHistory->startChain();
-		gTempo->insertRows(row, numRows, curChartOnly);
-		gNotes->insertRows(row, numRows, curChartOnly);
-		gHistory->finishChain((numRows > 0) ? "Insert beats" : "Delete beats");
-	}
-}
-
-int EditingImpl::getAnchorRow() {
-	Vortex::vec2i mouse_pos = gSystem->getMousePos();
-	Vortex::ChartOffset chart_offset = gView->yToOffset(mouse_pos.y);
-
-	switch (this->myVisualSyncAnchor) {
-	case VisualSyncAnchor::RECEPTORS:
-		return gView->getCursorRow();
-	case VisualSyncAnchor::CURSOR:
-		return gView->snapRow(gView->offsetToRow(chart_offset), Vortex::View::SnapDir::SNAP_CLOSEST);
-	default:
-		HudError("Unknown anchor row type");
-		return -1;
-	}
-}
-
-void EditingImpl::injectBoundingBpmChange() {
-	if (gSimfile->isClosed() || !gView->isTimeBased()) {
-		return;
-	}
-
-	int anchor_row = this->getAnchorRow();
-
-	gTempo->injectBoundingBpmChange(anchor_row);
-}
-
-void EditingImpl::shiftAnchorRowToMousePosition(bool is_destructive) {
-	if (gSimfile->isClosed() || !gView->isTimeBased()) {
-		return;
-	}
-	Vortex::vec2i mouse_pos = gSystem->getMousePos();
-	Vortex::ChartOffset chart_offset = gView->yToOffset(mouse_pos.y);
-
-	double target_time = gView->offsetToTime(chart_offset);
-	int anchor_row = this->getAnchorRow();
-
-	if (is_destructive) {
-		gTempo->destructiveShiftRowToTime(anchor_row, target_time);
-	}
-	else {
-		gTempo->nonDestructiveShiftRowToTime(anchor_row, target_time);
-	}
-}
 
 // ================================================================================================
 // Editing API.

@@ -1,7 +1,6 @@
 #pragma once
 
-#ifdef _WIN32
-#include <windows.h>
-#include <gl/gl.h>
+#define WIN32_LEAN_AND_MEAN
+#include "windows.h"
+#include "GL/gl.h"
 #undef ERROR
-#endif

@@ -1,7 +1,7 @@
 #include <Editor/Editor.h>
 
 #include <map>
-#include <set>
+#include <algorithm>
 
 #include <Core/Xmr.h>
 #include <Core/Gui.h>
@@ -17,7 +17,6 @@
 #include <Editor/Menubar.h>
 #include <Editor/Action.h>
 #include <Editor/Shortcuts.h>
-#include <Core/Version.h>
 
 #include <Editor/View.h>
 #include <Editor/Notefield.h>
@@ -31,8 +30,6 @@
 #include <Editor/History.h>
 #include <Editor/StreamGenerator.h>
 
-#include <algorithm>
-
 #include <Managers/StyleMan.h>
 #include <Managers/TempoMan.h>
 #include <Managers/MetadataMan.h>
@@ -40,12 +37,6 @@
 #include <Managers/ChartMan.h>
 #include <Managers/NoteMan.h>
 #include <Managers/NoteskinMan.h>
-#include <Managers/LyricsMan.h>
-<<<<<<< HEAD
-#include <Managers/LuaMan.h>
-=======
-#include <Managers/MiningMan.h>
->>>>>>> origin/feature-goto-quantize-insert
 
 #include <Dialogs/SongProperties.h>
 #include <Dialogs/ChartList.h>
@@ -56,22 +47,9 @@
 #include <Dialogs/AdjustSync.h>
 #include <Dialogs/DancingBot.h>
 #include <Dialogs/TempoBreakdown.h>
-#include <Dialogs/ChartStatistics.h>
-#include <Dialogs/DialogContextMenu.h>
 #include <Dialogs/GenerateNotes.h>
 #include <Dialogs/WaveformSettings.h>
 #include <Dialogs/Zoom.h>
-#include <Dialogs/CustomSnap.h>
-#include <Dialogs/GoTo.h>
-#include <Dialogs/LyricsEditor.h>
-#include <Dialogs/BgChanges.h>
-#include <Dialogs/ChartStatistics.h>
-#include <Dialogs/Preferences.h>
-<<<<<<< HEAD
-#include <Dialogs/BatchDDC.h>
-#include <Dialogs/ThemeEditor.h>
-=======
->>>>>>> origin/feature-goto-quantize-insert
 
 namespace Vortex {
 
@@ -147,7 +125,7 @@ static SimFormat ToSimFormat(StringRef str)
 
 struct EditorImpl : public Editor, public InputHandler {
 
-GuiContext* gui_;
+GuiContext* myGui;
 DialogEntry myDialogs[NUM_DIALOG_IDS];
 int myChanges;
 Texture myLogo;
@@ -158,87 +136,9 @@ String myFontPath;
 
 bool myUseMultithreading;
 bool myUseVerticalSync;
-double myLastAutosaveTime;
 
 BackgroundStyle myBackgroundStyle;
 SimFormat myDefaultSaveFormat;
-
-// Preferences
-bool myNudgeBasedOnZoom;
-bool myAssistTickBeats;
-bool myRemoveDuplicateBPMs;
-float myBeatAssistVol;
-float myNoteAssistVol;
-
-bool myMiddleMouseInsertBeat;
-bool myScrollCursorEffect;
-bool myInsertSameDeletes;
-bool myEditOneLayer;
-bool myPasteOverwrites;
-bool mySelectPasted;
-bool myBackupSaves;
-bool myDontShowFPS;
-<<<<<<< HEAD
-String myPythonPath;
-=======
->>>>>>> origin/feature-goto-quantize-insert
-
-// Practice Mode
-bool myPracticeMode;
-Editor::PracticeSetup myPracticeSetup;
-<<<<<<< HEAD
-bool myWasPaused;
-	double myLastTime;
-
-void handlePracticeInput(int col)
-{
-	double now = gView->getCursorTime();
-	double maxWindow = myPracticeSetup.windowMiss; // Use Miss window as max search range
-
-	const ExpandedNote* bestNote = nullptr;
-	double bestDiff = 100000.0;
-
-	for(auto it = gNotes->begin(); it != gNotes->end(); ++it)
-	{
-		if(it->col != col) continue;
-		if(it->type == NOTE_MINE || it->type == NOTE_FAKE) continue; // Ignore mines/fakes for tapping
-
-		double diff = it->time - now;
-		if (diff < -maxWindow) continue; // Too old
-		if (diff > maxWindow) break; // Too far future (sorted)
-
-		// Check if already judged
-		if (myJudgedNotes.count({it->row, it->col})) continue;
-
-		if (abs(diff) < abs(bestDiff))
-		{
-			bestDiff = diff;
-			bestNote = it;
-		}
-	}
-
-	if (bestNote)
-	{
-		double absDiff = abs(bestDiff);
-		const char* judge = nullptr;
-
-		if (absDiff <= myPracticeSetup.windowMarvelous) judge = "Marvelous";
-		else if (absDiff <= myPracticeSetup.windowPerfect) judge = "Perfect";
-		else if (absDiff <= myPracticeSetup.windowGreat) judge = "Great";
-		else if (absDiff <= myPracticeSetup.windowGood) judge = "Good";
-		else if (absDiff <= myPracticeSetup.windowBoo) judge = "Boo";
-		else if (absDiff <= myPracticeSetup.windowMiss) judge = "Miss";
-
-		if (judge)
-		{
-			myJudgedNotes.insert({bestNote->row, bestNote->col});
-			HudNote("%s (%.3fs)", judge, bestDiff);
-			gNotefield->triggerFlash(col);
-		}
-	}
-}
-=======
->>>>>>> origin/feature-goto-quantize-insert
 
 // ================================================================================================
 // EditorImpl :: constructor and destructor.
@@ -249,7 +149,7 @@ void handlePracticeInput(int col)
 
 EditorImpl()
 {
-	gSystem->setWindowTitle(Str::fmt("ArrowVortex v%1", Version::Get()));
+	gSystem->setWindowTitle("ArrowVortex");
 
 	for(auto& dialog : myDialogs)
 	{
@@ -257,55 +157,16 @@ EditorImpl()
 		dialog.requestOpen = false;
 	}
 
-	gui_ = nullptr;
+	myGui = nullptr;
 	myChanges = 0;
 
 	myUseMultithreading = true;
 	myUseVerticalSync = true;
-	myLastAutosaveTime = 0.0;
 
 	myBackgroundStyle = BG_STYLE_STRETCH;
 	myDefaultSaveFormat = SIM_SM;
 
-	// Defaults matching typical workflow or DDream
-	myNudgeBasedOnZoom = true;
-	myAssistTickBeats = true;
-	myRemoveDuplicateBPMs = true;
-	myBeatAssistVol = 1.0f;
-	myNoteAssistVol = 1.0f;
-
-	// Defaults based on DDream or typical usage
-	myMiddleMouseInsertBeat = false; // Default: Autoscroll
-	myScrollCursorEffect = true; // Default: Cursor moves?
-	myInsertSameDeletes = true;
-	myEditOneLayer = true;
-	myPasteOverwrites = true;
-	mySelectPasted = true;
-	myBackupSaves = false;
-	myDontShowFPS = false;
-<<<<<<< HEAD
-	myPythonPath = "python";
-=======
->>>>>>> origin/feature-goto-quantize-insert
-
-	myPracticeMode = false;
-	// Default windows (ms) based on screenshot
-	myPracticeSetup.windowMarvelous = 0.0225f; // 22.5ms = 0.0225s
-	myPracticeSetup.windowPerfect = 0.045f;
-	myPracticeSetup.windowGreat = 0.090f;
-	myPracticeSetup.windowGood = 0.135f;
-	myPracticeSetup.windowBoo = 0.180f;
-	myPracticeSetup.windowMine = 0.090f;
-	myPracticeSetup.windowFreeze = 0.250f;
-	myPracticeSetup.windowMiss = 0.180f; // Outside Boo
-
-<<<<<<< HEAD
-	myWasPaused = true;
-	myLastTime = 0.0;
-
-=======
->>>>>>> origin/feature-goto-quantize-insert
-	myFontPath = "assets/NotoSansJP-Medium.ttf";
+	myFontPath = "assets/bokutachi no gothic 2.otf";
 	myFontSize = 13;
 }
 
@@ -328,14 +189,14 @@ void init()
 	GuiMain::init();
 	GuiMain::setClipboardFunctions(ClipboardGet, ClipboardSet);
 
-	gui_ = GuiContext::create();
+	myGui = GuiContext::create();
 
 	// Initialize the default text style.
 	TextStyle text;
 	text.font = Font(myFontPath.str(), Text::HINT_AUTO);
 	text.fontSize = myFontSize;
 	text.textColor = Colors::white;
-	text.shadowColor = RGBAtoColor32(0, 0, 0, 128);
+	text.shadowColor = COLOR32(0, 0, 0, 128);
 	text.makeDefault();
 
 	// Create the text overlay, so other editor components can show HUD messages.
@@ -352,12 +213,6 @@ void init()
 	TempoMan::create();
 	ChartMan::create();
 	NotesMan::create();
-	LyricsMan::create();
-<<<<<<< HEAD
-	LuaMan::create();
-=======
-	MiningMan::create();
->>>>>>> origin/feature-goto-quantize-insert
 
 	// Create the editor components.
 	Shortcuts::create();
@@ -403,7 +258,7 @@ void shutdown()
 	saveDialogSettings(settings);
 
 	// Destroy the gui context first, because some dialogs refer to editor components.
-	delete gui_;
+	delete myGui;
 
 	// Destroy the editor components.
 	Minimap::destroy();
@@ -421,12 +276,6 @@ void shutdown()
 	TextOverlay::destroy();
 
 	// Destroy the simfile components.
-<<<<<<< HEAD
-	LuaMan::destroy();
-=======
-	MiningMan::destroy();
->>>>>>> origin/feature-goto-quantize-insert
-	LyricsMan::destroy();
 	NotesMan::destroy();
 	ChartMan::destroy();
 	TempoMan::destroy();
@@ -456,37 +305,6 @@ void loadSettings(XmrDoc& settings)
 
 		const char* saveFormat = general->get("defaultSaveFormat");
 		if(saveFormat) myDefaultSaveFormat = ToSimFormat(saveFormat);
-
-		general->get("nudgeBasedOnZoom", &myNudgeBasedOnZoom);
-		general->get("assistTickBeats", &myAssistTickBeats);
-		general->get("removeDuplicateBPMs", &myRemoveDuplicateBPMs);
-
-		general->get("middleMouseInsertBeat", &myMiddleMouseInsertBeat);
-		general->get("scrollCursorEffect", &myScrollCursorEffect);
-		general->get("insertSameDeletes", &myInsertSameDeletes);
-		general->get("editOneLayer", &myEditOneLayer);
-		general->get("pasteOverwrites", &myPasteOverwrites);
-		general->get("selectPasted", &mySelectPasted);
-		general->get("backupSaves", &myBackupSaves);
-		general->get("dontShowFPS", &myDontShowFPS);
-<<<<<<< HEAD
-
-		const char* pyPath = general->get("pythonPath");
-		if (pyPath) myPythonPath = pyPath;
-=======
->>>>>>> origin/feature-goto-quantize-insert
-	}
-
-	XmrNode* practice = settings.child("practice");
-	if (practice) {
-		practice->get("enabled", &myPracticeMode);
-		practice->get("windowMarvelous", &myPracticeSetup.windowMarvelous);
-		practice->get("windowPerfect", &myPracticeSetup.windowPerfect);
-		practice->get("windowGreat", &myPracticeSetup.windowGreat);
-		practice->get("windowGood", &myPracticeSetup.windowGood);
-		practice->get("windowBoo", &myPracticeSetup.windowBoo);
-		practice->get("windowFreeze", &myPracticeSetup.windowFreeze);
-		practice->get("windowMine", &myPracticeSetup.windowMine);
 	}
 
 	XmrNode* view = settings.child("view");
@@ -502,8 +320,7 @@ void loadSettings(XmrDoc& settings)
 		interface->get("fontSize", &myFontSize);
 
 		const char* path = interface->get("fontPath");
-		FileReader testPath;
-		if(path && testPath.open(path)) myFontPath = path;
+		if(path) myFontPath = path;
 	}
 }
 
@@ -514,33 +331,6 @@ void saveGeneralSettings(XmrNode& settings)
 	general->addAttrib("useMultithreading", myUseMultithreading);
 	general->addAttrib("useVerticalSync", myUseVerticalSync);
 	general->addAttrib("defaultSaveFormat", ToString(myDefaultSaveFormat));
-
-	general->addAttrib("nudgeBasedOnZoom", myNudgeBasedOnZoom);
-	general->addAttrib("assistTickBeats", myAssistTickBeats);
-	general->addAttrib("removeDuplicateBPMs", myRemoveDuplicateBPMs);
-
-	general->addAttrib("middleMouseInsertBeat", myMiddleMouseInsertBeat);
-	general->addAttrib("scrollCursorEffect", myScrollCursorEffect);
-	general->addAttrib("insertSameDeletes", myInsertSameDeletes);
-	general->addAttrib("editOneLayer", myEditOneLayer);
-	general->addAttrib("pasteOverwrites", myPasteOverwrites);
-	general->addAttrib("selectPasted", mySelectPasted);
-	general->addAttrib("backupSaves", myBackupSaves);
-	general->addAttrib("dontShowFPS", myDontShowFPS);
-<<<<<<< HEAD
-	general->addAttrib("pythonPath", myPythonPath.str());
-=======
->>>>>>> origin/feature-goto-quantize-insert
-
-	XmrNode* practice = settings.addChild("practice");
-	practice->addAttrib("enabled", myPracticeMode);
-	practice->addAttrib("windowMarvelous", myPracticeSetup.windowMarvelous);
-	practice->addAttrib("windowPerfect", myPracticeSetup.windowPerfect);
-	practice->addAttrib("windowGreat", myPracticeSetup.windowGreat);
-	practice->addAttrib("windowGood", myPracticeSetup.windowGood);
-	practice->addAttrib("windowBoo", myPracticeSetup.windowBoo);
-	practice->addAttrib("windowFreeze", myPracticeSetup.windowFreeze);
-	practice->addAttrib("windowMine", myPracticeSetup.windowMine);
 
 	XmrNode* view = settings.addChild("view");
 
@@ -666,7 +456,6 @@ bool closeSimfile()
 
 	// Close the simfile and reset the editor state.
 	gSimfile->close();
-	gMenubar->update(Menubar::OPEN_FILE);
 
 	gView->setCursorTime(0.0);
 	
@@ -694,7 +483,6 @@ bool openSimfile(StringRef path)
 		}
 		gView->setCursorTime(0.0);
 	}
-	gMenubar->update(Menubar::OPEN_FILE);
 	return result;
 }
 
@@ -768,9 +556,6 @@ bool openNextSimfile(bool iterateForward)
 
 bool saveSimfile(bool showSaveAsDialog)
 {
-	// Check if a simfile is currently open.
-	if (gSimfile->isClosed()) return true;
-
 	SimFormat saveFmt = myDefaultSaveFormat;
 	
 	String dir = gSimfile->getDir();
@@ -950,33 +735,12 @@ void handleDialogOpening(DialogId id, recti rect)
 		dlg = new DialogNewChart; break;
 	case DIALOG_SONG_PROPERTIES:
 		dlg = new DialogSongProperties; break;
-	case DIALOG_CHART_STATISTICS:
-		dlg = new DialogChartStatistics; break;
-	case DIALOG_CONTEXT_MENU:
-		dlg = new DialogContextMenu; break;
 	case DIALOG_TEMPO_BREAKDOWN:
 		dlg = new DialogTempoBreakdown; break;
 	case DIALOG_WAVEFORM_SETTINGS:
 		dlg = new DialogWaveformSettings; break;
 	case DIALOG_ZOOM:
 		dlg = new DialogZoom; break;
-	case DIALOG_CUSTOM_SNAP:
-		dlg = new DialogCustomSnap; break;
-	case DIALOG_GO_TO:
-		dlg = new DialogGoTo; break;
-	case DIALOG_LYRICS_EDITOR:
-		dlg = new DialogLyricsEditor; break;
-	case DIALOG_BG_CHANGES:
-		dlg = new DialogBgChanges; break;
-	case DIALOG_PREFERENCES:
-		dlg = new DialogPreferences; break;
-<<<<<<< HEAD
-	case DIALOG_BATCH_DDC:
-		dlg = new DialogBatchDDC; break;
-	case DIALOG_THEME_EDITOR:
-		dlg = new DialogThemeEditor; break;
-=======
->>>>>>> origin/feature-goto-quantize-insert
 	};
 
 	dlg->setId(id);
@@ -987,11 +751,6 @@ void handleDialogOpening(DialogId id, recti rect)
 		dlg->setWidth(rect.w);
 		dlg->setHeight(rect.h);
 		dlg->requestPin();
-	}
-	else if (id == DIALOG_CONTEXT_MENU)
-	{
-		vec2i mouse = gSystem->getMousePos();
-		dlg->setPosition(mouse.x, mouse.y);
 	}
 	else
 	{
@@ -1069,26 +828,6 @@ void notifyChanges()
 
 void onKeyPress(KeyPress& press)
 {
-	if (myPracticeMode && !gMusic->isPaused())
-	{
-		int col = -1;
-		if (press.key == Key::LEFT) col = 0;
-		else if (press.key == Key::DOWN) col = 1;
-		else if (press.key == Key::UP) col = 2;
-		else if (press.key == Key::RIGHT) col = 3;
-		else if (press.key == Key::DIGIT_1) col = 0;
-		else if (press.key == Key::DIGIT_2) col = 1;
-		else if (press.key == Key::DIGIT_3) col = 2;
-		else if (press.key == Key::DIGIT_4) col = 3;
-
-		if (col != -1 && col < gStyle->getNumCols())
-		{
-			handlePracticeInput(col);
-			press.handled = true;
-			return;
-		}
-	}
-
 	//if(press.key == Key::V)
 	//{
 	//	VerifySaveLoadIdentity(*gSimfile->getSimfile());
@@ -1113,17 +852,16 @@ void updateTitle()
 		subtitle = meta->subtitle;
 	}
 	bool hasChanges = gHistory->hasUnsavedChanges();
-	String ver = Version::Get();
 	if(title.len() || subtitle.len())
 	{
 		if(title.len() && subtitle.len()) title += " ";
 		title += subtitle;
 		if(hasChanges) title += "*";
-		title += " :: ArrowVortex v" + ver;
+		title += " :: ArrowVortex";
 	}
 	else
 	{
-		title = "ArrowVortex v" + ver;
+		title = "ArrowVortex";
 		if(hasChanges) title += "*";
 	}
 	gSystem->setWindowTitle(title);
@@ -1132,48 +870,36 @@ void updateTitle()
 void drawLogo()
 {
 	vec2i size = gSystem->getWindowSize();
-	Draw::fill({0, 0, size.x, size.y}, RGBAtoColor32(38, 38, 38, 255));
-	Draw::sprite(myLogo, {size.x / 2, size.y / 2}, RGBAtoColor32(255, 255, 255, 26));
+	Draw::fill({0, 0, size.x, size.y}, COLOR32(38, 38, 38, 255));
+	Draw::sprite(myLogo, {size.x / 2, size.y / 2}, COLOR32(255, 255, 255, 26));
 }
 
 void tick()
 {
-	bool paused = gMusic->isPaused();
-	if (myWasPaused && !paused) {
-		myJudgedNotes.clear();
-	}
-	myWasPaused = paused;
-
-	double time = gMusic->getPlayTime();
-	if (time < myLastTime) {
-		myJudgedNotes.clear();
-	}
-	myLastTime = time;
-
 	InputEvents& events = gSystem->getEvents();
 	handleInputs(events);
 	notifyChanges();
 
 	vec2i windowSize = gSystem->getWindowSize();
-	recti r = { 0, 0, windowSize.x, windowSize.y };
+	recti r = {0, 0, windowSize.x, windowSize.y};
 
 	gTextOverlay->handleInputs(events);
 
 	GuiMain::setViewSize(r.w, r.h);
-	GuiMain::frameStart(deltaTime.count(), events);
+	GuiMain::frameStart(deltaTime, events);
 
 	vec2i view = gSystem->getWindowSize();
 
 	handleDialogs();
 
-	gui_->tick({ 0, 0, view.x, view.y }, deltaTime.count(), events);
-
-	if (!GuiMain::isCapturingText())
+	myGui->tick({0, 0, view.x, view.y}, deltaTime, events);
+	
+	if(!GuiMain::isCapturingText())
 	{
-		for (KeyPress* press = nullptr; events.next(press);)
+		for(KeyPress* press = nullptr; events.next(press);)
 		{
 			Action::Type action = gShortcuts->getAction(press->keyflags, press->key);
-			if (action)
+			if(action)
 			{
 				Action::perform(action);
 				press->handled = true;
@@ -1181,12 +907,12 @@ void tick()
 		}
 	}
 
-	if (!GuiMain::isCapturingMouse())
+	if(!GuiMain::isCapturingMouse())
 	{
-		for (MouseScroll* scroll = nullptr; events.next(scroll);)
+		for(MouseScroll* scroll = nullptr; events.next(scroll);)
 		{
 			Action::Type action = gShortcuts->getAction(scroll->keyflags, scroll->up);
-			if (action)
+			if(action)
 			{
 				Action::perform(action);
 				scroll->handled = true;
@@ -1194,41 +920,24 @@ void tick()
 		}
 	}
 
-	if (GuiMain::isCapturingMouse())
+	if(GuiMain::isCapturingMouse())
 	{
 		gSystem->setCursor(GuiMain::getCursorIcon());
 	}
 
 	gTextOverlay->tick();
-
-<<<<<<< HEAD
-=======
-	Action::tick();
-
->>>>>>> origin/feature-goto-quantize-insert
-	if (gSystem->getElapsedTime() - myLastAutosaveTime > 300.0) {
-		myLastAutosaveTime = gSystem->getElapsedTime();
-		if (gSimfile->isOpen() && gHistory->hasUnsavedChanges()) {
-			String dir = gSimfile->getDir();
-			if (!dir.empty()) {
-				gSimfile->save(dir, "autosave.ssc", SIM_SSC);
-				HudNote("Autosaved to autosave.ssc");
-			}
-		}
-	}
-
 	gHistory->handleInputs(events);
 	gMinimap->handleInputs(events);
 	gEditing->handleInputs(events);
 
-	if (gSimfile->isOpen())
+	if(gSimfile->isOpen())
 	{
 		gView->tick();
 	}
 
 	gSelection->handleInputs(events);
 
-	if (gSimfile->isOpen())
+	if(gSimfile->isOpen())
 	{
 		gMusic->tick();
 		gMinimap->tick();
@@ -1238,8 +947,8 @@ void tick()
 
 	updateTitle();
 	notifyChanges();
-
-	if (gSimfile->isOpen())
+	
+	if(gSimfile->isOpen())
 	{
 		gNotefield->draw();
 		gMinimap->draw();
@@ -1250,52 +959,9 @@ void tick()
 		drawLogo();
 	}
 
-	gui_->draw();
+	myGui->draw();
 
 	gTextOverlay->draw();
-
-	// Draw FPS
-	if (!myDontShowFPS)
-	{
-		static float lastTime = 0.0f;
-		static int frames = 0;
-		static int fps = 0;
-		frames++;
-		float time = gSystem->getElapsedTime();
-		if (time - lastTime >= 1.0f) {
-			fps = frames;
-			frames = 0;
-			lastTime = time;
-		}
-
-		vec2i size = gSystem->getWindowSize();
-		String fpsStr = Str::fmt("%1 FPS").arg(fps);
-
-<<<<<<< HEAD
-		Text::arrange(Text::TR, fpsStr.str());
-=======
-		// Render FPS top-right using standard Text capabilities
-		// We use standard TextStyle default.
-		// Text::arrange and Text::draw might work if we set up a style.
-		// But we don't have easy access to a global style here.
-		// `EditorImpl` has `TextStyle text` in `init`, but it's local.
-		// Let's reuse `gTextOverlay` if possible or just use `Text::draw` with default font?
-		// `Text::draw` typically needs `Text::arrange` first.
-
-		// Assuming we can't easily render text without context, we'll skip the actual draw
-		// until we can expose the font.
-		// However, I can try to use `TextOverlay`'s infrastructure or a simple HUD message.
-		// But those fade.
-
-		TextStyle style;
-		style.textColor = Colors::white;
-		style.shadowColor = RGBAtoColor32(0,0,0,255);
-		style.fontSize = 12;
-
-		Text::arrange(Text::TR, style, fpsStr.str());
->>>>>>> origin/feature-goto-quantize-insert
-		Text::draw(vec2i{size.x - 4, 4});
-	}
 
 	GuiMain::frameEnd();
 }
@@ -1321,60 +987,9 @@ int getDefaultSaveFormat() const
 	return myDefaultSaveFormat;
 }
 
-bool getNudgeBasedOnZoom() const { return myNudgeBasedOnZoom; }
-void setNudgeBasedOnZoom(bool b) { myNudgeBasedOnZoom = b; }
-
-bool getAssistTickBeats() const { return myAssistTickBeats; }
-void setAssistTickBeats(bool b) { myAssistTickBeats = b; }
-
-bool getRemoveDuplicateBPMs() const { return myRemoveDuplicateBPMs; }
-void setRemoveDuplicateBPMs(bool b) { myRemoveDuplicateBPMs = b; }
-
-float getBeatAssistVol() const { return myBeatAssistVol; }
-void setBeatAssistVol(float v) { myBeatAssistVol = v; }
-
-float getNoteAssistVol() const { return myNoteAssistVol; }
-void setNoteAssistVol(float v) { myNoteAssistVol = v; }
-
-bool getMiddleMouseInsertBeat() const { return myMiddleMouseInsertBeat; }
-void setMiddleMouseInsertBeat(bool b) { myMiddleMouseInsertBeat = b; }
-
-bool getScrollCursorEffect() const { return myScrollCursorEffect; }
-void setScrollCursorEffect(bool b) { myScrollCursorEffect = b; }
-
-bool getInsertSameDeletes() const { return myInsertSameDeletes; }
-void setInsertSameDeletes(bool b) { myInsertSameDeletes = b; }
-
-bool getEditOneLayer() const { return myEditOneLayer; }
-void setEditOneLayer(bool b) { myEditOneLayer = b; }
-
-bool getPasteOverwrites() const { return myPasteOverwrites; }
-void setPasteOverwrites(bool b) { myPasteOverwrites = b; }
-
-bool getSelectPasted() const { return mySelectPasted; }
-void setSelectPasted(bool b) { mySelectPasted = b; }
-
-bool getBackupSaves() const { return myBackupSaves; }
-void setBackupSaves(bool b) { myBackupSaves = b; }
-
-bool getDontShowFPS() const { return myDontShowFPS; }
-void setDontShowFPS(bool b) { myDontShowFPS = b; }
-<<<<<<< HEAD
-StringRef getPythonPath() const { return myPythonPath; }
-void setPythonPath(StringRef path) { myPythonPath = path; }
-
-=======
->>>>>>> origin/feature-goto-quantize-insert
-
-bool isPracticeMode() const { return myPracticeMode; }
-void setPracticeMode(bool b) { myPracticeMode = b; }
-
-const PracticeSetup& getPracticeSetup() const { return myPracticeSetup; }
-void setPracticeSetup(const PracticeSetup& s) { myPracticeSetup = s; }
-
 GuiContext* getGui() const
 {
-	return gui_;
+	return myGui;
 }
 
 }; // EditorImpl

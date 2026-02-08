@@ -135,7 +135,6 @@ bool myShowWaveform;
 bool myShowBeatLines;
 bool myShowNotes;
 bool myShowSongPreview;
-float myFlashTimers[SIM_MAX_COLUMNS];
 
 // ================================================================================================
 // NotefieldImpl :: constructor and destructor.
@@ -146,15 +145,13 @@ float myFlashTimers[SIM_MAX_COLUMNS];
 
 NotefieldImpl()
 {
-	mySongBgColor = RGBAtoColor32(255, 255, 255, 255);
+	mySongBgColor = COLOR32(255, 255, 255, 255);
 	myBgBrightness = 50;
 
 	myShowWaveform = true;
 	myShowBeatLines = true;
 	myShowNotes = true;
 	myShowSongPreview = false;
-
-	for(int i=0; i<SIM_MAX_COLUMNS; ++i) myFlashTimers[i] = 0.0f;
 
 	mySelectionTex = Texture("assets/selection box.png", true);
 	mySnapIconsTex = Texture("assets/icons snap.png", false);
@@ -200,7 +197,7 @@ void onChanges(int changes)
 				int r = (int)(0.5f * (float)rsum / (float)numPixels);
 				int g = (int)(0.5f * (float)gsum / (float)numPixels);
 				int b = (int)(0.5f * (float)bsum / (float)numPixels);
-				mySongBgColor = RGBAtoColor32(r, g, b, 255);
+				mySongBgColor = COLOR32(r, g, b, 255);
 				mySongBg = Texture(img.width, img.height, img.pixels, false, Texture::RGBA);
 				ImageLoader::release(img);
 			}
@@ -225,12 +222,6 @@ void setBgAlpha(int percent)
 int getBgAlpha()
 {
 	return myBgBrightness;
-}
-
-void triggerFlash(int col) override
-{
-	if(col >= 0 && col < SIM_MAX_COLUMNS)
-		myFlashTimers[col] = 1.0f;
 }
 
 // ================================================================================================
@@ -285,9 +276,8 @@ void draw()
 	// Draw stuff.
 	drawBackground();
 
-	if(drawWaveform) gWaveform->drawPeaks();
 	if(myShowBeatLines) drawBeatLines();
-	if (gView->isTimeBased()) drawBeats();
+	if(drawWaveform) gWaveform->drawPeaks();
 	if(gTempoBoxes->hasShowBoxes()) drawStopsAndWarps();
 
 	drawReceptors();
@@ -352,7 +342,7 @@ void drawBackground()
 	}
 	else
 	{
-		Draw::fill({myX, view.y, myW, view.h}, RGBAtoColor32(0, 0, 0, 128));
+		Draw::fill({myX, view.y, myW, view.h}, COLOR32(0, 0, 0, 128));
 	}
 }
 
@@ -442,44 +432,8 @@ void drawBeatLines()
 	}
 }
 
-void drawBeats()
-{
-	if (!gView->isTimeBased())
-		return;
-
-	int row = gView->getHoveredBeatRow();
-	if (row == -1)
-		return;
-
-	Renderer::resetColor();
-	Renderer::bindShader(Renderer::SH_COLOR);
-
-	auto batch = Renderer::batchC();
-	color32 color = ToColor32({ 1, 1, 0, 1.0f });
-	DrawPosHelper drawPos;
-
-	const double time = gTempo->rowToTime(row);
-	int y = drawPos.get(row, time);
-
-	Draw::fill(&batch, { myX, y, myW, 1 }, color);
-
-	batch.flush();
-}
-
 // ================================================================================================
 // NotefieldImpl :: segments.
-
-bool validSegmentRegion(int& t, int& b, int& viewTop, int viewBtm)
-{
-	bool draw = (t > viewTop && t < viewBtm) || (b > viewTop && b < viewBtm) || (t > viewTop && b < viewBtm);
-	if(draw)
-	{
-		t = clamp(t, viewTop, viewBtm);
-		b = clamp(b, viewTop, viewBtm);
-		return true;
-	}
-	return false;
-}
 
 void drawStopsAndWarps()
 {
@@ -501,9 +455,9 @@ void drawStopsAndWarps()
 			{
 				int t = (int)(oy + dy * it->time);
 				int b = (int)(oy + dy * it->rowTime);
-				if(validSegmentRegion(t, b, viewTop, viewBtm))
+				if(t < viewBtm && b > viewTop)
 				{
-					color32 col = RGBAtoColor32(26, 128, 128, 128);
+					color32 col = COLOR32(26, 128, 128, 128);
 					Draw::fill(&batch, {myX, t, myW, b - t}, col);
 				}
 			}
@@ -511,9 +465,9 @@ void drawStopsAndWarps()
 			{
 				int t = (int)(oy + dy * it->rowTime);
 				int b = (int)(oy + dy * it->endTime);
-				if(validSegmentRegion(t, b, viewTop, viewBtm))
+				if(t < viewBtm && b > viewTop)
 				{
-					color32 col = RGBAtoColor32(128, 128, 51, 128);
+					color32 col = COLOR32(128, 128, 51, 128);
 					Draw::fill(&batch, {myX, t, myW, b - t}, col);
 				}
 			}
@@ -527,9 +481,9 @@ void drawStopsAndWarps()
 			{
 				int t = (int)(oy + dy * it->row);
 				int b = (int)(oy + dy * (it + 1)->row);
-				if(validSegmentRegion(t, b, viewTop, viewBtm))
+				if(t < viewBtm && b > viewTop)
 				{
-					color32 col = RGBAtoColor32(128, 26, 51, 128);
+					color32 col = COLOR32(128, 26, 51, 128);
 					Draw::fill(&batch, {myX, t, myW, b - t}, col);
 				}
 			}
@@ -553,27 +507,16 @@ void drawReceptors()
 		Renderer::bindTexture(noteskin->recepTex.handle());
 	
 		// Calculate the beat pulse value for the receptors.
-		uchar beatpulse = 0;
-		if (gEditor->getScrollCursorEffect())
-		{
-			double beat = gTempo->timeToBeat(gView->getCursorTime());
-			float beatfrac = (float)(beat - floor(beat));
-			beatpulse = (uchar)min(max((int)((2 - beatfrac * 4)*255), 0), 255);
-		}
+		double beat = gTempo->timeToBeat(gView->getCursorTime());
+		float beatfrac = (float)(beat - floor(beat));
+		uchar beatpulse = (uchar)min(max((int)((2 - beatfrac * 4)*255), 0), 255);
 
 		// Draw the receptors.
 		auto batch = Renderer::batchTC();
 		for(int c = 0; c < cols; ++c)
 		{
-			if(myFlashTimers[c] > 0) {
-				myFlashTimers[c] -= 0.1f; // Decay
-				if(myFlashTimers[c] < 0) myFlashTimers[c] = 0;
-			}
-			uchar flash = (uchar)(myFlashTimers[c] * 255);
-			uchar brightness = max(beatpulse, flash);
-
 			noteskin->recepOff[c].draw(&batch, myColX[c], myY, (uchar)255);
-			noteskin->recepOn[c].draw(&batch, myColX[c], myY, brightness);
+			noteskin->recepOn[c].draw(&batch, myColX[c], myY, beatpulse);
 		}
 		batch.flush();
 	}
@@ -636,23 +579,6 @@ void drawSnapDiamonds()
 		mySnapIcons[snapType].draw(&batch, vx, myY);
 	}
 	batch.flush();
-
-	// Snap quantization
-	if (gView->getSnapType() != ST_NONE)
-	{
-		TextStyle textStyle;
-		textStyle.fontSize = gView->getZoomLevel() >= 4 ? 11 : 9;
-
-		String snap = Str::val(gView->getSnapQuant());
-
-		for (int i = 0; i < 2; ++i)
-		{
-			int vx = x[i] + gView->applyZoom(i * 40 - 20);
-
-			Text::arrange(Text::MC, textStyle, snap.str());
-			Text::draw(vec2i{ vx, myY - 1 });
-		}
-	}
 }
 
 void drawNotes()
@@ -792,7 +718,7 @@ void drawGhostNote(const Note& n)
 	const int signedScale = gView->hasReverseScroll() ? -scale : scale;
 
 	// Render ghost hold.
-	Renderer::setColor(RGBAtoColor32(255, 255, 255, 192));
+	Renderer::setColor(COLOR32(255, 255, 255, 192));
 	Renderer::bindShader(Renderer::SH_TEXTURE);
 	Renderer::bindTexture(noteskin->noteTex.handle());
 
@@ -827,7 +753,7 @@ void drawSongPreviewArea()
 	{
 		int yt = max(0, gView->timeToY(start));
 		int yb = min(gView->getHeight(), gView->timeToY(end));
-		Draw::fill({myX, yt, myW, yb - yt}, RGBAtoColor32(255, 255, 255, 64));
+		Draw::fill({myX, yt, myW, yb - yt}, COLOR32(255, 255, 255, 64));
 		if(gView->getScaleLevel() > 2)
 		{
 			TextStyle textStyle;
@@ -840,90 +766,50 @@ void drawSongPreviewArea()
 // ================================================================================================
 // NotefieldImpl :: toggle/check functions.
 
-void toggleShowWaveform();
-void setShowWaveform(bool show);
-void toggleShowBeatLines();
-void setShowBeatLines(bool show);
-void toggleShowNotes();
-void setShowNotes(bool show);
-void toggleShowSongPreview();
-
-bool hasShowWaveform();
-bool hasShowBeatLines();
-bool hasShowNotes();
-bool hasShowSongPreview();
-
-}; // NotefieldImpl
-
-void NotefieldImpl::toggleShowWaveform()
+void toggleShowWaveform()
 {
 	myShowWaveform = !myShowWaveform;
 	gMenubar->update(Menubar::SHOW_WAVEFORM);
 }
 
-void NotefieldImpl::setShowWaveform(bool show)
-{
-	if (myShowWaveform != show)
-	{
-		myShowWaveform = show;
-		gMenubar->update(Menubar::SHOW_WAVEFORM);
-	}
-}
-
-void NotefieldImpl::toggleShowBeatLines()
+void toggleShowBeatLines()
 {
 	myShowBeatLines = !myShowBeatLines;
 	gMenubar->update(Menubar::SHOW_BEATLINES);
 }
 
-void NotefieldImpl::setShowBeatLines(bool show)
-{
-	if (myShowBeatLines != show)
-	{
-		myShowBeatLines = show;
-		gMenubar->update(Menubar::SHOW_BEATLINES);
-	}
-}
-
-void NotefieldImpl::toggleShowNotes()
+void toggleShowNotes()
 {
 	myShowNotes = !myShowNotes;
 	gMenubar->update(Menubar::SHOW_NOTES);
 }
 
-void NotefieldImpl::setShowNotes(bool show)
-{
-	if (myShowNotes != show)
-	{
-		myShowNotes = show;
-		gMenubar->update(Menubar::SHOW_NOTES);
-	}
-}
-
-void NotefieldImpl::toggleShowSongPreview()
+void toggleShowSongPreview()
 {
 	myShowSongPreview = !myShowSongPreview;
 }
 
-bool NotefieldImpl::hasShowWaveform()
+bool hasShowWaveform()
 {
 	return myShowWaveform;
 }
 
-bool NotefieldImpl::hasShowBeatLines()
+bool hasShowBeatLines()
 {
 	return myShowBeatLines;
 }
 
-bool NotefieldImpl::hasShowNotes()
+bool hasShowNotes()
 {
 	return myShowNotes;
 }
 
-bool NotefieldImpl::hasShowSongPreview()
+bool hasShowSongPreview()
 {
 	return myShowSongPreview;
 }
+
+}; // NotefieldImpl
 
 // ================================================================================================
 // TweakInfoBox.
@@ -958,7 +844,7 @@ void TweakInfoBox::draw(recti r)
 	TextStyle textStyle;
 	for(int i = 0; i < 4; ++i)
 	{
-		textStyle.textColor = RGBAtoColor32(255, 255, 255, 128);
+		textStyle.textColor = COLOR32(255, 255, 255, 128);
 		Text::arrange(Text::TR, textStyle, keys[i]);
 		Text::draw(vec2i{r.x - 8, r.y + 32 + i * 14});
 
