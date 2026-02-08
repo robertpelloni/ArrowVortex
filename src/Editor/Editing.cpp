@@ -219,7 +219,7 @@ void turnIntoTriplets()
 	int delta[5] = {24, 24, 24, 12, 12};
 	int deltaIdx = 0;
 
-	Vector<RowCol> rem;
+	std::vector<RowCol> rem;
 	NoteList add = gSelection->getSelectedNotes();
 	for(auto& note : add) rem.push_back({note.row, (int)note.col});
 
@@ -523,7 +523,7 @@ void changePlayerNumber()
 }
 
 template <typename T>
-static T readFromBuffer(Vector<uchar>& buffer, int& pos)
+static T readFromBuffer(std::vector<uchar>& buffer, int& pos)
 {
 	if(pos + (int)sizeof(T) <= buffer.size())
 	{
@@ -539,7 +539,7 @@ void pasteNotePatterns()
 	/* TODO?
 	NoteList out = gSelection->getSelectedNotes();
 
-	Vector<uchar> buffer = GetClipboardData("notes");
+	std::vector<uchar> buffer = GetClipboardData("notes");
 	if(buffer.empty()) return;
 
 	int readPos = 0;
@@ -770,7 +770,7 @@ void convertRoutineToCouples()
 	const char* title = "Convert Routine to ITG Couples";
 
 	// Find all routine charts.
-	Vector<const Chart*> charts;
+	std::vector<const Chart*> charts;
 	for(int i = 0; i < gSimfile->getNumCharts(); ++i)
 	{
 		auto chart = gSimfile->getChart(i);
@@ -850,7 +850,7 @@ void convertCouplesToRoutine()
 	auto segments = gTempo->getSegments();
 
 	// Find all doubles charts.
-	Vector<const Chart*> charts;
+	std::vector<const Chart*> charts;
 	for(int i = 0; i < gSimfile->getNumCharts(); ++i)
 	{
 		auto chart = gSimfile->getChart(i);

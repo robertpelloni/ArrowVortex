@@ -4,7 +4,6 @@
 
 #include <Core/Utils.h>
 #include <Core/StringUtils.h>
-#include <Core/VectorUtils.h>
 #include <Core/ByteStream.h>
 
 #include <Simfile/SegmentList.h>
@@ -610,8 +609,8 @@ void pasteFromClipboard(bool insert)
 	SegmentEdit clipboard;
 
 	// Decode the clipboard data.	
-	Vector<uchar> data = GetClipboardData(clipboardTag);
-	ReadStream stream(data.begin(), data.size());
+	std::vector<uchar> data = GetClipboardData(clipboardTag);
+	ReadStream stream(data.data(), data.size());
 	clipboard.add.decode(stream);
 	if(stream.success() == false || stream.bytesleft() > 0)
 	{

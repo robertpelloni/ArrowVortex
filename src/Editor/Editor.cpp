@@ -131,7 +131,7 @@ GuiContext* myGui;
 DialogEntry myDialogs[NUM_DIALOG_IDS];
 int myChanges;
 Texture myLogo;
-Vector<String> myRecentFiles;
+std::vector<String> myRecentFiles; // TODO: make it a linked list
 
 int myFontSize;
 String myFontPath;
@@ -371,8 +371,11 @@ void saveDialogSettings(XmrNode& settings)
 void loadRecentFiles()
 {
 	bool success;
-	myRecentFiles = File::getLines("settings/recent files.txt", &success);
-	myRecentFiles.truncate(MAX_RECENT_FILES);
+	auto TODO = File::getLines("settings/recent files.txt", &success);
+	myRecentFiles.resize(TODO.size());
+	std::copy(TODO.begin(), TODO.end(), myRecentFiles.begin());
+	if(myRecentFiles.size() > MAX_RECENT_FILES)
+		myRecentFiles.resize(MAX_RECENT_FILES);
 }
 
 void saveRecentFiles()
@@ -651,9 +654,10 @@ bool saveSimfile(bool showSaveAsDialog)
 
 void addToRecentfiles(String path)
 {
-	myRecentFiles.erase_values(path);
-	myRecentFiles.insert(0, path, 1);
-	myRecentFiles.truncate(MAX_RECENT_FILES);
+	std::erase(myRecentFiles, path);
+	myRecentFiles.insert(myRecentFiles.begin(), path);
+	if(myRecentFiles.size() > MAX_RECENT_FILES)
+		myRecentFiles.resize(MAX_RECENT_FILES);
 	gMenubar->update(Menubar::RECENT_FILES);
 }
 

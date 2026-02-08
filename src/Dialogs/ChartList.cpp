@@ -14,126 +14,112 @@
 
 #include <Editor/Common.h>
 
-<<<<<<< HEAD
-#include <System/System.h>
+#include <vector>
 
-#define TEXT_H static_cast<int>(20 * gSystem->getScaleFactor())
-=======
-#include <algorithm>
-
->>>>>>> origin/stdminmax
 namespace Vortex {
 
 // ================================================================================================
 // ChartButton
 
 struct DialogChartList::ChartButton : public GuiWidget {
-    ChartButton(GuiContext* gui, TileRect2* bar, int index)
-        : GuiWidget(gui), myBar(bar), myChartIndex(index) {}
 
-    void onMousePress(MousePress& evt) override {
-        if (isMouseOver()) {
-            if (isEnabled() && evt.button == Mouse::LMB && evt.unhandled()) {
-                startCapturingMouse();
-                gSimfile->openChart(myChartIndex);
-            }
-            evt.setHandled();
-        }
-    }
+ChartButton(GuiContext* gui, TileRect2* bar, int index)
+	: GuiWidget(gui)
+	, myBar(bar)
+	, myChartIndex(index)
+{
+}
 
-    void onMouseRelease(MouseRelease& evt) override {
-        if (isCapturingMouse() && evt.button == Mouse::LMB) {
-            stopCapturingMouse();
-        }
-    }
+void onMousePress(MousePress& evt) override
+{
+	if(isMouseOver())
+	{
+		if(isEnabled() && evt.button == Mouse::LMB && evt.unhandled())
+		{
+			startCapturingMouse();
+			gSimfile->openChart(myChartIndex);
+		}
+		evt.setHandled();
+	}
+}
 
-    void onTick() override {
-        GuiWidget::onTick();
-        if (isMouseOver()) {
-            GuiMain::setTooltip("Open this chart in the editor");
-        }
-    }
+void onMouseRelease(MouseRelease& evt) override
+{
+	if(isCapturingMouse() && evt.button == Mouse::LMB)
+	{
+		stopCapturingMouse();
+	}
+}
 
-    void onDraw() override {
-        recti r = rect_;
-        int w = static_cast<int>(128 * gSystem->getScaleFactor());
+void onTick() override
+{
+	GuiWidget::onTick();
+	if(isMouseOver())
+	{
+		GuiMain::setTooltip("Open this chart in the editor");
+	}
+}
 
-        TextStyle textStyle;
-        textStyle.textFlags = Text::ELLIPSES;
+void onDraw() override
+{
+	recti r = rect_;
 
-        // Draw the button graphic.
-        auto& button = GuiDraw::getButton();
-        button.base.draw(r, 0);
+	TextStyle textStyle;
+	textStyle.textFlags = Text::ELLIPSES;
 
-        const Chart* chart = gSimfile->getChart(myChartIndex);
-        if (chart) {
-            // Draw the left-side colored bar with difficulty and meter.
-            recti left = {rect_.x, rect_.y, min(r.w, w), TEXT_H};
-            uint32_t color = ToColor(chart->difficulty);
-            myBar->draw(left, 0, color);
+	// Draw the button graphic.
+	auto& button = GuiDraw::getButton();
+	button.base.draw(r, 0);
 
-<<<<<<< HEAD
-            Text::arrange(Text::ML, textStyle,
-                          GetDifficultyName(chart->difficulty));
-            Text::draw(vec2i{left.x + 4, left.y + TEXT_H / 2});
-=======
 	const Chart* chart = gSimfile->getChart(myChartIndex);
 	if(chart)
 	{
 		// Draw the left-side colored bar with difficulty and meter.
-		recti left = {rect_.x, rect_.y, std::min(r.w, 128), 20};
-		uint32_t color = ToColor(chart->difficulty);
+		recti left = {rect_.x, rect_.y, min(r.w, 128), 20};
+		color32 color = ToColor(chart->difficulty);
 		myBar->draw(left, 0, color);
->>>>>>> origin/stdminmax
 
-            Text::arrange(Text::MR, textStyle, Str::val(chart->meter).c_str());
-            Text::draw(vec2i{left.x + left.w - 6, left.y + TEXT_H / 2});
+		Text::arrange(Text::ML, textStyle, GetDifficultyName(chart->difficulty));
+		Text::draw(vec2i{left.x + 4, left.y + 10});
 
-            // Draw the right-side step artist and note count.
-            if (r.w > left.w) {
-                std::string stepCount = Str::val(chart->stepCount());
+		Text::arrange(Text::MR, textStyle, Str::val(chart->meter).str());
+		Text::draw(vec2i{left.x + left.w - 6, left.y + 10});
 
-                int maxW = r.w - left.w - 8;
-                recti right = {rect_.x + left.w, rect_.y, rect_.w - left.w,
-                               TEXT_H};
-                Text::arrange(Text::MR, textStyle, maxW, stepCount.c_str());
-                Text::draw(vec2i{right.x + right.w - 6, right.y + TEXT_H / 2});
+		// Draw the right-side step artist and note count.
+		if(r.w > left.w)
+		{
+			String stepCount = Str::val(chart->stepCount());
 
-                maxW = right.w - Text::getSize().x - 16;
-                Text::arrange(Text::ML, textStyle, maxW, chart->artist.c_str());
-                Text::draw(vec2i{right.x + 6, right.y + TEXT_H / 2});
-            }
-        }
+			int maxW = r.w - left.w - 8;
+			recti right = {rect_.x + left.w, rect_.y, rect_.w - left.w, 20};
+			Text::arrange(Text::MR, textStyle, maxW, stepCount.str());
+			Text::draw(vec2i{right.x + right.w - 6, right.y + 10});
 
-        // Interaction effects.
-        if (isCapturingMouse()) {
-            button.pressed.draw(r, 0);
-        } else if (isMouseOver()) {
-            button.hover.draw(r, 0);
-        }
-    }
+			maxW = right.w - Text::getSize().x - 16;
+			Text::arrange(Text::ML, textStyle, maxW, chart->artist.str());
+			Text::draw(vec2i{right.x + 6, right.y + 10});
+		}
+	}
 
-    int myChartIndex;
-    TileRect2* myBar;
+	// Interaction effects.
+	if(isCapturingMouse())
+	{
+		button.pressed.draw(r, 0);
+	}
+	else if(isMouseOver())
+	{
+		button.hover.draw(r, 0);
+	}
+}
+
+int myChartIndex;
+TileRect2* myBar;
+
 };
 
 // ================================================================================================
 // ChartList
 
-<<<<<<< HEAD
-static int GetChartListH() {
-    int h = 0;
-    const Style* style = nullptr;
-    for (int i = 0; i < gSimfile->getNumCharts(); ++i) {
-        auto chart = gSimfile->getChart(i);
-        if (style != chart->style) {
-            style = chart->style;
-            h += TEXT_H + 4;
-        }
-        h += TEXT_H - 3;
-    }
-    return max(TEXT_H, h);
-=======
 static int GetChartListH()
 {
 	int h = 0;
@@ -148,160 +134,156 @@ static int GetChartListH()
 		}
 		h += 21;
 	}
-	return std::max(24, h);
->>>>>>> origin/stdminmax
+	return max(24, h);
 }
 
 struct DialogChartList::ChartList : public WgScrollRegion {
-    Vector<ChartButton*> myButtons;
-    TileRect2 myButtonTex;
 
-    ~ChartList() override {
-        for (auto button : myButtons) {
-            delete button;
-        }
-    }
+std::vector<ChartButton*> myButtons;
+TileRect2 myButtonTex;
 
-    explicit ChartList(GuiContext* gui) : WgScrollRegion(gui) {
-        setScrollType(SCROLL_NEVER, SCROLL_WHEN_NEEDED);
+~ChartList()
+{
+	for(auto button : myButtons)
+	{
+		delete button;
+	}
+}
 
-        Canvas c(32, 16);
+ChartList(GuiContext* gui)
+	: WgScrollRegion(gui)
+{
+	setScrollType(SCROLL_NEVER, SCROLL_WHEN_NEEDED);
 
-        c.setColor(ToColor(0.8f, 0.8f));
-        c.box(1, 1, 15, 15, 0.0f);
-        c.box(17, 1, 31, 15, 3.5f);
-        c.setColor(ToColor(0.6f, 0.8f));
-        c.box(2, 2, 14, 14, 0.0f);
-        c.box(18, 2, 30, 14, 2.5f);
+	Canvas c(32, 16);
 
-        myButtonTex.texture = c.createTexture();
-        myButtonTex.border = 4;
+	c.setColor(ToColor(0.8f, 0.8f));
+	c.box(1, 1, 15, 15, 0.0f);
+	c.box(17, 1, 31, 15, 3.5f);
+	c.setColor(ToColor(0.6f, 0.8f));
+	c.box(2, 2, 14, 14, 0.0f);
+	c.box(18, 2, 30, 14, 2.5f);
 
-        updateButtons();
-    }
+	myButtonTex.texture = c.createTexture();
+	myButtonTex.border = 4;
 
-    void onUpdateSize() override {
-        scroll_height_ = GetChartListH();
-        ClampScrollPositions();
-    }
+	updateButtons();
+}
 
-    void onTick() override {
-        PreTick();
+void onUpdateSize() override
+{
+	scroll_height_ = GetChartListH();
+	ClampScrollPositions();
+}
 
-        int viewW = getViewWidth() - 2 * is_vertical_scrollbar_active_;
+void onTick() override
+{
+	PreTick();
 
-        // Update the properties of each button.
-        int y = rect_.y - scroll_position_y_;
-        const Style* style = nullptr;
-        for (int i = 0; i < myButtons.size(); ++i) {
-            auto button = myButtons[i];
-            auto chart = gSimfile->getChart(i);
-            if (chart && style != chart->style) {
-                style = chart->style;
-                y += TEXT_H + 4;
-            }
-            button->arrange({rect_.x, y, viewW, TEXT_H});
-            button->tick();
-            y += TEXT_H + 1;
-        }
+	int viewW = getViewWidth() - 2 * is_vertical_scrollbar_active_;
 
-        PostTick();
-    }
+	// Update the properties of each button.
+	int y = rect_.y - scroll_position_y_;
+	const Style* style = nullptr;
+	for(int i = 0; i < myButtons.size(); ++i)
+	{
+		auto button = myButtons[i];
+		auto chart = gSimfile->getChart(i);
+		if(chart && style != chart->style)
+		{
+			style = chart->style;
+			y += 24;
+		}
+		button->arrange({rect_.x, y, viewW, 20});
+		button->tick();
+		y += 21;
+	}
 
-    void onDraw() override {
-        TextStyle textStyle;
-        int w = getViewWidth() - 2 * is_vertical_scrollbar_active_;
-        int h = getViewHeight();
-        int x = rect_.x;
-        int y = rect_.y - scroll_position_y_;
-        const Style* style = nullptr;
-        int chartIndex = 0;
+	PostTick();
+}
 
-        Renderer::pushScissorRect({rect_.x, rect_.y, w, h});
-        if (myButtons.empty()) {
-            Text::arrange(Text::MC, textStyle, "- no charts -");
-            Text::draw(vec2i{x + w / 2, y + rect_.h / 2});
-        } else
-            for (auto button : myButtons) {
-                auto chart = gSimfile->getChart(chartIndex++);
-                if (chart && style != chart->style) {
-                    style = chart->style;
-                    Text::arrange(Text::MC, textStyle, style->name.c_str());
-                    Text::draw(vec2i{x + w / 2, y + 10});
-                    textStyle.textColor = Colors::white;
-                    y += TEXT_H + 4;
-                }
-                button->draw();
-                y += TEXT_H + 1;
-            }
-        Renderer::popScissorRect();
+void onDraw() override
+{
+	TextStyle textStyle;
+	int w = getViewWidth() - 2 * is_vertical_scrollbar_active_;
+	int h = getViewHeight();
+	int x = rect_.x;
+	int y = rect_.y - scroll_position_y_;
+	const Style* style = nullptr;
+	int chartIndex = 0;
 
-        WgScrollRegion::onDraw();
-    }
+	Renderer::pushScissorRect({rect_.x, rect_.y, w, h});
+	if(myButtons.empty())
+	{
+		Text::arrange(Text::MC, textStyle, "- no charts -");
+		Text::draw(vec2i{x + w / 2, y + rect_.h / 2});
+	}
+	else for(auto button : myButtons)
+	{
+		auto chart = gSimfile->getChart(chartIndex++);
+		if(chart && style != chart->style)
+		{
+			style = chart->style;
+			Text::arrange(Text::MC, textStyle, style->name.str());
+			Text::draw(vec2i{x + w / 2, y + 10});
+			textStyle.textColor = Colors::white;
+			y += 24;
+		}
+		button->draw();
+		y += 21;
+	}
+	Renderer::popScissorRect();
 
-    void updateButtons() {
-        int numCharts = gSimfile->getNumCharts();
-        while (myButtons.size() < numCharts) {
-            myButtons.push_back(
-                new ChartButton(getGui(), &myButtonTex, myButtons.size()));
-        }
-        while (myButtons.size() > numCharts) {
-            delete myButtons.back();
-            myButtons.pop_back();
-        }
-    }
+	WgScrollRegion::onDraw();
+}
+
+void updateButtons()
+{
+	int numCharts = gSimfile->getNumCharts();
+	while(myButtons.size() < numCharts)
+	{
+		myButtons.push_back(new ChartButton(getGui(), &myButtonTex, myButtons.size()));
+	}
+	while(myButtons.size() > numCharts)
+	{
+		delete myButtons.back();
+		myButtons.pop_back();
+	}
+}
+
 };
 
 // ================================================================================================
 // DialogChartList
 
-DialogChartList::~DialogChartList() { delete myList; }
-
-DialogChartList::DialogChartList() {
-    setTitle("LIST OF CHARTS");
-
-    float scale = gSystem->getScaleFactor();
-    setWidth(static_cast<int>(320 * scale));
-
-    setMinimumWidth(static_cast<int>(128 * scale));
-    setMaximumWidth(static_cast<int>(1024 * scale));
-    setMinimumHeight(static_cast<int>(16 * scale));
-
-    setResizeable(true, true);
-
-    myList = new ChartList(getGui());
+DialogChartList::~DialogChartList()
+{
+	delete myList;
 }
 
-void DialogChartList::onChanges(int changes) {
-    if (changes & VCM_CHART_LIST_CHANGED) {
-        myList->updateButtons();
-        int h = GetChartListH();
-        h = min(h, getGui()->getView().h - 128);
-        h = max(h, static_cast<int>(gSystem->getScaleFactor() * 32));
-        setHeight(h);
-    }
+DialogChartList::DialogChartList()
+{
+	setTitle("LIST OF CHARTS");
+
+	setWidth(320);
+
+	setMinimumWidth(128);
+	setMaximumWidth(1024);
+	setMinimumHeight(16);
+
+	setResizeable(true, true);
+
+	myList = new ChartList(getGui());
 }
 
-<<<<<<< HEAD
-void DialogChartList::onUpdateSize() {
-    myList->updateSize();
-    int h = myList->getScrollHeight();
-    setMinimumHeight(min(64, h));
-    setMaximumHeight(min(1024, h));
-}
-
-void DialogChartList::onTick() {
-    myList->arrange(getInnerRect());
-    myList->tick();
-=======
 void DialogChartList::onChanges(int changes)
 {
 	if(changes & VCM_CHART_LIST_CHANGED)
 	{
 		myList->updateButtons();
 		int h = GetChartListH();
-		h = std::min(h, getGui()->getView().h - 128);
-		h = std::max(h, 32);
+		h = min(h, getGui()->getView().h - 128);
+		h = max(h, 32);
 		setHeight(h);
 	}
 }
@@ -310,11 +292,19 @@ void DialogChartList::onUpdateSize()
 {
 	myList->updateSize();
 	int h = myList->getScrollHeight();
-	setMinimumHeight(std::min(64, h));
-	setMaximumHeight(std::min(1024, h));
->>>>>>> origin/stdminmax
+	setMinimumHeight(min(64, h));
+	setMaximumHeight(min(1024, h));
 }
 
-void DialogChartList::onDraw() { myList->draw(); }
+void DialogChartList::onTick()
+{
+	myList->arrange(getInnerRect());
+	myList->tick();
+}
 
-};  // namespace Vortex
+void DialogChartList::onDraw()
+{
+	myList->draw();
+}
+
+}; // namespace Vortex

@@ -2,14 +2,13 @@
 #include <Editor/Aubio.h>
 
 #include <Core/Utils.h>
-#include <Core/Vector.h>
 #include <Core/AlignedMemory.h>
 
 #include <System/Thread.h>
 
 #include <math.h>
-
-#include <algorithm>
+#include <cstring>
+#include <vector>
 
 // double to float conversion.
 #pragma warning(disable: 4244)
@@ -957,7 +956,7 @@ static uint_t aubio_onset_set_silence(aubio_onset_t * o, smpl_t silence) {
 
 /* Allocate memory for an onset detection */
 static aubio_onset_t * new_aubio_onset(char_t * onset_mode,
-	uint_t buf_size, uint_t hop_size, uint_t samplerate, smpl_t threshold)
+	uint_t buf_size, uint_t hop_size, uint_t samplerate)
 {
 	aubio_onset_t * o = AUBIO_NEW(aubio_onset_t);
 	/* store creation parameters */
@@ -972,7 +971,7 @@ static aubio_onset_t * new_aubio_onset(char_t * onset_mode,
 	o->desc = new_fvec(1);
 
 	/* set some default parameter */
-	aubio_onset_set_threshold(o, threshold);
+	aubio_onset_set_threshold(o, 0.3);
 	aubio_onset_set_delay(o, 4.3 * hop_size);
 	aubio_onset_set_minioi_ms(o, 20.);
 	aubio_onset_set_silence(o, -70.);
@@ -1041,7 +1040,7 @@ static uint_t aubio_onset_get_last(aubio_onset_t *o)
 // ================================================================================================
 // Main function.
 
-void FindOnsets(const float* samples, int samplerate, int numFrames, int numThreads, Vector<Onset>& out, float threshold)
+void FindOnsets(const float* samples, int samplerate, int numFrames, int numThreads, std::vector<Onset>& out)
 {
 	static const int windowlen = 256;
 	static const int bufsize = windowlen * 4;
@@ -1054,26 +1053,24 @@ void FindOnsets(const float* samples, int samplerate, int numFrames, int numThre
 			CriticalSection lock;
 			const float* samples;
 			int numFrames, numThreads, samplerate;
-			float threshold;
-			Vector<Onset> onsets;
+			std::vector<Onset> onsets;
 
-			OnsetThreads(const float* inSamples, int inFrames, int inThreads, int inSamplerate, float inThreshold)
+			OnsetThreads(const float* inSamples, int inFrames, int inThreads, int inSamplerate)
 			{
 				samples = inSamples;
 				numFrames = inFrames;
 				numThreads = inThreads;
 				samplerate = inSamplerate;
-				threshold = inThreshold;
 			}
 			void exec(int item, int thread) override
 			{
 				int framesPerThread = numFrames / numThreads;
-				auto onset = new_aubio_onset(method, bufsize, windowlen, samplerate, threshold);
+				auto onset = new_aubio_onset(method, bufsize, windowlen, samplerate);
 				fvec_t* samplevec = new_fvec(windowlen), *beatvec = new_fvec(2);
 				int beginPos = framesPerThread * (thread + 0);
 				int endPos = framesPerThread * (thread + 1);
-				int paddedBegin = std::max(beginPos - bufsize, 0);
-				int paddedEnd = std::min(endPos + bufsize, numFrames - windowlen);
+				int paddedBegin = max(beginPos - bufsize, 0);
+				int paddedEnd = min(endPos + bufsize, numFrames - windowlen);
 				for(int i = paddedBegin; i < paddedEnd; i += windowlen)
 				{
 					memcpy(samplevec->data, samples + i, sizeof(float) * windowlen);
@@ -1094,12 +1091,12 @@ void FindOnsets(const float* samples, int samplerate, int numFrames, int numThre
 				del_aubio_onset(onset);
 			}
 		};
-		OnsetThreads threads = {samples, numFrames, numThreads, samplerate, threshold};
+		OnsetThreads threads = {samples, numFrames, numThreads, samplerate};
 		threads.run(numThreads);
 	}
 	else
 	{
-		auto onset = new_aubio_onset(method, bufsize, windowlen, samplerate, threshold);
+		auto onset = new_aubio_onset(method, bufsize, windowlen, samplerate);
 		fvec_t* samplevec = new_fvec(windowlen), *beatvec = new_fvec(2);
 		for(int i = 0; i <= numFrames - windowlen; i += windowlen)
 		{

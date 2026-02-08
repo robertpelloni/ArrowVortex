@@ -12,324 +12,374 @@
 #include <Managers/SimfileMan.h>
 #include <Managers/NoteMan.h>
 
+#include <vector>
+
 namespace Vortex {
 
 #define CHART_MAN ((ChartManImpl*)gChart)
 
 struct ChartManImpl : public ChartMan {
-    // ================================================================================================
-    // ChartManImpl :: member data.
 
-    Chart* myChart;
+// ================================================================================================
+// ChartManImpl :: member data.
 
-    History::EditId myApplyStepArtistId;
-    History::EditId myApplyMeterId;
-    History::EditId myApplyDifficultyId;
+Chart* myChart;
 
-    // ================================================================================================
-    // ChartManImpl :: constructor and destructor.
+History::EditId myApplyStepArtistId;
+History::EditId myApplyMeterId;
+History::EditId myApplyDifficultyId;
 
-    ~ChartManImpl() = default;
+// ================================================================================================
+// ChartManImpl :: constructor and destructor.
 
-    ChartManImpl() {
-        myChart = nullptr;
+~ChartManImpl()
+{
+}
 
-        myApplyStepArtistId = gHistory->addCallback(ApplyStepArtist);
-        myApplyMeterId = gHistory->addCallback(ApplyMeter);
-        myApplyDifficultyId = gHistory->addCallback(ApplyDifficulty);
-    }
+ChartManImpl()
+{
+	myChart = nullptr;
 
-    // ================================================================================================
-    // ChartManImpl :: update functions.
+	myApplyStepArtistId = gHistory->addCallback(ApplyStepArtist);
+	myApplyMeterId      = gHistory->addCallback(ApplyMeter);
+	myApplyDifficultyId = gHistory->addCallback(ApplyDifficulty);
+}
 
-    void update(Chart* chart) override { myChart = chart; }
+// ================================================================================================
+// ChartManImpl :: update functions.
 
-    // ================================================================================================
-    // ChartManImpl :: step artist editing.
+void update(Chart* chart)
+{
+	myChart = chart;
+}
 
-    void myQueueStepArtist(std::string artist) {
-        WriteStream stream;
-        stream.writeStr(myChart->artist);
-        stream.writeStr(artist);
-        gHistory->addEntry(myApplyStepArtistId, stream.data(), stream.size(),
-                           myChart);
-    }
+// ================================================================================================
+// ChartManImpl :: step artist editing.
 
-    static std::string ApplyStepArtist(ReadStream& in, History::Bindings bound,
-                                       bool undo, bool redo) {
-        std::string msg;
-        std::string before = in.readStr();
-        std::string after = in.readStr();
-        if (in.success()) {
-            const std::string& newVal = undo ? before : after;
+void myQueueStepArtist(String artist)
+{
+	WriteStream stream;
+	stream.writeStr(myChart->artist);
+	stream.writeStr(artist);
+	gHistory->addEntry(myApplyStepArtistId, stream.data(), stream.size(), myChart);
+}
 
-            msg = bound.chart->description();
-            msg = msg + " :: ";
-            msg = msg + (undo ? "reverted" : "changed");
-            msg = msg + " step artist to ";
-            msg = msg + newVal;
+static String ApplyStepArtist(ReadStream& in, History::Bindings bound, bool undo, bool redo)
+{
+	String msg;
+	String before = in.readStr();
+	String after = in.readStr();
+	if(in.success())
+	{
+		StringRef newVal = undo ? before : after;
 
-            gSimfile->openChart(bound.chart);
-            bound.chart->artist = newVal;
-            gEditor->reportChanges(VCM_CHART_PROPERTIES_CHANGED);
-        }
-        return msg;
-    }
+		msg = bound.chart->description();
+		msg += " :: ";
+		msg += (undo ? "reverted" : "changed");
+		msg += " step artist to ";
+		msg += newVal;
 
-    // ================================================================================================
-    // ChartManImpl :: meter editing.
+		gSimfile->openChart(bound.chart);
+		bound.chart->artist = newVal;
+		gEditor->reportChanges(VCM_CHART_PROPERTIES_CHANGED);
+	}
+	return msg;	
+}
 
-    void myQueueMeter(int meter) {
-        WriteStream stream;
-        stream.write<int>(myChart->meter);
-        stream.write<int>(meter);
-        gHistory->addEntry(myApplyMeterId, stream.data(), stream.size(),
-                           myChart);
-    }
+// ================================================================================================
+// ChartManImpl :: meter editing.
 
-    static std::string ApplyMeter(ReadStream& in, History::Bindings bound,
-                                  bool undo, bool redo) {
-        std::string msg;
-        int before = in.read<int>();
-        int after = in.read<int>();
-        if (in.success()) {
-            int newVal = undo ? before : after;
+void myQueueMeter(int meter)
+{
+	WriteStream stream;
+	stream.write<int>(myChart->meter);
+	stream.write<int>(meter);
+	gHistory->addEntry(myApplyMeterId, stream.data(), stream.size(), myChart);
+}
 
-            msg = bound.chart->description();
-            msg = msg + " :: ";
-            msg = msg + (undo ? "reverted" : "changed");
-            msg = msg + " meter to ";
-            Str::appendVal(msg, newVal);
+static String ApplyMeter(ReadStream& in, History::Bindings bound, bool undo, bool redo)
+{
+	String msg;
+	int before = in.read<int>();
+	int after = in.read<int>();
+	if(in.success())
+	{
+		int newVal = undo ? before : after;
 
-            gSimfile->openChart(bound.chart);
-            bound.chart->meter = newVal;
-            gEditor->reportChanges(VCM_CHART_PROPERTIES_CHANGED);
-        }
-        return msg;
-    }
+		msg = bound.chart->description();
+		msg += " :: ";
+		msg += (undo ? "reverted" : "changed");
+		msg += " meter to ";
+		Str::appendVal(msg, newVal);
 
-    // ================================================================================================
-    // ChartManImpl :: difficulty editing.
+		gSimfile->openChart(bound.chart);
+		bound.chart->meter = newVal;
+		gEditor->reportChanges(VCM_CHART_PROPERTIES_CHANGED);
+	}
+	return msg;
+}
 
-    void myQueueDifficulty(Difficulty difficulty) {
-        WriteStream stream;
-        stream.write<int>(myChart->difficulty);
-        stream.write<int>(difficulty);
-        gHistory->addEntry(myApplyDifficultyId, stream.data(), stream.size(),
-                           myChart);
-    }
+// ================================================================================================
+// ChartManImpl :: difficulty editing.
 
-    static std::string ApplyDifficulty(ReadStream& in, History::Bindings bound,
-                                       bool undo, bool redo) {
-        std::string msg;
-        int before = in.read<int>();
-        int after = in.read<int>();
-        if (in.success()) {
-            Difficulty newDiff = static_cast<Difficulty>(undo ? before : after);
+void myQueueDifficulty(Difficulty difficulty)
+{
+	WriteStream stream;
+	stream.write<int>(myChart->difficulty);
+	stream.write<int>(difficulty);
+	gHistory->addEntry(myApplyDifficultyId, stream.data(), stream.size(), myChart);
+}
 
-            msg = bound.chart->description();
-            msg = msg + " :: ";
-            msg = msg + (undo ? "reverted" : "changed");
-            msg = msg + " difficulty to ";
-            msg = msg + GetDifficultyName(newDiff);
+static String ApplyDifficulty(ReadStream& in, History::Bindings bound, bool undo, bool redo)
+{
+	String msg;
+	int before = in.read<int>();
+	int after = in.read<int>();
+	if(in.success())
+	{
+		Difficulty newDiff = (Difficulty)(undo ? before : after);
 
-            gSimfile->openChart(bound.chart);
-            bound.chart->difficulty = newDiff;
-            gSimfile->sortCharts();
-            gEditor->reportChanges(VCM_CHART_PROPERTIES_CHANGED);
-        }
-        return msg;
-    }
+		msg = bound.chart->description();
+		msg += " :: ";
+		msg += (undo ? "reverted" : "changed");
+		msg += " difficulty to ";
+		msg += GetDifficultyName(newDiff);
 
-    // ================================================================================================
-    // ChartManImpl :: set functions.
+		gSimfile->openChart(bound.chart);
+		bound.chart->difficulty = newDiff;
+		gEditor->reportChanges(VCM_CHART_PROPERTIES_CHANGED);
+	}
+	return msg;
+}
 
-    void setDifficulty(Difficulty difficulty) override {
-        if (myChart && myChart->difficulty != difficulty) {
-            myQueueDifficulty(difficulty);
-        }
-    }
+// ================================================================================================
+// ChartManImpl :: set functions.
 
-    void setStepArtist(std::string artist) override {
-        if (myChart && myChart->artist != artist) {
-            myQueueStepArtist(artist);
-        }
-    }
+void setDifficulty(Difficulty difficulty)
+{
+	if(myChart && myChart->difficulty != difficulty)
+	{
+		myQueueDifficulty(difficulty);
+	}
+}
 
-    void setMeter(int meter) override {
-        if (myChart && myChart->meter != meter) {
-            myQueueMeter(meter);
-        }
-    }
+void setStepArtist(String artist)
+{
+	if(myChart && myChart->artist != artist)
+	{
+		myQueueStepArtist(artist);
+	}
+}
 
-    // ================================================================================================
-    // ChartManImpl :: get functions.
+void setMeter(int meter)
+{
+	if(myChart && myChart->meter != meter)
+	{
+		myQueueMeter(meter);
+	}
+}
 
-    bool isOpen() const override { return (myChart != nullptr); }
+// ================================================================================================
+// ChartManImpl :: get functions.
 
-    bool isClosed() const override { return (myChart == nullptr); }
+bool isOpen() const
+{
+	return (myChart != nullptr);
+}
 
-    std::string getStepArtist() const override {
-        return myChart ? myChart->artist : std::string();
-    }
+bool isClosed() const
+{
+	return (myChart == nullptr);
+}
 
-    Difficulty getDifficulty() const override {
-        return myChart ? myChart->difficulty : DIFF_BEGINNER;
-    }
+String getStepArtist() const
+{
+	return myChart ? myChart->artist : String();
+}
 
-    int getMeter() const override { return myChart ? myChart->meter : 1; }
+Difficulty getDifficulty() const
+{
+	return myChart ? myChart->difficulty : DIFF_BEGINNER;
+}
 
-    std::string getDescription() const override {
-        return myChart ? myChart->description() : std::string();
-    }
+int getMeter() const
+{
+	return myChart ? myChart->meter : 1;
+}
 
-    const Chart* get() const override { return myChart; }
+String getDescription() const
+{
+	return myChart ? myChart->description() : String();
+}
 
-    // ================================================================================================
-    // ChartManImpl :: stream breakdown.
+const Chart* get() const
+{
+	return myChart;
+}
 
-    struct StreamItem {
-        int row, endrow;
-        bool isBreak;
-    };
+// ================================================================================================
+// ChartManImpl :: stream breakdown.
 
-    static Vector<BreakdownItem> ToBreakdown(const Vector<StreamItem>& items) {
-        Vector<BreakdownItem> out;
-        BreakdownItem item = {-1, -1};
-        for (auto& it : items) {
-            if (it.isBreak) {
-                if (it.endrow - it.row > (ROWS_PER_BEAT * 4)) {
-                    out.push_back(item);
-                    item.row = item.endrow = -1;
-                    item.text.clear();
-                } else {
-                    item.text = item.text + "-";
-                }
-            } else {
-                Str::appendVal(item.text,
-                               (it.endrow - it.row + 48) / (ROWS_PER_BEAT * 4));
-                if (item.row == -1) item.row = it.row;
-                item.endrow = it.endrow;
-            }
-        }
-        if (item.row != -1) out.push_back(item);
-        return out;
-    }
+struct StreamItem { int row, endrow; bool isBreak; };
 
-    static void MergeItems(Vector<StreamItem>& items) {
-        // Merge successive streams and breaks into a single item.
-        for (int i = items.size() - 1; i > 0; --i) {
-            if (items[i].isBreak == items[i - 1].isBreak) {
-                items[i - 1].endrow = items[i].endrow;
-                items.erase(i);
-            }
-        }
+static std::vector<BreakdownItem> ToBreakdown(const std::vector<StreamItem>& items)
+{
+	std::vector<BreakdownItem> out;
+	BreakdownItem item = {-1, -1};
+	for(auto& it : items)
+	{
+		if(it.isBreak)
+		{
+			if(it.endrow - it.row > (ROWS_PER_BEAT * 4))
+			{
+				out.push_back(item);
+				item.row = item.endrow = -1;
+				item.text.clear();
+			}
+			else
+			{
+				item.text += '-';
+			}
+		}
+		else
+		{
+			Str::appendVal(item.text, (it.endrow - it.row + 48) / (ROWS_PER_BEAT * 4));
+			if(item.row == -1) item.row = it.row;
+			item.endrow = it.endrow;
+		}
+	}
+	if(item.row != -1) out.push_back(item);
+	return out;
+}
 
-        // Remove breaks at the front and back of the list.
-        if (items.size() && items.back().isBreak) items.pop_back();
-        if (items.size() && items[0].isBreak) items.erase(0);
-    }
+static void MergeItems(std::vector<StreamItem>& items)
+{
+	// Merge successive streams and breaks into a single item. 
+	for(int i = items.size() - 1; i > 0; --i)
+	{
+		if(items[i].isBreak == items[i - 1].isBreak)
+		{
+			items[i - 1].endrow = items[i].endrow;
+			items.erase(items.begin() + i);
+		}
+	}
 
-    static void RemoveItems(Vector<StreamItem>& items, int minRows,
-                            bool breaks) {
-        for (int i = items.size() - 1; i >= 0; --i) {
-            if ((items[i].endrow - items[i].row) < minRows &&
-                items[i].isBreak == breaks) {
-                items.erase(i);
-            }
-        }
-        MergeItems(items);
-    }
+	// Remove breaks at the front and back of the list.
+	if(items.size() && items.back().isBreak) items.pop_back();
+	if(items.size() && items[0].isBreak) items.erase(items.begin());
+}
 
-    Vector<BreakdownItem> getStreamBreakdown(
-        int* totalMeasures) const override {
-        int dummy;
-        if (!totalMeasures) totalMeasures = &dummy;
+static void RemoveItems(std::vector<StreamItem>& items, int minRows, bool breaks)
+{
+	for(int i = items.size() - 1; i >= 0; --i)
+	{
+		if((items[i].endrow - items[i].row) < minRows && items[i].isBreak == breaks)
+		{
+			items.erase(items.begin() + i);
+		}
+	}
+	MergeItems(items);
+}
 
-        *totalMeasures = 0;
-        Vector<BreakdownItem> out;
-        if (gNotes->empty()) return out;
+std::vector<BreakdownItem> getStreamBreakdown(int* totalMeasures) const
+{
+	int dummy;
+	if(!totalMeasures) totalMeasures = &dummy;
 
-        // Skip mines at the start and end.
-        auto first = gNotes->begin();
-        auto last = gNotes->end() - 1;
-        while (first != last && first->isMine) ++first;
-        while (last != first && last->isMine) --last;
-        if (last == first) return out;
+	*totalMeasures = 0;
+	std::vector<BreakdownItem> out;
+	if(gNotes->empty()) return out;
 
-        // Build a list of streams and breaks.
-        Vector<StreamItem> items;
-        const ExpandedNote *prevStreamEnd = nullptr, *streamBegin = nullptr;
-        for (const ExpandedNote *n = first, *next; n != last; n = next) {
-            next = n + 1;
-            while (next->isMine) ++next;
-            bool isStreamNote = (next->row - n->row <= 12);
+	// Skip mines at the start and end.
+	auto first = gNotes->begin();
+	auto last = gNotes->end() - 1;
+	while(first != last && first->isMine) ++first;
+	while(last != first && last->isMine) --last;
+	if(last == first) return out;
 
-            if (isStreamNote) {
-                if (streamBegin == nullptr) {
-                    streamBegin = n;
-                }
-            }
+	// Build a list of streams and breaks.
+	std::vector<StreamItem> items;
+	const ExpandedNote* prevStreamEnd = nullptr, *streamBegin = nullptr;
+	for(const ExpandedNote* n = first, *next; n != last; n = next)
+	{
+		next = n + 1;
+		while(next->isMine) ++next;
+		bool isStreamNote = (next->row - n->row <= 12);
 
-            if (next == last || !isStreamNote) {
-                auto streamEnd = n;
-                if (streamBegin &&
-                    streamEnd->row >= streamBegin->row + (ROWS_PER_BEAT * 4)) {
-                    if (prevStreamEnd &&
-                        streamBegin->row > prevStreamEnd->row) {
-                        items.push_back(
-                            {prevStreamEnd->row, streamBegin->row, true});
-                    }
-                    items.push_back({streamBegin->row, streamEnd->row, false});
-                    prevStreamEnd = streamEnd;
-                }
-                streamBegin = nullptr;
-            }
-        }
+		if(isStreamNote)
+		{
+			if(streamBegin == nullptr)
+			{
+				streamBegin = n;
+			}
+		}
 
-        for (auto& i : items) {
-            if (!i.isBreak) {
-                *totalMeasures += (i.endrow - i.row + 48) / (ROWS_PER_BEAT * 4);
-            }
-        }
+		if(next == last || !isStreamNote)
+		{
+			auto streamEnd = n;
+			if(streamBegin && streamEnd->row >= streamBegin->row + (ROWS_PER_BEAT * 4))
+			{
+				if(prevStreamEnd && streamBegin->row > prevStreamEnd->row)
+				{
+					items.push_back({prevStreamEnd->row, streamBegin->row, true});
+				}
+				items.push_back({streamBegin->row, streamEnd->row, false});
+				prevStreamEnd = streamEnd;
+			}
+			streamBegin = nullptr;
+		}
+	}
 
-        // Merge streams with breaks shorter than half a beat.
-        const int rpb = ROWS_PER_BEAT;
-        RemoveItems(items, rpb / 2, true);
+	for(auto& i : items)
+	{
+		if(!i.isBreak)
+		{
+			*totalMeasures += (i.endrow - i.row + 48) / (ROWS_PER_BEAT * 4);
+		}
+	}
 
-        // Merge/remove more streams if the breakdown is too long.
-        if (items.size() > 28) RemoveItems(items, rpb * 8, false);
-        if (items.size() > 28) RemoveItems(items, rpb * 2, true);
-        if (items.size() > 28) RemoveItems(items, rpb * 16, false);
-        if (items.size() > 28) RemoveItems(items, rpb * 4, true);
-        if (items.size() > 28) RemoveItems(items, rpb * 24, false);
-        if (items.size() > 28) RemoveItems(items, rpb * 6, true);
-        if (items.size() > 28) RemoveItems(items, rpb * 32, false);
+	// Merge streams with breaks shorter than half a beat.
+	const int rpb = ROWS_PER_BEAT;
+	RemoveItems(items, rpb / 2, true);
 
-        // Finally, construct the breakdown.
-        return ToBreakdown(items);
-    }
+	// Merge/remove more streams if the breakdown is too long.
+	if(items.size() > 28) RemoveItems(items, rpb * 8, false);
+	if(items.size() > 28) RemoveItems(items, rpb * 2, true);
+	if(items.size() > 28) RemoveItems(items, rpb * 16, false);
+	if(items.size() > 28) RemoveItems(items, rpb * 4, true);
+	if(items.size() > 28) RemoveItems(items, rpb * 24, false);
+	if(items.size() > 28) RemoveItems(items, rpb * 6, true);
+	if(items.size() > 28) RemoveItems(items, rpb * 32, false);
 
-    // ================================================================================================
-    // ChartManImpl :: meter estimation.
+	// Finally, construct the breakdown.
+	return ToBreakdown(items);
+}
 
-    double getEstimatedMeter() const override {
-        RatingEstimator hm("assets/rating estimate data.txt");
-        return hm.estimateRating();
-    }
+// ================================================================================================
+// ChartManImpl :: meter estimation.
 
-};  // ChartManImpl
+double getEstimatedMeter() const
+{
+	RatingEstimator hm("assets/rating estimate data.txt");
+	return hm.estimateRating();
+}
+
+}; // ChartManImpl
 
 // ================================================================================================
 // Chart :: create and destroy.
 
 ChartMan* gChart = nullptr;
 
-void ChartMan::create() { gChart = new ChartManImpl; }
-
-void ChartMan::destroy() {
-    delete CHART_MAN;
-    gChart = nullptr;
+void ChartMan::create()
+{
+	gChart = new ChartManImpl;
 }
 
-};  // namespace Vortex
+void ChartMan::destroy()
+{
+	delete CHART_MAN;
+	gChart = nullptr;
+}
+
+}; // namespace Vortex

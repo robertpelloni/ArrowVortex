@@ -14,7 +14,7 @@
 
 #include <math.h>
 #include <random>
-#include <algorithm>
+#include <vector>
 
 namespace Vortex {
 namespace {
@@ -69,11 +69,11 @@ struct StreamPlanner
 
 	FootPlanner feet[2];
 
-	Vector<float> weights;
-	Vector<float> stepDists;
-	Vector<vec2i> pad;
-	Vector<int> histograms[2];
-	Vector<int> history[2];
+	std::vector<float> weights;
+	std::vector<float> stepDists;
+	std::vector<vec2i> pad;
+	std::vector<int> histograms[2];
+	std::vector<int> history[2];
 
 	int numCols;
 	int nextFoot;
@@ -127,14 +127,14 @@ int FootPlanner::getNextCol(int xmin, int xmax)
 	}
 
 	// Adjust the weights based on the target average step distance.
-	float scaledTarget = std::max(0.1f, owner->targetStepDistance - 0.6f);
-	float scaledAvg = std::max(0.1f, avgStepDist - 0.6f);
+	float scaledTarget = max(0.1f, owner->targetStepDistance - 0.6f);
+	float scaledAvg = max(0.1f, avgStepDist - 0.6f);
 	scaledTarget = scaledTarget + (scaledTarget - scaledAvg) * 0.5f;
 	for(int col = 0; col < numCols; ++col)
 	{
 		if(weights[col] > 0.0f)
 		{
-			float scaledDist = std::max(0.1f, stepDists[col] - 0.6f);
+			float scaledDist = max(0.1f, stepDists[col] - 0.6f);
 			float delta = abs(scaledDist - scaledTarget);
 			float w = weights[col] / (0.1f + delta);
 			weights[col] = lerp(weights[col], w, owner->targetStepDistanceBias);
@@ -178,8 +178,8 @@ StreamPlanner::StreamPlanner(const StreamGenerator* sg)
 
 	numCols = gStyle->getNumCols();
 	nextFoot = sg->startWithRight ? FOOT_R : FOOT_L;
-	maxColReps = std::clamp(sg->maxColRep, 1, 16);
-	maxBoxReps = std::clamp(sg->maxBoxRep, 1, 16);
+	maxColReps = clamp(sg->maxColRep, 1, 16);
+	maxBoxReps = clamp(sg->maxBoxRep, 1, 16);
 
 	feet[FOOT_L].curCol = sg->feetCols.x;
 	feet[FOOT_R].curCol = sg->feetCols.y;
@@ -210,10 +210,10 @@ StreamPlanner::StreamPlanner(const StreamGenerator* sg)
 		for(int j = i + 1; j < numCols; ++j)
 		{
 			float dist = GetPadDist(pad.data(), i, j);
-			maxStepDist = std::max(maxStepDist, dist);
+			maxStepDist = max(maxStepDist, dist);
 		}
 	}
-	maxStepDist = std::min(MAX_STEP_DIST, maxStepDist);
+	maxStepDist = min(MAX_STEP_DIST, maxStepDist);
 	targetStepDistance = lerp(0.2f, maxStepDist, sg->patternDifficulty);
 	targetStepDistanceBias = abs(sg->patternDifficulty * 2 - 1);
 
@@ -282,7 +282,7 @@ void StreamGenerator::generate(int row, int endRow, SnapType spacing)
 	{
 		// Generate an arrow for the current row.
 		int col = stream.getNextCol();
-		edit.add.append({row, row, (uint32_t)col, 0, NOTE_STEP_OR_HOLD, 192});
+		edit.add.append({row, row, (uint)col, 0, NOTE_STEP_OR_HOLD, 192});
 
 		// Store the current facing.
 		int yl = stream.pad[stream.feet[FOOT_L].curCol].y;

@@ -1,28 +1,23 @@
-#pragma once
+﻿#pragma once
 
-#include <Core/Reference.h>
-#include <Core/Vector.h>
+#include <vector>
 
 namespace Vortex {
 
 struct TempoResult
 {
-	double bpm;
-	double offset;
-	double confidence;
+	double bpm, offset, fitness;
 };
 
-struct ReferenceCounted {
-    virtual ~ReferenceCounted() {}
-};
-
-struct TempoDetector : public ReferenceCounted
+class TempoDetector
 {
+public:
+	static TempoDetector* New(double time, double len);
 	virtual ~TempoDetector() {}
-	static TempoDetector* New(double startTime, double length);
 
-	virtual bool hasResult() = 0;
-	virtual Vector<TempoResult> getResult() = 0;
+	virtual const char* getProgress() const = 0;
+	virtual bool hasResult() const = 0;
+	virtual const std::vector<TempoResult>& getResult() const = 0;
 };
 
 }; // namespace Vortex
