@@ -2,6 +2,10 @@
 
 #include <algorithm>
 #include <set>
+<<<<<<< HEAD
+=======
+#include <random>
+>>>>>>> release
 #include <cmath>
 
 #include <Core/Utils.h>
@@ -162,6 +166,62 @@ void onKeyPress(KeyPress& evt) override
 		if(evt.keyflags & Keyflag::ALT) col += gStyle->getNumCols() / 2;
 		if(col >= 0 && col < gStyle->getNumCols())
 		{
+			if (gEditor->isPracticeMode() && !gMusic->isPaused())
+			{
+				double currentTime = gMusic->getPlayTime();
+				int approxRow = gTempo->timeToRow(currentTime);
+				const ExpandedNote* bestNote = nullptr;
+				double bestDiff = 100.0;
+				const auto& setup = gEditor->getPracticeSetup();
+				double range = max(setup.windowMiss, 0.2f); // Ensure at least 0.2s scan
+
+				// Find start point
+				auto it = std::lower_bound(gNotes->begin(), gNotes->end(), approxRow,
+					[](const ExpandedNote& n, int r) { return (int)n.row < r; });
+
+				// Search backwards
+				auto back = it;
+				while(back > gNotes->begin()) {
+					--back;
+					double t = gTempo->rowToTime(back->row);
+					double diff = t - currentTime;
+					if (diff < -range) break;
+					if (back->col == col && std::abs(diff) < std::abs(bestDiff)) {
+						bestDiff = diff;
+						bestNote = &(*back);
+					}
+				}
+
+				// Search forwards
+				auto fwd = it;
+				while(fwd < gNotes->end()) {
+					double t = gTempo->rowToTime(fwd->row);
+					double diff = t - currentTime;
+					if (diff > range) break;
+					if (fwd->col == col && std::abs(diff) < std::abs(bestDiff)) {
+						bestDiff = diff;
+						bestNote = &(*fwd);
+					}
+					++fwd;
+				}
+
+				if (bestNote && std::abs(bestDiff) <= setup.windowBoo)
+				{
+					const char* judge = "Boo";
+					double absDiff = std::abs(bestDiff);
+					if (absDiff <= setup.windowMarvelous) judge = "{tc:AAF}Marvelous{tc}";
+					else if (absDiff <= setup.windowPerfect) judge = "{tc:DD4}Perfect{tc}";
+					else if (absDiff <= setup.windowGreat) judge = "{tc:4D4}Great{tc}";
+					else if (absDiff <= setup.windowGood) judge = "{tc:44D}Good{tc}";
+
+					String msg = Str::fmt("%s %+.3fs", judge, bestDiff);
+					HudNote("%s", msg.str());
+				}
+
+				evt.handled = true;
+				return;
+			}
+
 			noteKeysHeld++;
 			if (noteKeysHeld > 10) noteKeysHeld = 0;
 			if (gMusic->isPaused())

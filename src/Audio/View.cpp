@@ -1,6 +1,7 @@
 #include <Editor/View.h>
 
 #include <algorithm>
+#include <cmath>
 
 #include <Core/String.h>
 #include <Core/Utils.h>
@@ -47,6 +48,7 @@ double myPixPerSec, myPixPerRow;
 int myCursorRow;
 
 int myReceptorY, myReceptorX;
+int myVisualReceptorY;
 double myZoomLevel, myScaleLevel;
 bool myIsDraggingReceptors;
 bool myUseTimeBasedView;
@@ -69,6 +71,7 @@ ViewImpl()
 	, myCursorBeat(0.0)
 	, myCursorRow(0)
 	, myReceptorY(192)
+	, myVisualReceptorY(192)
 	, myReceptorX(0)
 	, myZoomLevel(8)
 	, myScaleLevel(4)
@@ -356,6 +359,7 @@ void tick()
 	// Clamp the receptor X and Y to the view region.
 	int minRecepX = rect_.x - rect_.w / 2;
 	int maxRecepX = RightX(rect_) - rect_.w / 2;
+<<<<<<< HEAD:src/Audio/View.cpp
 	myReceptorY = std::min(std::max(myReceptorY, rect_.y), BottomY(rect_));
 	myReceptorX = std::min(std::max(myReceptorX, minRecepX), maxRecepX);
 
@@ -367,6 +371,45 @@ void tick()
 	else
 	{
 		myChartTopY = std::floor((double)myReceptorY - myCursorBeat * ROWS_PER_BEAT * myPixPerRow);
+=======
+	myReceptorY = min(max(myReceptorY, rect_.y), BottomY(rect_));
+	myReceptorX = min(max(myReceptorX, minRecepX), maxRecepX);
+
+	// Handle Scroll Cursor Effect
+	myVisualReceptorY = myReceptorY;
+	bool scrollCursor = gEditor->getScrollCursorEffect() && !gMusic->isPaused();
+
+	if(myUseTimeBasedView)
+	{
+		double chartScrollTime = myCursorTime;
+		if (scrollCursor && std::abs(myPixPerSec) > 0.1)
+		{
+			// Page duration based on screen height
+			double screenDuration = rect_.h / std::abs(myPixPerSec);
+			double pageStart = floor(myCursorTime / screenDuration) * screenDuration;
+			chartScrollTime = pageStart;
+
+			// Visual receptor moves with time
+			myVisualReceptorY = (int)(myReceptorY + (myCursorTime - pageStart) * myPixPerSec);
+		}
+		myChartTopY = floor((double)myReceptorY - chartScrollTime * myPixPerSec);
+	}
+	else
+	{
+		double chartScrollBeat = myCursorBeat;
+		if (scrollCursor && std::abs(myPixPerRow) > 0.1)
+		{
+			// Page duration based on screen height (in beats)
+			double pixelsPerBeat = ROWS_PER_BEAT * std::abs(myPixPerRow);
+			double screenBeats = rect_.h / pixelsPerBeat;
+			double pageStartBeat = floor(myCursorBeat / screenBeats) * screenBeats;
+			chartScrollBeat = pageStartBeat;
+
+			// Visual receptor moves with beats
+			myVisualReceptorY = (int)(myReceptorY + (myCursorBeat - pageStartBeat) * ROWS_PER_BEAT * myPixPerRow);
+		}
+		myChartTopY = floor((double)myReceptorY - chartScrollBeat * ROWS_PER_BEAT * myPixPerRow);
+>>>>>>> release:src/Editor/View.cpp
 	}
 }
 
@@ -602,7 +645,7 @@ Coords getReceptorCoords() const
 {
 	Coords out;
 	auto noteskin = gNoteskin->get();	
-	out.y = rect_.y + myReceptorY;
+	out.y = rect_.y + myVisualReceptorY;
 	out.xc = rect_.x + rect_.w / 2 + myReceptorX;
 	if(noteskin)
 	{
@@ -816,7 +859,7 @@ bool isMouseOverReceptors(int x, int y) const
 	{
 		auto c = getReceptorCoords();
 		int dy = applyZoom(gChart->isClosed() ? 8 : 32);
-		return (x >= c.xl && x < c.xr && abs(y - myReceptorY) <= dy);
+		return (x >= c.xl && x < c.xr && std::abs(y - c.y) <= dy);
 	}
 	return false;
 }

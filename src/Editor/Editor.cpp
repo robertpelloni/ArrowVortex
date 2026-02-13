@@ -8,6 +8,7 @@
 #include <Core/Draw.h>
 #include <Core/Shader.h>
 #include <Core/StringUtils.h>
+#include <Core/Text.h>
 
 #include <System/System.h>
 #include <System/File.h>
@@ -969,6 +970,30 @@ void tick()
 
 	gTextOverlay->draw();
 
+<<<<<<< HEAD
+=======
+	// Draw FPS
+	if (!myDontShowFPS)
+	{
+		static float lastTime = 0.0f;
+		static int frames = 0;
+		static int fps = 0;
+		frames++;
+		float time = gSystem->getElapsedTime();
+		if (time - lastTime >= 1.0f) {
+			fps = frames;
+			frames = 0;
+			lastTime = time;
+		}
+
+		vec2i size = gSystem->getWindowSize();
+		String fpsStr = Str::fmt("%1 FPS").arg(fps);
+
+		Text::arrange(Text::TR, fpsStr.str());
+		Text::draw(vec2i{size.x - 4, 4});
+	}
+
+>>>>>>> release
 	GuiMain::frameEnd();
 }
 

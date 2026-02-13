@@ -12,7 +12,7 @@
 #include <Managers/StyleMan.h>
 #include <Managers/NoteMan.h>
 
-#include <math.h>
+#include <cmath>
 #include <random>
 #include <vector>
 
@@ -135,7 +135,7 @@ int FootPlanner::getNextCol(int xmin, int xmax)
 		if(weights[col] > 0.0f)
 		{
 			float scaledDist = max(0.1f, stepDists[col] - 0.6f);
-			float delta = abs(scaledDist - scaledTarget);
+			float delta = std::abs(scaledDist - scaledTarget);
 			float w = weights[col] / (0.1f + delta);
 			weights[col] = lerp(weights[col], w, owner->targetStepDistanceBias);
 		}
@@ -215,7 +215,7 @@ StreamPlanner::StreamPlanner(const StreamGenerator* sg)
 	}
 	maxStepDist = min(MAX_STEP_DIST, maxStepDist);
 	targetStepDistance = lerp(0.2f, maxStepDist, sg->patternDifficulty);
-	targetStepDistanceBias = abs(sg->patternDifficulty * 2 - 1);
+	targetStepDistanceBias = std::abs(sg->patternDifficulty * 2 - 1);
 
 	// Initialize the individual feet planners.
 	for(int f = 0; f < 2; ++f)
