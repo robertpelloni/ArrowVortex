@@ -1,3 +1,6 @@
 [submodule "lib/ddc"]
 	path = lib/ddc
 	url = https://github.com/libddc/libddc
+[submodule "odcnn"]
+	path = odcnn
+	url = https://github.com/robertpelloni/odcnn
