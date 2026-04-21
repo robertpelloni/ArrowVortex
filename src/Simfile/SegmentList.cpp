@@ -511,7 +511,6 @@ const Segment* SegmentList::find(int row) const {
 // ================================================================================================
 // SegmentList :: memory management.
 
-<<<<<<< HEAD
 void SegmentList::myReserve(int num) {
     int numBytes = num * myStride;
     if (myCap < numBytes) {
@@ -521,16 +520,3 @@ void SegmentList::myReserve(int num) {
 }
 
 };  // namespace Vortex
-=======
-void SegmentList::myReserve(int num)
-{
-	int numBytes = num * myStride;
-	if(myCap < numBytes)
-	{
-		myCap = std::max(numBytes, myCap << 1);
-		mySegs = (uint8_t*)realloc(mySegs, myCap);
-	}
-}
-
-}; // namespace Vortex
->>>>>>> origin/stdminmax

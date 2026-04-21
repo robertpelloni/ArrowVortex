@@ -117,7 +117,6 @@ bool Sound::Thread::readBlock() {
     int srcChannels = mySource->getNumChannels();
     int framesRead = mySource->readFrames(BUFFER_SIZE, myBuffer);
 
-<<<<<<< HEAD
     if (mySound->myIsAllocated) {
         framesRead = min(framesRead, mySound->myNumFrames - myCurrentFrame);
     }
@@ -127,20 +126,6 @@ bool Sound::Thread::readBlock() {
             if (myCurrentFrame + framesRead > myReservedFrames) {
                 myReservedFrames =
                     max(myReservedFrames * 2, myCurrentFrame + framesRead);
-=======
-	if(mySound->myIsAllocated)
-	{
-		framesRead = std::min(framesRead, mySound->myNumFrames - myCurrentFrame);
-	}
-
-	if(framesRead > 0)
-	{
-		if(!mySound->myIsAllocated)
-		{
-			if(myCurrentFrame + framesRead > myReservedFrames)
-			{
-				myReservedFrames = std::max(myReservedFrames * 2, myCurrentFrame + framesRead);
->>>>>>> origin/stdminmax
 
                 short* newBufferL = static_cast<short*>(realloc(
                     mySound->mySamplesL, myReservedFrames * sizeof(short)));

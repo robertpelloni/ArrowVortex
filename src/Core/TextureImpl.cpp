@@ -254,17 +254,10 @@ static bool PowerOfTwoTexImage2D(Texture::Format fmt, int w, int h, const uchar*
 		{
 			int px = (int)sx;
 
-<<<<<<< HEAD
 			const uchar* p1 = pixels + clamp(py * w + px, 0, maxIndex) * channels;
 			const uchar* p2 = p1 + channels;
 			const uchar* p3 = p1 + w * channels;
 			const uchar* p4 = p3 + channels;
-=======
-			const uint8_t* p1 = pixels + std::clamp(py * w + px, 0, maxIndex) * channels;
-			const uint8_t* p2 = p1 + channels;
-			const uint8_t* p3 = p1 + w * channels;
-			const uint8_t* p4 = p3 + channels;
->>>>>>> origin/stdminmax
 
 			for(int ch = 0; ch < channels; ++ch)
 			{
@@ -455,15 +448,9 @@ Texture::Texture()
 Texture::Texture(int w, int h, Format fmt)
 	: data_(nullptr)
 {
-<<<<<<< HEAD
 	w = max(w, 1);
 	h = max(h, 1);
 	Vector<uchar> pixels;
-=======
-	w = std::max(w, 1);
-	h = std::max(h, 1);
-	Vector<uint8_t> pixels;
->>>>>>> origin/stdminmax
 	pixels.resize(w * h * sNumChannels[fmt], 0);
 	data_ = TexMan::load(w, h, fmt, false, pixels.begin());
 }

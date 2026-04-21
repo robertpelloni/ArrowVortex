@@ -10,7 +10,6 @@ add_custom_command(
 	COMMAND ${CMAKE_COMMAND} -E copy_directory
 		${PROJECT_SOURCE_DIR}/bin
 		$<TARGET_FILE_DIR:ArrowVortex>)
-<<<<<<< HEAD
 
 if (MINGW_BASED)
 	# This imports important static libraries needed by MinGW builders.
@@ -32,6 +31,3 @@ if (MINGW_BASED)
 endif()
 
 target_link_libraries(ArrowVortex PRIVATE System ${MINGW_ESSENTIAL_LIBS})
-=======
-target_link_libraries(ArrowVortex PRIVATE System)
->>>>>>> origin/stdminmax

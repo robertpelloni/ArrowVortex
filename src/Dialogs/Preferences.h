@@ -20,12 +20,8 @@ private:
 	// Tab switching
 	enum Tab {
 		TAB_EDITOR,
-<<<<<<< HEAD
 		TAB_PRACTICE,
 		TAB_WAVEFORM
-=======
-		TAB_PRACTICE
->>>>>>> origin/feature-goto-quantize-insert
 	};
 	Tab myActiveTab;
 	void mySetTab(Tab tab);
@@ -44,16 +40,12 @@ private:
 	float myNoteAssistVol;
 	bool myBackupSaves;
 	bool myDontShowFPS;
-<<<<<<< HEAD
 	String myPythonPath;
-=======
->>>>>>> origin/feature-goto-quantize-insert
 
 	// Practice Mode Settings
 	bool myEnablePracticeMode;
 	Editor::PracticeSetup myPracticeSetup;
 
-<<<<<<< HEAD
 	// Waveform Settings
 	int myWaveformColorMode;
 	double mySpectrogramGain;
@@ -63,8 +55,6 @@ private:
 	double myOnsetThreshold;
 	int myAntiAliasing;
 
-=======
->>>>>>> origin/feature-goto-quantize-insert
 	// Intermediate doubles for UI binding (milliseconds)
 	double myWindowMarvelous;
 	double myWindowPerfect;
@@ -87,10 +77,7 @@ private:
 	void onSelectPastedChanged();
 	void onBackupSavesChanged();
 	void onDontShowFPSChanged();
-<<<<<<< HEAD
 	void onPythonPathChanged();
-=======
->>>>>>> origin/feature-goto-quantize-insert
 
 	void onPracticeEnabledChanged();
 
@@ -104,7 +91,6 @@ private:
 	void onWindowBooChanged();
 	void onWindowFreezeChanged();
 	void onWindowMineChanged();
-<<<<<<< HEAD
 
 	void onWaveformColorModeChanged();
 	void onSpectrogramGainChanged();
@@ -112,8 +98,6 @@ private:
 	void onShowOnsetsChanged();
 	void onOnsetThresholdChanged();
 	void onAntiAliasingChanged();
-=======
->>>>>>> origin/feature-goto-quantize-insert
 };
 
 }; // namespace Vortex

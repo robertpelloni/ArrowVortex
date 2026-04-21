@@ -1,4 +1,3 @@
-<<<<<<< HEAD:src/Editor/ConvertToOgg.cpp
 /*
  * Adapted from
  * https://github.com/FFmpeg/FFmpeg/blob/master/doc/examples/transcode_aac.c
@@ -23,9 +22,6 @@ extern "C" {
 
 #include <Editor/ConvertToOgg.h>
 #include <Editor/Music.h>
-=======
-#include <Precomp.h>
->>>>>>> origin/fietsemaker-beta:src/Audio/ConvertToOgg.cpp
 
 #include <Core/Utils/Util.h>
 #include <Core/Utils/String.h>
@@ -37,17 +33,10 @@ extern "C" {
 
 #include <Vortex/Managers/MusicMan.h>
 
-<<<<<<< HEAD:src/Editor/ConvertToOgg.cpp
 /* The output bit rate in bit/s */
 #define OUTPUT_BIT_RATE 192000
 /* The number of output channels */
 #define OUTPUT_CHANNELS 2
-=======
-namespace AV {
-
-using namespace std;
-using namespace Util;
->>>>>>> origin/fietsemaker-beta:src/Audio/ConvertToOgg.cpp
 
 /**
  * Open an input file and the required decoder.
@@ -65,7 +54,6 @@ static int open_input_file(const char *filename,
     int error;
     char errbuf[AV_ERROR_MAX_STRING_SIZE];
 
-<<<<<<< HEAD:src/Editor/ConvertToOgg.cpp
     /* Open the input file to read from it. */
     if ((error = avformat_open_input(input_format_context, filename, nullptr,
                                      nullptr)) < 0) {
@@ -85,21 +73,6 @@ static int open_input_file(const char *filename,
         avformat_close_input(input_format_context);
         return error;
     }
-=======
-void WriteWaveHeader(WaveHeader* out, size_t numFrames, int samplerate)
-{
-	memcpy(out->subchunk1Id, "fmt ", 4);
-	out->subchunk1Size = 16;
-	out->audioFormat = 1;
-	out->numChannels = 2;
-	out->sampleRate = samplerate;
-	out->byteRate = samplerate * 4;
-	out->blockAlign = 4;
-	out->bitsPerSample = 16;
-
-	memcpy(out->subchunk2Id, "data", 4);
-	out->subchunk2Size = (uint32_t)(numFrames * 4);
->>>>>>> origin/fietsemaker-beta:src/Audio/ConvertToOgg.cpp
 
     /* Make sure that there is only one stream in the input file. */
     if ((*input_format_context)->nb_streams != 1) {
@@ -156,7 +129,6 @@ void WriteWaveHeader(WaveHeader* out, size_t numFrames, int samplerate)
     return 0;
 }
 
-<<<<<<< HEAD:src/Editor/ConvertToOgg.cpp
 /**
  * Open an output file and the required encoder.
  * Also set some basic encoder parameters.
@@ -966,66 +938,3 @@ void OggConversionThread::exec() {
 }
 
 };  // namespace Vortex
-=======
-struct OggConversionPipe : public System::CommandPipe
-{
-	size_t write()
-	{
-		if (*terminateFlag)
-		{
-			return 0;
-		}
-		if (firstChunk)
-		{
-			firstChunk = false;
-			return sizeof(WaveHeader);
-		}
-		auto numFrames = min(framesLeft, 4096ull);
-		for (int i = 0, p = 0; i < numFrames; ++i)
-		{
-			samples[p++] = *srcL++;
-			samples[p++] = *srcR++;
-		}
-		framesLeft -= numFrames;
-		*progress = (uchar)(100 - (uint64_t)(100 * framesLeft / totalFrames));
-		return numFrames * 4;
-	}
-	uchar* progress;
-	bool firstChunk;
-	size_t totalFrames, framesLeft;
-	const short* srcL, *srcR;
-	short samples[4096 * 2];
-	uchar* terminateFlag;
-};
-
-OggConversionThread::OggConversionThread()
-{
-	progress = 0;
-}
-
-void OggConversionThread::exec()
-{
-	const Sound& music = MusicMan::getSamples();
-	
-	// Create a pipe that feeds audio data to oggenc.	
-	auto pipe = new OggConversionPipe;
-	pipe->totalFrames = pipe->framesLeft = music.getNumFrames();
-	pipe->srcL = music.samplesL();
-	pipe->srcR = music.samplesR();
-	pipe->firstChunk = true;
-	pipe->progress = &progress;
-	pipe->terminateFlag = &myTerminateFlag;
-	WriteWaveHeader((WaveHeader*)(pipe->samples), music.getNumFrames(), music.getFrequency());
-
-	// Encode the PCM file with the oggenc2 command line utility.
-	string cmd = format("oggenc2.exe -q6 -o \"{}\" -", outPath.str);
-	
-	// Call oggenc2 with the command line parameters.
-	if (!System::runSystemCommand(cmd, pipe, pipe->samples))
-		error = "could not run oggenc2.exe";
-
-	Util::reset(pipe);
-}
-
-} // namespace AV
->>>>>>> origin/fietsemaker-beta:src/Audio/ConvertToOgg.cpp

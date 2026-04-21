@@ -8,7 +8,6 @@ namespace AV {
 struct StreamGenerator {
     StreamGenerator();
 
-<<<<<<< HEAD:src/Editor/StreamGenerator.h
     vec2i feetCols;
     int maxColRep;
     int maxBoxRep;
@@ -20,15 +19,3 @@ struct StreamGenerator {
 };
 
 };  // namespace Vortex
-=======
-	int maxColRep;
-	int maxBoxRep;
-	bool allowBoxes;
-	bool startWithRight;
-	float patternDifficulty;
-
-	void generate(int startRow, Row endRow, Vec2 feetCols, SnapType spacing);
-};
-
-} // namespace AV
->>>>>>> origin/fietsemaker-beta:src/Vortex/Edit/StreamGenerator.h

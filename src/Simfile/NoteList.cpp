@@ -16,11 +16,7 @@
 #include <stdlib.h>
 #include <stdint.h>
 
-<<<<<<< HEAD
 #include <cmath>
-=======
-#include <algorithm>
->>>>>>> origin/stdminmax
 
 namespace Vortex {
 namespace {

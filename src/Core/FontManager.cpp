@@ -10,11 +10,6 @@
 #include FT_FREETYPE_H
 #include FT_LCD_FILTER_H
 #include FT_GLYPH_H
-<<<<<<< HEAD
-=======
-
-#include <algorithm>
->>>>>>> origin/stdminmax
 
 namespace Vortex {
 
@@ -229,16 +224,9 @@ void FontManager::startFrame(float dt) {
     }
 }
 
-<<<<<<< HEAD
 const Glyph& FontManager::getPlaceholderGlyph(int size) {
     int i = max(0, min(size / 8, 7));
     return FM->placeholderGlyphs[i];
-=======
-const Glyph& FontManager::getPlaceholderGlyph(int size)
-{
-	int i = std::max(0, std::min(size / 8, 7));
-	return FM->placeholderGlyphs[i];
->>>>>>> origin/stdminmax
 }
 
 FontData* FontManager::fallback() { return FM->fallback; }

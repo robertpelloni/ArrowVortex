@@ -2,10 +2,6 @@
 
 #include <algorithm>
 #include <set>
-<<<<<<< HEAD
-=======
-#include <random>
->>>>>>> release
 #include <cmath>
 
 #include <Core/Utils.h>
@@ -408,17 +404,6 @@ void finishNotePlacement(int col)
 			}
 		}
 
-<<<<<<< HEAD
-=======
-		if (note.quant > 0 && note.quant <= 192)
-		{
-			note.quant = std::min(192u, note.quant * gView->getSnapQuant() / gcd(note.quant, gView->getSnapQuant()));
-		}
-		else
-		{
-			note.quant = 192;
-		}
->>>>>>> origin/stdminmax
 		NoteEdit edit;
 		edit.add.append(note);
 		gNotes->modify(edit, false);

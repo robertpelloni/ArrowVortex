@@ -437,21 +437,6 @@ void drawBeatLines()
 // ================================================================================================
 // NotefieldImpl :: segments.
 
-<<<<<<< HEAD:src/Audio/Notefield.cpp
-=======
-bool validSegmentRegion(int& t, int& b, int& viewTop, int viewBtm)
-{
-	bool draw = (t > viewTop && t < viewBtm) || (b > viewTop && b < viewBtm) || (t > viewTop && b < viewBtm);
-	if(draw)
-	{
-		t = std::clamp(t, viewTop, viewBtm);
-		b = std::clamp(b, viewTop, viewBtm);
-		return true;
-	}
-	return false;
-}
-
->>>>>>> origin/stdminmax:src/Editor/Notefield.cpp
 void drawStopsAndWarps()
 {
 	Renderer::resetColor();
@@ -526,11 +511,7 @@ void drawReceptors()
 		// Calculate the beat pulse value for the receptors.
 		double beat = gTempo->timeToBeat(gView->getCursorTime());
 		float beatfrac = (float)(beat - floor(beat));
-<<<<<<< HEAD:src/Audio/Notefield.cpp
 		uchar beatpulse = (uchar)min(max((int)((2 - beatfrac * 4)*255), 0), 255);
-=======
-		uint8_t beatpulse = (uint8_t)std::min(std::max((int)((2 - beatfrac * 4)*255), 0), 255);
->>>>>>> origin/stdminmax:src/Editor/Notefield.cpp
 
 		// Draw the receptors.
 		auto batch = Renderer::batchTC();
@@ -572,11 +553,7 @@ void drawReceptorGlow()
 		if(note->isMine | note->isWarped | (note->type == NOTE_FAKE)) continue;
 
 		double lum = 1.5 - (time - note->endtime) * 6.0;
-<<<<<<< HEAD:src/Audio/Notefield.cpp
 		uchar alpha = (uchar)clamp((int)(lum * 255.0), 0, 255);
-=======
-		uint8_t alpha = (uint8_t)std::clamp((int)(lum * 255.0), 0, 255);
->>>>>>> origin/stdminmax:src/Editor/Notefield.cpp
 		if(alpha > 0)
 		{
 			noteskin->recepGlow[c].draw(&batch, myColX[c], myY, alpha);
@@ -776,15 +753,9 @@ void drawSongPreviewArea()
 	double end = start + gSimfile->get()->previewLength;
 	if(end > start)
 	{
-<<<<<<< HEAD:src/Audio/Notefield.cpp
 		int yt = max(0, gView->timeToY(start));
 		int yb = min(gView->getHeight(), gView->timeToY(end));
 		Draw::fill({myX, yt, myW, yb - yt}, COLOR32(255, 255, 255, 64));
-=======
-		int yt = std::max(0, gView->timeToY(start));
-		int yb = std::min(gView->getHeight(), gView->timeToY(end));
-		Draw::fill({myX, yt, myW, yb - yt}, RGBAtoColor32(255, 255, 255, 64));
->>>>>>> origin/stdminmax:src/Editor/Notefield.cpp
 		if(gView->getScaleLevel() > 2)
 		{
 			TextStyle textStyle;

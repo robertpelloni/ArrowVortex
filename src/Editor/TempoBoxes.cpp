@@ -148,7 +148,6 @@ void onChanges(int changes)
 // ================================================================================================
 // TempoBoxesImpl :: toggle visuals.
 
-<<<<<<< HEAD
 void toggleShowBoxes()
 {
 	myShowBoxes = !myShowBoxes;
@@ -179,13 +178,6 @@ bool hasShowHelp()
 {
 	return myShowHelp;
 }
-=======
-void toggleShowBoxes();
-void setShowBoxes(bool show);
-void toggleShowHelp();
-bool hasShowBoxes();
-bool hasShowHelp();
->>>>>>> origin/feature-goto-quantize-insert
 
 // ================================================================================================
 // TempoBoxesImpl :: selection.

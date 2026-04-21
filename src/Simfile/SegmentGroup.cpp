@@ -54,39 +54,8 @@ void SegmentGroup::prepareEdit(const SegmentEdit& in, SegmentEditResult& out,
     }
 }
 
-<<<<<<< HEAD
 void SegmentGroup::append(Segment::Type type, int row) {
     myLists[type].append(row);
-=======
-void SegmentGroup::prepareEdit(const SegmentEdit& in, SegmentEditResult& out, bool clearRegion)
-{
-	int regionBegin = INT_MAX;
-	int regionEnd = 0;
-	if(clearRegion)
-	{
-		ForEachType(type)
-		{
-			auto& list = in.add.myLists[type];
-			if(list.size() >= 2)
-			{
-				auto first = list.begin();
-				auto last = list.rbegin();
-				if(last->row > first->row)
-				{
-					regionBegin = std::min(regionBegin, first->row);
-					regionEnd = std::max(regionEnd, last->row);
-				}
-			}
-		}
-	}
-	ForEachType(type)
-	{
-		myLists[type].prepareEdit(
-			in.add.myLists[type], in.rem.myLists[type],
-			out.add.myLists[type], out.rem.myLists[type],
-			regionBegin, regionEnd);
-	}
->>>>>>> origin/stdminmax
 }
 
 void SegmentGroup::append(Segment::Type type, const Segment* seg) {
@@ -211,28 +180,4 @@ const SegmentList* SegmentGroup::end() const {
     return myLists + Segment::NUM_TYPES;
 }
 
-<<<<<<< HEAD
 };  // namespace Vortex
-=======
-SegmentList* SegmentGroup::begin()
-{
-	return myLists;
-}
-
-const SegmentList* SegmentGroup::begin() const
-{
-	return myLists;
-}
-
-SegmentList* SegmentGroup::end()
-{
-	return myLists + Segment::NUM_TYPES;
-}
-
-const SegmentList* SegmentGroup::end() const
-{
-	return myLists + Segment::NUM_TYPES;
-}
-
-}; // namespace Vortex
->>>>>>> origin/stdminmax

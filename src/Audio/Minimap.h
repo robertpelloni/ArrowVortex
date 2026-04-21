@@ -4,14 +4,8 @@
 
 namespace Vortex {
 
-<<<<<<< HEAD
 struct Minimap : public InputHandler {
     enum Mode { NOTES, DENSITY };
-=======
-struct Minimap : public InputHandler
-{
-	enum Mode { NOTES, DENSITY, WAVEFORM };
->>>>>>> origin/feature-goto-quantize-insert
 
     static void create();
     static void destroy();

@@ -105,15 +105,9 @@ void loadSettings(XmrNode& settings)
 		view->get("receptorX", &myReceptorX);
 		view->get("receptorY", &myReceptorY);
 
-<<<<<<< HEAD:src/Audio/View.cpp
 		myCustomSnap = min(max(myCustomSnap, 1), 192);
 		myZoomLevel = min(max(myZoomLevel, -2.0), 16.0);
 		myScaleLevel = min(max(myScaleLevel, 1.0), 10.0);
-=======
-		myCustomSnap = std::min(std::max(myCustomSnap, 5), 191);
-		myZoomLevel = std::min(std::max(myZoomLevel, -2.0), 16.0);
-		myScaleLevel = std::min(std::max(myScaleLevel, 1.0), 10.0);
->>>>>>> origin/stdminmax:src/Editor/View.cpp
 	}
 
 	updateScrollValues();
@@ -359,7 +353,6 @@ void tick()
 	// Clamp the receptor X and Y to the view region.
 	int minRecepX = rect_.x - rect_.w / 2;
 	int maxRecepX = RightX(rect_) - rect_.w / 2;
-<<<<<<< HEAD:src/Audio/View.cpp
 	myReceptorY = std::min(std::max(myReceptorY, rect_.y), BottomY(rect_));
 	myReceptorX = std::min(std::max(myReceptorX, minRecepX), maxRecepX);
 
@@ -371,45 +364,6 @@ void tick()
 	else
 	{
 		myChartTopY = std::floor((double)myReceptorY - myCursorBeat * ROWS_PER_BEAT * myPixPerRow);
-=======
-	myReceptorY = min(max(myReceptorY, rect_.y), BottomY(rect_));
-	myReceptorX = min(max(myReceptorX, minRecepX), maxRecepX);
-
-	// Handle Scroll Cursor Effect
-	myVisualReceptorY = myReceptorY;
-	bool scrollCursor = gEditor->getScrollCursorEffect() && !gMusic->isPaused();
-
-	if(myUseTimeBasedView)
-	{
-		double chartScrollTime = myCursorTime;
-		if (scrollCursor && std::abs(myPixPerSec) > 0.1)
-		{
-			// Page duration based on screen height
-			double screenDuration = rect_.h / std::abs(myPixPerSec);
-			double pageStart = floor(myCursorTime / screenDuration) * screenDuration;
-			chartScrollTime = pageStart;
-
-			// Visual receptor moves with time
-			myVisualReceptorY = (int)(myReceptorY + (myCursorTime - pageStart) * myPixPerSec);
-		}
-		myChartTopY = floor((double)myReceptorY - chartScrollTime * myPixPerSec);
-	}
-	else
-	{
-		double chartScrollBeat = myCursorBeat;
-		if (scrollCursor && std::abs(myPixPerRow) > 0.1)
-		{
-			// Page duration based on screen height (in beats)
-			double pixelsPerBeat = ROWS_PER_BEAT * std::abs(myPixPerRow);
-			double screenBeats = rect_.h / pixelsPerBeat;
-			double pageStartBeat = floor(myCursorBeat / screenBeats) * screenBeats;
-			chartScrollBeat = pageStartBeat;
-
-			// Visual receptor moves with beats
-			myVisualReceptorY = (int)(myReceptorY + (myCursorBeat - pageStartBeat) * ROWS_PER_BEAT * myPixPerRow);
-		}
-		myChartTopY = floor((double)myReceptorY - chartScrollBeat * ROWS_PER_BEAT * myPixPerRow);
->>>>>>> release:src/Editor/View.cpp
 	}
 }
 

@@ -2,16 +2,11 @@ cmake_minimum_required(VERSION 3.30)
 
 set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
 
-<<<<<<< HEAD
 set(CMAKE_CXX_STANDARD 20)
-=======
-set(CMAKE_CXX_STANDARD 17)
->>>>>>> origin/stdminmax
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 
 project(ArrowVortex)
 
-<<<<<<< HEAD
 set(CMAKE_CONFIGURATION_TYPES Debug;Release;MinSizeRel)
 
 # clang-tidy might not be available on AppleClang systems by default
@@ -113,18 +108,6 @@ else()
     message(STATUS "Found Vorbis via CONFIG")
 endif()
 
-=======
-set(CMAKE_CONFIGURATION_TYPES Debug Release)
-
-include_directories("${PROJECT_SOURCE_DIR}/src")
-
-find_package(Freetype REQUIRED)
-find_package(MAD REQUIRED)
-find_package(Ogg CONFIG REQUIRED)
-find_package(Vorbis REQUIRED)
-find_package(OpenGL REQUIRED)
-
->>>>>>> origin/stdminmax
 add_subdirectory(src/Core)
 add_subdirectory(src/Dialogs)
 add_subdirectory(src/Editor)
@@ -136,7 +119,6 @@ install(TARGETS ArrowVortex RUNTIME)
 install(DIRECTORY bin/assets DESTINATION bin)
 install(DIRECTORY bin/noteskins DESTINATION bin)
 install(DIRECTORY bin/settings DESTINATION bin)
-<<<<<<< HEAD
 
 file(GLOB_RECURSE path_sources "src/*.cpp" "src/*.hpp" "src/*.c" "src/*.h")
 add_custom_target(format ALL)
@@ -147,5 +129,3 @@ add_custom_command(
     USES_TERMINAL
 )
 add_dependencies(format ArrowVortex)
-=======
->>>>>>> origin/stdminmax
