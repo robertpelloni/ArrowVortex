@@ -82,6 +82,10 @@ In order to compile ArrowVortex on your own PC, Visual Studio is required. It is
 
 Simply open `build/VisualStudio/ArrowVortex.sln` in Visual Studio, and build the project.
 
+## Nightly Builds
+
+Nightly builds with the latest beta features are hosted here: https://psycast.github.io/ArrowVortex-nightly/
+
 ## License
 
 ArrowVortex is provided under the GPLv3 license, or at your option, any later version.
