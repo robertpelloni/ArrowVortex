@@ -104,6 +104,10 @@ Now enter your build directory with `cd build`.
 
 Finally, build ArrowVortex with `cmake --build .`.
 
+## Nightly Builds
+
+Nightly builds with the latest beta features are hosted here: https://psycast.github.io/ArrowVortex-nightly/
+
 ## License
 
 ArrowVortex is provided under the GPLv3 license, or at your option, any later version.
