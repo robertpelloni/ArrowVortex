@@ -221,12 +221,21 @@ void DialogBatchDDC::myGenerate()
 	}
 
 	// Validation 6: Check if at least one model exists (onset model)
-	String onsetModelPath = Path(myModelDir, "onset/model.h5");
+	// Try both .pth (PyTorch) and .h5 (Legacy Keras)
+	String onsetModelPath = Path(myModelDir, "onset/model.pth");
 	FileReader onsetCheck;
 	if(!onsetCheck.open(onsetModelPath)) {
-		myUpdateLog("WARNING: Onset model not found at: " + onsetModelPath);
-		myUpdateLog("Models may not be trained yet. Generation will likely fail.");
-		myUpdateLog("See documentation for training instructions.");
+		onsetModelPath = Path(myModelDir, "onset/model.h5");
+		if(!onsetCheck.open(onsetModelPath)) {
+			// Try model_05.pth which is common for 5-epoch training
+			onsetModelPath = Path(myModelDir, "onset/model_05.pth");
+			if(!onsetCheck.open(onsetModelPath)) {
+				myUpdateLog("WARNING: Onset model not found in " + myModelDir + "/onset/");
+				myUpdateLog("Expected model.pth, model_05.pth, or model.h5.");
+				myUpdateLog("Models may not be trained yet. Generation will likely fail.");
+				myUpdateLog("See documentation for training instructions.");
+			}
+		}
 	}
 	onsetCheck.close();
 

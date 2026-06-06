@@ -1,14 +1,19 @@
 # Changelog
 
-## [1.3.2] - 2026-01-08
-
-### Changed
-- **Versioning**: Bumped version to v1.3.2 to resolve mismatch and align with release cycle.
-- **Dependencies**: Removed `tensorflow>=2.0` from `lib/ddc/requirements.txt` to strictly enforce PyTorch usage as per project policy.
-- **Merged Feature**: Integrated `feature-goto-quantize-insert` into main.
+## [1.3.3] - 2026-06-06
 
 ### Added
-- **Versioning**: Implemented a global versioning system reading from `VERSION.md`.
+- **AI Integration**: Restored and fully integrated the `lib/ddc` submodule using PyTorch.
+- **Model Training**: Successfully trained Onset Detection and FFR Difficulty models.
+- **Documentation**: Created `VISION.md`, `MEMORY.md`, `DEPLOY.md`, `IDEAS.md`, `ROADMAP.md`, and `TODO.md` to establish strict documentation governance.
+
+### Changed
+- **Versioning**: Synchronized project versioning with `VERSION.md` (v1.3.3).
+- **Inference**: Patched `autochart_lib.py` for compatibility with `simfile` 2.1+ API.
+- **UI**: Improved model validation in `BatchDDC.cpp` to support PyTorch `.pth` files.
+
+## [1.3.2] - 2026-01-08
+...
 
 ## [1.3.1] - 2025-12-27
 
