@@ -6,16 +6,11 @@ namespace AV {
 
 // A row/value pair.
 template <typename T>
-struct SegmentRow {
-    Row row;
-    T value;
-};
+struct SegmentRow { Row row; T value; };
 
 // A change pair with before/after values.
 template <typename T>
-struct SegmentChange {
-    T before, after;
-};
+struct SegmentChange { T before, after; };
 
 // An intended modification for a segment track.
 template <typename T>
@@ -25,50 +20,46 @@ using SegmentModification = std::map<int, T>;
 template <typename T>
 using SegmentChanges = std::map<int, SegmentChange<T>>;
 
-// A track of segments that have a persistent effect from the current beat
-// onwards (e.g. BPM change).
+// A track of segments that have a persistent effect from the current beat onwards (e.g. BPM change).
 template <typename T>
-class PersistentSegmentTrack {
-   public:
-    typedef SegmentRow<T> Segment;
+class PersistentSegmentTrack
+{
+public:
+	typedef SegmentRow<T> Segment;
 
-    PersistentSegmentTrack();
+	PersistentSegmentTrack();
 
-    SegmentChanges<T> modify(const SegmentModification<T>& modification);
-    void reapply(const SegmentChanges<T>& changes);
-    void undo(const SegmentChanges<T>& changes);
+	SegmentChanges<T> modify(const SegmentModification<T>& modification);
+	void reapply(const SegmentChanges<T>& changes);
+	void undo(const SegmentChanges<T>& changes);
 
-    const T& get(Row row) const;
+	const T& get(Row row) const;
 
-    inline const Segment* begin() const { return mySegments.data(); }
-    inline const Segment* end() const {
-        return mySegments.data() + mySegments.size();
-    }
+	inline const Segment* begin() const { return mySegments.data(); }
+	inline const Segment* end() const { return mySegments.data() + mySegments.size(); }
 
-   private:
-    vector<Segment> mySegments;
+private:
+	vector<Segment> mySegments;
 };
 
-// A track of segments that have an isolated effect at the current beat (e.g.
-// stop).
+// A track of segments that have an isolated effect at the current beat (e.g. stop).
 template <typename T>
-class IsolatedSegmentTrack {
-   public:
-    typedef SegmentRow<T> Segment;
+class IsolatedSegmentTrack
+{
+public:
+	typedef SegmentRow<T> Segment;
 
-    SegmentChanges<T> modify(const SegmentModification<T>& modification);
-    void reapply(const SegmentChanges<T>& changes);
-    void undo(const SegmentChanges<T>& changes);
+	SegmentChanges<T> modify(const SegmentModification<T>& modification);
+	void reapply(const SegmentChanges<T>& changes);
+	void undo(const SegmentChanges<T>& changes);
 
-    const T* get(Row row) const;
+	const T* get(Row row) const;
 
-    inline const Segment* begin() const { return mySegments.data(); }
-    inline const Segment* end() const {
-        return mySegments.data() + mySegments.size();
-    }
+	inline const Segment* begin() const { return mySegments.data(); }
+	inline const Segment* end() const { return mySegments.data() + mySegments.size(); }
 
-   private:
-    vector<Segment> mySegments;
+private:
+	vector<Segment> mySegments;
 };
 
-}  // namespace AV
+} // namespace AV
