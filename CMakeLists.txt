@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.30)
+cmake_minimum_required(VERSION 3.28)
 
 set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
 
@@ -27,7 +27,7 @@ endif()
 
 include_directories("${PROJECT_SOURCE_DIR}/src")
 
-find_package(PkgConfig QUIET)
+find_package(PkgConfig REQUIRED)
 
 # Some things needed for macOS are available via Homebrew but not vcpkg.
 # To support both, we adjust PKG_CONFIG_PATH to include Homebrew paths.
@@ -46,40 +46,33 @@ if(APPLE)
 endif()
 
 find_package(aubio CONFIG QUIET)
-if(NOT aubio_FOUND AND PKG_CONFIG_FOUND)
+if(NOT aubio_FOUND)
     pkg_check_modules(aubio REQUIRED IMPORTED_TARGET aubio)
     message(STATUS "Found aubio via pkg-config (likely Homebrew)")
     add_library(Aubio::aubio ALIAS PkgConfig::aubio)
-elseif(aubio_FOUND)
+else()
     message(STATUS "Found aubio via CONFIG (likely vcpkg)")
 endif()
 
-find_package(FFMPEG QUIET)
-if(NOT FFMPEG_FOUND AND PKG_CONFIG_FOUND)
-    pkg_check_modules(FFMPEG REQUIRED IMPORTED_TARGET libavcodec libavformat libavutil libswscale)
-endif()
+pkg_check_modules(FFMPEG REQUIRED IMPORTED_TARGET libavcodec libavformat libavutil libswscale)
 
 find_package(Freetype REQUIRED)
 
 find_package(iir CONFIG QUIET)
-if(NOT iir_FOUND AND PKG_CONFIG_FOUND)
+if(NOT iir_FOUND)
     pkg_check_modules(iir REQUIRED IMPORTED_TARGET iir)
     message(STATUS "Found iir via pkg-config")
 else()
     message(STATUS "Found iir via CONFIG")
 endif()
 
-find_package(mad CONFIG QUIET)
-if(NOT mad_FOUND AND PKG_CONFIG_FOUND)
-    pkg_check_modules(MAD REQUIRED IMPORTED_TARGET mad)
-    # Without this alias, later references to MAD::MAD could fail
-    add_library(MAD::MAD ALIAS PkgConfig::MAD)
-elseif(mad_FOUND)
-    add_library(MAD::MAD ALIAS mad)
-endif()
+pkg_check_modules(MAD REQUIRED IMPORTED_TARGET mad)
+
+# Without this alias, later references to MAD::MAD could fail
+add_library(MAD::MAD ALIAS PkgConfig::MAD)
 
 find_package(Ogg CONFIG QUIET)
-if(NOT Ogg_FOUND AND PKG_CONFIG_FOUND)
+if(NOT Ogg_FOUND)
     pkg_check_modules(Ogg REQUIRED IMPORTED_TARGET ogg)
     message(STATUS "Found Ogg via pkg-config")
 else()
@@ -108,7 +101,7 @@ else()
 endif()
 
 find_package(Vorbis CONFIG QUIET)
-if(NOT Vorbis_FOUND AND PKG_CONFIG_FOUND)
+if(NOT Vorbis_FOUND)
     pkg_check_modules(Vorbis REQUIRED IMPORTED_TARGET vorbis vorbisfile)
     message(STATUS "Found Vorbis via pkg-config")
 else()

@@ -5,6 +5,7 @@
 ### Added
 - **AI Integration**: Restored and fully integrated the `lib/ddc` submodule using PyTorch.
 - **Model Training**: Successfully trained Onset Detection and FFR Difficulty models.
+- **Data Persistence**: Enabled Git tracking for DDC training data, extracted features, and resulting models to ensure reproducible research and deployment.
 - **Documentation**: Created `VISION.md`, `MEMORY.md`, `DEPLOY.md`, `IDEAS.md`, `ROADMAP.md`, and `TODO.md` to establish strict documentation governance.
 
 ### Changed
