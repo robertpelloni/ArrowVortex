@@ -15,7 +15,7 @@
    ```bash
    pip install -r requirements.txt
    pip install torch==2.2.0 torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu
-   pip install "numpy<2" "simfile<2.1"
+   pip install "numpy<2" "simfile>=2.1"
    ```
 
 ## Model Training
