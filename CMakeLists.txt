@@ -27,7 +27,7 @@ endif()
 
 include_directories("${PROJECT_SOURCE_DIR}/src")
 
-find_package(PkgConfig REQUIRED)
+find_package(PkgConfig QUIET)
 
 # Some things needed for macOS are available via Homebrew but not vcpkg.
 # To support both, we adjust PKG_CONFIG_PATH to include Homebrew paths.
@@ -46,33 +46,40 @@ if(APPLE)
 endif()
 
 find_package(aubio CONFIG QUIET)
-if(NOT aubio_FOUND)
+if(NOT aubio_FOUND AND PKG_CONFIG_FOUND)
     pkg_check_modules(aubio REQUIRED IMPORTED_TARGET aubio)
     message(STATUS "Found aubio via pkg-config (likely Homebrew)")
     add_library(Aubio::aubio ALIAS PkgConfig::aubio)
-else()
+elseif(aubio_FOUND)
     message(STATUS "Found aubio via CONFIG (likely vcpkg)")
 endif()
 
-pkg_check_modules(FFMPEG REQUIRED IMPORTED_TARGET libavcodec libavformat libavutil libswscale)
+find_package(FFMPEG QUIET)
+if(NOT FFMPEG_FOUND AND PKG_CONFIG_FOUND)
+    pkg_check_modules(FFMPEG REQUIRED IMPORTED_TARGET libavcodec libavformat libavutil libswscale)
+endif()
 
 find_package(Freetype REQUIRED)
 
 find_package(iir CONFIG QUIET)
-if(NOT iir_FOUND)
+if(NOT iir_FOUND AND PKG_CONFIG_FOUND)
     pkg_check_modules(iir REQUIRED IMPORTED_TARGET iir)
     message(STATUS "Found iir via pkg-config")
 else()
     message(STATUS "Found iir via CONFIG")
 endif()
 
-pkg_check_modules(MAD REQUIRED IMPORTED_TARGET mad)
-
-# Without this alias, later references to MAD::MAD could fail
-add_library(MAD::MAD ALIAS PkgConfig::MAD)
+find_package(mad CONFIG QUIET)
+if(NOT mad_FOUND AND PKG_CONFIG_FOUND)
+    pkg_check_modules(MAD REQUIRED IMPORTED_TARGET mad)
+    # Without this alias, later references to MAD::MAD could fail
+    add_library(MAD::MAD ALIAS PkgConfig::MAD)
+elseif(mad_FOUND)
+    add_library(MAD::MAD ALIAS mad)
+endif()
 
 find_package(Ogg CONFIG QUIET)
-if(NOT Ogg_FOUND)
+if(NOT Ogg_FOUND AND PKG_CONFIG_FOUND)
     pkg_check_modules(Ogg REQUIRED IMPORTED_TARGET ogg)
     message(STATUS "Found Ogg via pkg-config")
 else()
@@ -101,7 +108,7 @@ else()
 endif()
 
 find_package(Vorbis CONFIG QUIET)
-if(NOT Vorbis_FOUND)
+if(NOT Vorbis_FOUND AND PKG_CONFIG_FOUND)
     pkg_check_modules(Vorbis REQUIRED IMPORTED_TARGET vorbis vorbisfile)
     message(STATUS "Found Vorbis via pkg-config")
 else()
