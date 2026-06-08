@@ -217,9 +217,9 @@ _pkginfo.txt
 
 # Visual Studio cache files
 # files ending in .cache can be ignored
-*.[Cc]ache
+*.[Cc]cache
 # but keep track of directories ending in .cache
-!?*.[Cc]ache/
+!?*.[Cc]cache/
 
 # Others
 ClientBin/
@@ -382,14 +382,13 @@ FodyWeavers.xsd
 
 # JetBrains Rider
 *.sln.iml
-<<<<<<< HEAD
 
 .envrc
 .direnv
 shell.nix
 
 vcpkg_installed
-=======
+
 /bin/ArrowVortex_d.exe
 bin/settings/recent files.txt
 bin/settings/settings.txt
@@ -397,4 +396,5 @@ bin/ArrowVortex.exe
 /bin/ArrowVortex.exe
 /bin/settings/recent files.txt
 /bin/settings/settings.txt
->>>>>>> release
+
+build/
