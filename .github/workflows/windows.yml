@@ -57,6 +57,7 @@ jobs:
             bin/assets
             bin/noteskins
             bin/settings
+            bin/models
             bin/ArrowVortex.exe
             bin/oggenc2.exe
           if-no-files-found: error

@@ -119,6 +119,7 @@ install(TARGETS ArrowVortex RUNTIME)
 install(DIRECTORY bin/assets DESTINATION bin)
 install(DIRECTORY bin/noteskins DESTINATION bin)
 install(DIRECTORY bin/settings DESTINATION bin)
+install(DIRECTORY bin/models DESTINATION bin)
 
 file(GLOB_RECURSE path_sources "src/*.cpp" "src/*.hpp" "src/*.c" "src/*.h")
 add_custom_target(format ALL)
