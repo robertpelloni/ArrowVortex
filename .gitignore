@@ -396,7 +396,6 @@ FodyWeavers.xsd
 
 # JetBrains Rider
 *.sln.iml
-<<<<<<< HEAD
 
 .envrc
 .direnv
@@ -406,7 +405,6 @@ shell.nix
 vcpkg_installed
 build
 out
-=======
 /bin/ArrowVortex_d.exe
 bin/settings/recent files.txt
 bin/settings/settings.txt
@@ -415,6 +413,3 @@ build/VisualStudio/ArrowVortex.vcxproj
 /bin/ArrowVortex.exe
 /bin/settings/recent files.txt
 /bin/settings/settings.txt
-lib/ddc/
->>>>>>> release
-build/
