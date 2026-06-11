@@ -12,7 +12,16 @@
 
 namespace Vortex {
 
-DialogBatchDDC::~DialogBatchDDC() {}
+DialogBatchDDC::~DialogBatchDDC() {
+    if (myThread) {
+        myThread->terminate();
+        delete myThread;
+    }
+}
+
+void DialogBatchDDC::DDCThread::exec() {
+    success = gSystem->runSystemCommand(cmd);
+}
 
 DialogBatchDDC::DialogBatchDDC() {
     setTitle("BATCH DDC GENERATION");
@@ -97,9 +106,9 @@ void DialogBatchDDC::myCreateWidgets() {
 
     // Generate
     myLayout.row().col(300).h(30);
-    WgButton* genBtn = myLayout.add<WgButton>();
-    genBtn->text.set("GENERATE CHARTS");
-    genBtn->onPress.bind(this, &DialogBatchDDC::myGenerate);
+    myGenerateBtn = myLayout.add<WgButton>();
+    myGenerateBtn->text.set("GENERATE CHARTS");
+    myGenerateBtn->onPress.bind(this, &DialogBatchDDC::myGenerate);
 
     // Log
     myLayout.row().col(300).h(100);
@@ -168,7 +177,20 @@ void DialogBatchDDC::mySelectFFRModelDir() {
     }
 }
 
+void DialogBatchDDC::onTick() {
+    EditorDialog::onTick();
+
+    if (myThread && myThread->isDone()) {
+        myHandleCompletion();
+        delete myThread;
+        myThread = nullptr;
+        myGenerateBtn->setEnabled(true);
+    }
+}
+
 void DialogBatchDDC::myGenerate() {
+    if (myThread) return;
+
     // Clear previous log
     myLogBox->text.set("");
 
@@ -329,15 +351,21 @@ void DialogBatchDDC::myGenerate() {
     cmd += logPath;
     cmd += "\" 2>&1";
 
-    myUpdateLog("Executing command...");
+    myUpdateLog("Executing command in background...");
     myUpdateLog("(This may take several minutes depending on file count)");
     myUpdateLog("");  // Blank line for readability
 
-    // Note: This blocks the UI. For production, should use threading.
-    // TODO: Implement async execution with progress updates
-    bool success = gSystem->runSystemCommand(cmd);
+    myGenerateBtn->setEnabled(false);
+    myThread = new DDCThread();
+    myThread->cmd = cmd;
+    myThread->start();
+}
 
-    if (success) {
+void DialogBatchDDC::myHandleCompletion() {
+    String exeDir = gSystem->getExeDir();
+    String logPath = Path(exeDir, "ddc_log.txt");
+
+    if (myThread->success) {
         myUpdateLog("");
         myUpdateLog("Command completed.");
         myUpdateLog("Reading output log...");

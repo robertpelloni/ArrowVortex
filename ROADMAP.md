@@ -1,13 +1,13 @@
 # Project Roadmap
 
-## Phase 1: Robust DDC Integration (Current)
+## Phase 1: Robust DDC Integration
 - [x] Restore DDC submodule and Python environment.
 - [x] Train baseline models for all difficulties.
 - [x] Enable PyTorch support in frontend.
 - [x] End-to-end verification for major genres.
 
-## Phase 2: User Experience & Stability
-- [ ] Implement asynchronous DDC generation with non-blocking UI.
+## Phase 2: User Experience & Stability (Current)
+- [x] Implement asynchronous DDC generation with non-blocking UI.
 - [ ] Add real-time progress bars and log streaming to the Batch DDC dialog.
 - [ ] Automated model download/update system within the editor.
 
