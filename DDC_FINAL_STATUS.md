@@ -13,10 +13,11 @@ The migration of the Dance Dance Convolution (DDC) AI backend from TensorFlow to
 
 ### 2. End-to-End Manual Verification
 - **Status**: PASSED
-- **Test Sample**: 120 BPM rhythmic track (`rhythmic_test.wav`)
+- **Test Sample**: 120 BPM rhythmic track (`final_verification.wav`)
 - **Results**:
   - BPM Detected: 120.18 BPM
-  - Difficulty Rated (Double): 6.794
+  - Difficulty Rated (Single): 6.335
+  - Difficulty Rated (Double): 5.924
   - Chart Integrity: Successfully generated valid `.sm` structure with both modes.
 
 ### 3. UI Asynchronous Workflow (Audit)
