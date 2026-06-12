@@ -396,20 +396,4 @@ FodyWeavers.xsd
 
 # JetBrains Rider
 *.sln.iml
-
-.envrc
-.direnv
-shell.nix
-
-# vcpkg and building-related
-vcpkg_installed
-build
-out
-/bin/ArrowVortex_d.exe
-bin/settings/recent files.txt
-bin/settings/settings.txt
-bin/ArrowVortex.exe
-build/VisualStudio/ArrowVortex.vcxproj
-/bin/ArrowVortex.exe
-/bin/settings/recent files.txt
-/bin/settings/settings.txt
+build/
