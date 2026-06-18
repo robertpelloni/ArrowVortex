@@ -13,17 +13,13 @@
 
 namespace Vortex {
 
-struct DialogBatchDDC::DDCThread : public BackgroundThread
-{
+struct DialogBatchDDC::DDCThread : public BackgroundThread {
     String cmd;
     bool success = false;
 
     DDCThread(StringRef c) : cmd(c) {}
 
-    void exec() override
-    {
-        success = gSystem->runSystemCommand(cmd);
-    }
+    void exec() override { success = gSystem->runSystemCommand(cmd); }
 };
 
 DialogBatchDDC::~DialogBatchDDC() {
@@ -424,7 +420,8 @@ void DialogBatchDDC::onTick() {
                 myUpdateLog("Possible reasons:");
                 myUpdateLog("- Python not found or not installed");
                 myUpdateLog(
-                    "- Required Python packages not installed (run: pip install -r "
+                    "- Required Python packages not installed (run: pip "
+                    "install -r "
                     "lib/ddc/requirements.txt)");
                 myUpdateLog("- Invalid file paths");
                 myUpdateLog("- Models not trained");
