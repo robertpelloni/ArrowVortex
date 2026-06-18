@@ -5,40 +5,33 @@
 
 namespace Vortex {
 
-class DialogBatchDDC : public EditorDialog {
-   public:
-    ~DialogBatchDDC();
-    DialogBatchDDC();
+class DialogBatchDDC : public EditorDialog
+{
+public:
+	~DialogBatchDDC();
+	DialogBatchDDC();
 
-    void onTick() override;
+private:
+	void myCreateWidgets();
+	void myAddFiles();
+	void myAddFolder();
+	void myRemoveFiles();
+	void mySelectOutDir();
+	void mySelectModelDir();
+	void mySelectFFRModelDir();
+	void myGenerate();
+	void myUpdateLog(StringRef text);
 
-   private:
-    void myCreateWidgets();
-    void myAddFiles();
-    void myAddFolder();
-    void myRemoveFiles();
-    void mySelectOutDir();
-    void mySelectModelDir();
-    void mySelectFFRModelDir();
-    void myGenerate();
-    void myUpdateLog(StringRef text);
+	WgListbox* myFileList;
+	WgTextbox* myOutDirBox;
+	WgTextbox* myModelDirBox;
+	WgTextbox* myFFRModelDirBox;
+	WgTextbox* myLogBox;
 
-    WgListbox* myFileList;
-    WgTextbox* myOutDirBox;
-    WgTextbox* myModelDirBox;
-    WgTextbox* myFFRModelDirBox;
-    WgTextbox* myLogBox;
-    WgButton* myGenBtn;
-
-    Vector<String> myFiles;
-    String myOutDir;
-    String myModelDir;
-    String myFFRModelDir;
-
-    struct DDCThread;
-    DDCThread* myThread = nullptr;
-    bool isGenerating = false;
-    int myLastLogReadPos = 0;
+	Vector<String> myFiles;
+	String myOutDir;
+	String myModelDir;
+	String myFFRModelDir;
 };
 
-};  // namespace Vortex
+}; // namespace Vortex

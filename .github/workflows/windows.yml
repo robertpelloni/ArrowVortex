@@ -23,7 +23,7 @@ jobs:
       - name: Obtain oggenc2.exe
         run: >
           curl https://www.rarewares.org/files/ogg/oggenc2.88-1.3.7-x64.zip --output oggenc.zip &&
-          unzip -o oggenc.zip -d bin/
+          unzip oggenc.zip -d bin/
         shell: bash
       - name: Add NuGet sources
         shell: pwsh
