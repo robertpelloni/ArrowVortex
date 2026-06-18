@@ -11,6 +11,8 @@ public:
 	~DialogBatchDDC();
 	DialogBatchDDC();
 
+	void onTick() override;
+
 private:
 	void myCreateWidgets();
 	void myAddFiles();
@@ -27,11 +29,17 @@ private:
 	WgTextbox* myModelDirBox;
 	WgTextbox* myFFRModelDirBox;
 	WgTextbox* myLogBox;
+	WgButton* myGenBtn;
 	
 	Vector<String> myFiles;
 	String myOutDir;
 	String myModelDir;
 	String myFFRModelDir;
+
+	struct DDCThread;
+	DDCThread* myThread = nullptr;
+	bool isGenerating = false;
+	int myLastLogReadPos = 0;
 };
 
 }; // namespace Vortex

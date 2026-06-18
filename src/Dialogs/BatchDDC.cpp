@@ -4,6 +4,7 @@
 #include <System/System.h>
 #include <System/File.h>
 #include <Core/Utils.h>
+#include <System/Thread.h>
 #include <thread>
 
 #define WIN32_LEAN_AND_MEAN
@@ -12,7 +13,26 @@
 
 namespace Vortex {
 
-DialogBatchDDC::~DialogBatchDDC() {}
+struct DialogBatchDDC::DDCThread : public BackgroundThread
+{
+    String cmd;
+    bool success = false;
+
+    DDCThread(StringRef c) : cmd(c) {}
+
+    void exec() override
+    {
+        success = gSystem->runSystemCommand(cmd);
+    }
+};
+
+DialogBatchDDC::~DialogBatchDDC() {
+    if (myThread) {
+        myThread->terminate();
+        delete myThread;
+        myThread = nullptr;
+    }
+}
 
 DialogBatchDDC::DialogBatchDDC() {
     setTitle("BATCH DDC GENERATION");
@@ -97,9 +117,9 @@ void DialogBatchDDC::myCreateWidgets() {
 
     // Generate
     myLayout.row().col(300).h(30);
-    WgButton* genBtn = myLayout.add<WgButton>();
-    genBtn->text.set("GENERATE CHARTS");
-    genBtn->onPress.bind(this, &DialogBatchDDC::myGenerate);
+    myGenBtn = myLayout.add<WgButton>();
+    myGenBtn->text.set("GENERATE CHARTS");
+    myGenBtn->onPress.bind(this, &DialogBatchDDC::myGenerate);
 
     // Log
     myLayout.row().col(300).h(100);
@@ -333,58 +353,15 @@ void DialogBatchDDC::myGenerate() {
     myUpdateLog("(This may take several minutes depending on file count)");
     myUpdateLog("");  // Blank line for readability
 
-    // Note: This blocks the UI. For production, should use threading.
-    // TODO: Implement async execution with progress updates
-    bool success = gSystem->runSystemCommand(cmd);
+    // Ensure we start reading from the beginning of the new log
+    myLastLogReadPos = 0;
 
-    if (success) {
-        myUpdateLog("");
-        myUpdateLog("Command completed.");
-        myUpdateLog("Reading output log...");
+    // Start background thread
+    myThread = new DDCThread(cmd);
+    myThread->start();
 
-        // Read log file
-        FileReader reader;
-        if (reader.open(logPath)) {
-            String logContent;
-            char buf[4096];
-            int totalRead = 0;
-            while (true) {
-                int read = reader.read(buf, 1, 4095);
-                if (read <= 0) break;
-                buf[read] = 0;
-                logContent += buf;
-                totalRead += read;
-
-                // Limit log size to prevent UI issues
-                if (totalRead > 100000) {
-                    logContent += "\n...[Log truncated, too large]...";
-                    break;
-                }
-            }
-            reader.close();
-
-            myUpdateLog("--- DDC OUTPUT ---");
-            myUpdateLog(logContent);
-            myUpdateLog("--- END OUTPUT ---");
-            myUpdateLog("");
-            myUpdateLog("Generation complete!");
-            myUpdateLog("Check output directory: " + myOutDir);
-        } else {
-            myUpdateLog("ERROR: Could not read log file: " + logPath);
-        }
-    } else {
-        myUpdateLog("");
-        myUpdateLog("ERROR: Command failed to execute.");
-        myUpdateLog("Possible reasons:");
-        myUpdateLog("- Python not found or not installed");
-        myUpdateLog(
-            "- Required Python packages not installed (run: pip install -r "
-            "lib/ddc/requirements.txt)");
-        myUpdateLog("- Invalid file paths");
-        myUpdateLog("- Models not trained");
-        myUpdateLog("");
-        myUpdateLog("Check the log file for details: " + logPath);
-    }
+    isGenerating = true;
+    myGenBtn->setEnabled(false);
 }
 
 void DialogBatchDDC::myUpdateLog(StringRef text) {
@@ -392,6 +369,73 @@ void DialogBatchDDC::myUpdateLog(StringRef text) {
     if (current.len()) current += "\n";
     current += text;
     myLogBox->text.set(current);
+}
+
+void DialogBatchDDC::onTick() {
+    EditorDialog::onTick();
+
+    if (isGenerating && myThread) {
+        String exeDir = gSystem->getExeDir();
+        String logPath = Path(exeDir, "ddc_log.txt");
+
+        // Periodically read log
+        FileReader reader;
+        if (reader.open(logPath)) {
+            reader.seek(myLastLogReadPos);
+            String newContent;
+            char buf[4096];
+            while (true) {
+                int read = reader.read(buf, 1, 4095);
+                if (read <= 0) break;
+                buf[read] = 0;
+                newContent += buf;
+            }
+            myLastLogReadPos = reader.tell();
+            reader.close();
+
+            if (newContent.len() > 0) {
+                // Ensure we don't spam newlines if content already has them
+                String current = myLogBox->text.get();
+                current += newContent;
+
+                // Limit log size to prevent UI issues
+                if (current.len() > 100000) {
+                    current = current.substr(current.len() - 100000);
+                }
+
+                myLogBox->text.set(current);
+            }
+        }
+
+        if (myThread->isDone()) {
+            bool success = myThread->success;
+
+            myThread->waitUntilDone();
+            delete myThread;
+            myThread = nullptr;
+
+            if (success) {
+                myUpdateLog("");
+                myUpdateLog("Generation complete!");
+                myUpdateLog("Check output directory: " + myOutDir);
+            } else {
+                myUpdateLog("");
+                myUpdateLog("ERROR: Command failed to execute.");
+                myUpdateLog("Possible reasons:");
+                myUpdateLog("- Python not found or not installed");
+                myUpdateLog(
+                    "- Required Python packages not installed (run: pip install -r "
+                    "lib/ddc/requirements.txt)");
+                myUpdateLog("- Invalid file paths");
+                myUpdateLog("- Models not trained");
+                myUpdateLog("");
+                myUpdateLog("Check the log file for details: " + logPath);
+            }
+
+            isGenerating = false;
+            myGenBtn->setEnabled(true);
+        }
+    }
 }
 
 };  // namespace Vortex
