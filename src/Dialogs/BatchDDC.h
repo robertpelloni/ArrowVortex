@@ -21,6 +21,7 @@ class DialogBatchDDC : public EditorDialog {
     void mySelectModelDir();
     void mySelectFFRModelDir();
     void myGenerate();
+    void myCancel();
     void myUpdateLog(StringRef text);
 
     WgListbox* myFileList;
@@ -29,6 +30,7 @@ class DialogBatchDDC : public EditorDialog {
     WgTextbox* myFFRModelDirBox;
     WgTextbox* myLogBox;
     WgButton* myGenBtn;
+    WgButton* myCancelBtn;
 
     Vector<String> myFiles;
     String myOutDir;

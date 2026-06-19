@@ -111,11 +111,16 @@ void DialogBatchDDC::myCreateWidgets() {
     ffrModelBtn->text.set("...");
     ffrModelBtn->onPress.bind(this, &DialogBatchDDC::mySelectFFRModelDir);
 
-    // Generate
-    myLayout.row().col(300).h(30);
+    // Generate and Cancel
+    myLayout.row().col(190).col(10).col(100).h(30);
     myGenBtn = myLayout.add<WgButton>();
     myGenBtn->text.set("GENERATE CHARTS");
     myGenBtn->onPress.bind(this, &DialogBatchDDC::myGenerate);
+
+    myCancelBtn = myLayout.add<WgButton>();
+    myCancelBtn->text.set("CANCEL");
+    myCancelBtn->onPress.bind(this, &DialogBatchDDC::myCancel);
+    myCancelBtn->setEnabled(false);
 
     // Log
     myLayout.row().col(300).h(100);
@@ -358,6 +363,21 @@ void DialogBatchDDC::myGenerate() {
 
     isGenerating = true;
     myGenBtn->setEnabled(false);
+    myCancelBtn->setEnabled(true);
+}
+
+void DialogBatchDDC::myCancel() {
+    if (isGenerating && myThread) {
+        myUpdateLog("Cancelling generation...");
+        myThread->terminate();
+        delete myThread;
+        myThread = nullptr;
+
+        isGenerating = false;
+        myGenBtn->setEnabled(true);
+        myCancelBtn->setEnabled(false);
+        myUpdateLog("Generation cancelled.");
+    }
 }
 
 void DialogBatchDDC::myUpdateLog(StringRef text) {
@@ -431,6 +451,7 @@ void DialogBatchDDC::onTick() {
 
             isGenerating = false;
             myGenBtn->setEnabled(true);
+            myCancelBtn->setEnabled(false);
         }
     }
 }
