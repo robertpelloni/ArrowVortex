@@ -1,16 +1,12 @@
 # Task List (TODO)
 
 ## Immediate
-- [x] Restore `lib/ddc` and set up `ddc_env`.
-- [x] Complete feature extraction for the full DDR dataset.
-- [x] Train Onset and FFR models.
-- [x] Implement PyTorch model detection in `BatchDDC.cpp`.
-- [x] Patch `autochart_lib.py` for `simfile` 2.1+ compatibility.
+- [x] Add a "Cancel" button to the Batch DDC Generation dialog to explicitly terminate the `BackgroundThread`.
+- [ ] Implement multi-threading for `myGenerate()` in `BatchDDC.cpp` (Currently handled by BackgroundThread, need to add progress bar integration).
+- [ ] Implement an automated model download/update system within the editor to fetch PyTorch models dynamically.
 
 ## Short-term
 - [ ] Complete SymNet training for remaining 9 difficulty buckets.
-- [ ] Implement multi-threading for `myGenerate()` in `BatchDDC.cpp`.
-- [ ] Add a "Cancel" button to the Batch DDC Generation dialog.
 - [ ] Improve metadata extraction for obscure audio formats.
 
 ## Documentation
