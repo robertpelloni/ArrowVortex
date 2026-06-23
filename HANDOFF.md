@@ -1,23 +1,21 @@
-# Handoff: Asynchronous UI & DDC Batch Generation
+# Handoff: Automated Model Downloader
 
 ## Overview
-Successfully implemented the asynchronous `BackgroundThread` for the Python DDC subprocess, allowing for non-blocking UI interactions during chart generation. Real-time log streaming from the background process to the UI text box was completed.
+Implemented the automated model downloader UI within the ArrowVortex editor. This feature fetches the necessary PyTorch models for the Dance Dance Convolution (DDC) pipeline dynamically, simplifying user setup.
 
 ## Key Accomplishments
 
-### 1. Asynchronous Execution
-- **`BackgroundThread` Inheritance**: `DialogBatchDDC` now spawns a `DDCThread` rather than calling the blocking `System::runSystemCommand()` directly on the main thread.
-- **Log Streaming**: The `EditorDialog::onTick()` method polls the thread and utilizes `FileReader::seek` to incrementally read from the external `ddc_log.txt`, dynamically updating the `WgTextbox` without locking the file.
-- **UI Cancellation**: Added an explicit `WgButton` "Cancel" widget that safely terminates the background thread, halts Python execution, cleans up memory pointers, and restores UI widget interaction states cleanly.
+### 1. UI Integration
+- Created `DialogDownloadModels` utilizing the `BackgroundThread` async pattern to prevent UI locking during heavy network operations.
+- Wired the new dialog into the main application menu under `File -> Download DDC Models...`
+- Handled UI destruction and thread cancellation loops to safely handle mid-download aborts by the user.
 
-### 2. CI & Bug Fixes
-- **Python Serialization**: Fixed a crash in `lib/ddc/autochart_lib.py` by swapping `SMSimfile(string="")` for `SMSimfile.blank()` to avoid "None" literal injections during `.sm` export.
-- **GitHub Actions**: Verified the `unzip -o` flags are functional and bypassing overwrite prompts.
+### 2. Download Execution
+- Leverages the internal Python environment and `download_data.py` (with the `--models_only` flag assumption) to manage the actual artifact retrieval and placement into the `models/` directory.
 
 ## Documentation Governance
-- **ROADMAP.md**: Phase 2 (Asynchronous execution & log streaming) is checked off.
-- **TODO.md**: Updated to reflect the completion of the "Cancel" button.
+- **ROADMAP.md**: Phase 2 (Automated model download/update system) is fully checked off.
 
 ## Next Steps for Successor
-- **Progress Bar Integration**: The DDC batch dialog now streams logs nicely, but does not display a graphical progress bar.
-- **Model Downloader**: Analyze `src/System/System.h` and write native Windows or libcurl (if available) C++ logic to download trained PyTorch models dynamically via the editor UI.
+- Phase 2 is functionally complete minus a graphical progress bar for the batch generator, which can be implemented iteratively.
+- The project is ready to begin **Phase 3: Bobcoin Integration**, focusing on "Proof of Dance" mechanics.
