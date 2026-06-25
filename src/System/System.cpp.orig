@@ -1,10 +1,7 @@
-#ifdef _WIN32
-#  ifndef NDEBUG
+#ifndef NDEBUG
 #define CRTDBG_MAP_ALLOC
 #include <stdlib.h>
 #include <crtdbg.h>
-#  endif
-#  define UNICODE
 #endif
 
 #include <System/System.h>
@@ -105,7 +102,7 @@ static const int VKtoKCmap[] =
 	VK_SEPARATOR, Key::NUMPAD_SEPERATOR,
 };
 
-// Translates a dialog button type to a windows message box type. 
+// Translates a dialog button type to a windows message box type.
 static int sDlgType[System::NUM_BUTTONS] = {MB_OK, MB_OKCANCEL, MB_YESNO, MB_YESNOCANCEL};
 
 // Translates a dialog icon type to a windows message box icon.
@@ -166,7 +163,7 @@ static bool LogCheckpoint(bool result, const char* description)
 			code,
 			MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
 			lpMsgBuf,
-			60, 
+			60,
 			NULL);
 		Debug::blockBegin(Debug::ERROR, description);
 		Debug::log("windows error code %i: %s", code, lpMsgBuf);
@@ -283,7 +280,7 @@ SystemImpl()
 	wndclass.hIcon = LoadIcon(myInstance, MAKEINTRESOURCE(MAIN_ICON));
 	wndclass.hCursor = LoadCursor(nullptr, IDC_ARROW);
 	wndclass.lpszClassName = myClassName;
-	
+
 	ATOM classAtom = RegisterClassW(&wndclass);
 	if(LogCheckpoint(classAtom != 0, "registering window class")) return;
 
@@ -554,7 +551,7 @@ bool setClipboardText(StringRef text)
 	{
 		EmptyClipboard();
 		WideString wtext = Widen(text);
-		size_t size = sizeof(wchar_t) * (wtext.length() + 1);		
+		size_t size = sizeof(wchar_t) * (wtext.length() + 1);
 		HGLOBAL bufferHandle = GlobalAlloc(GMEM_DDESHARE, size);
 		char* buffer = (char*)GlobalLock(bufferHandle);
 		if(buffer)
@@ -919,7 +916,7 @@ bool runSystemCommand(StringRef cmd, CommandPipe* pipe, void* buffer)
 	HANDLE readPipe, writePipe;
 	if(pipe)
 	{
-		// Set the bInheritHandle flag so pipe handles are inherited. 
+		// Set the bInheritHandle flag so pipe handles are inherited.
 		SECURITY_ATTRIBUTES attr;
 		attr.nLength = sizeof(SECURITY_ATTRIBUTES);
 		attr.bInheritHandle = TRUE;

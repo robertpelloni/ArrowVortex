@@ -79,3 +79,14 @@
 
 ## [1.1.0] - Previous Release
 - Initial DDreamStudio feature integration.
+
+## [1.3.4] - 2026-06-22
+
+### Added
+- **Automated DDC Downloader**: Added a new dialog (`File -> Download DDC Models`) to asynchronously fetch the required PyTorch models directly into the `models/` directory without blocking the UI.
+- **Batch DDC Cancellations**: Added an explicit UI "CANCEL" button to the Batch DDC Generation window, cleanly terminating the background thread and subprocess.
+- **Log Streaming**: Replaced blocking system commands with a `BackgroundThread` and `onTick` file streaming implementation to provide real-time textual feedback during ML generation.
+
+### Changed
+- **Python Serialization**: Fixed a crash in the ML backend where literal "None" strings were polluting serialized `.sm` files.
+- **Merge Governance**: Synced active feature branches into `main` and fully resolved overlapping UI framework conflicts.
