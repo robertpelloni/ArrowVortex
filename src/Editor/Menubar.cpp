@@ -125,6 +125,7 @@ void init(Item* menu)
 	sep(hFile);
 	add(hFile, OPEN_DIALOG_SONG_PROPERTIES, "Properties...");
 	add(hFile, OPEN_DIALOG_BATCH_DDC, "Batch DDC Generation...");
+	add(hFile, OPEN_DIALOG_DOWNLOAD_MODELS, "Download DDC Models...");
 	sep(hFile);
 	add(hFile, EXIT_PROGRAM, "Exit");
 	myFileMenu = hFile;

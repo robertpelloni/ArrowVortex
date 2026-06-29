@@ -275,6 +275,8 @@ void Action::perform(Type action)
 		gEditor->openDialog(DIALOG_PREFERENCES);
 	CASE(OPEN_DIALOG_BATCH_DDC)
 		gEditor->openDialog(DIALOG_BATCH_DDC);
+	CASE(OPEN_DIALOG_DOWNLOAD_MODELS)
+		gEditor->openDialog(DIALOG_DOWNLOAD_MODELS);
 	CASE(OPEN_DIALOG_THEME_EDITOR)
 		gEditor->openDialog(DIALOG_THEME_EDITOR);
 
