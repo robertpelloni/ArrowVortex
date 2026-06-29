@@ -1,10 +1,7 @@
-#ifdef _WIN32
-#  ifndef NDEBUG
+#ifndef NDEBUG
 #define CRTDBG_MAP_ALLOC
 #include <stdlib.h>
 #include <crtdbg.h>
-#  endif
-#  define UNICODE
 #endif
 
 #include <System/System.h>

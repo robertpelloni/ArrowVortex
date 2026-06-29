@@ -19,6 +19,7 @@ class DialogDownloadModels : public EditorDialog {
     void myUpdateLog(StringRef text);
 
     WgTextbox* myLogBox;
+    WgProgressBar* myProgressBar;
     WgButton* myDownloadBtn;
     WgButton* myCancelBtn;
 

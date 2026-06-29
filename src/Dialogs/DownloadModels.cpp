@@ -38,6 +38,12 @@ void DialogDownloadModels::myCreateWidgets() {
     myLayout.addSpace(10);
 
     myLayout.row().col(380).h(30);
+    myProgressBar = myLayout.add<WgProgressBar>();
+    myProgressBar->setProgress(0.0f);
+
+    myLayout.addSpace(10);
+
+    myLayout.row().col(380).h(30);
     WgSection* btnSec = myLayout.add<WgSection>();
     btnSec->row().col(180).col(180).h(30);
 
@@ -52,7 +58,7 @@ void DialogDownloadModels::myCreateWidgets() {
 
     myLayout.addSpace(10);
 
-    myLayout.row().col(380).h(180);
+    myLayout.row().col(380).h(140);
     myLogBox = myLayout.add<WgTextbox>();
     myLogBox->setMultiline(true);
     myLogBox->setReadOnly(true);
@@ -94,6 +100,7 @@ void DialogDownloadModels::myStartDownload() {
     myLastLogReadPos = 0;
 
     myThread = new DownloadThread(cmd);
+    myProgressBar->setProgress(0.0f);
     myThread->start();
 
     isDownloading = true;
@@ -118,6 +125,7 @@ void DialogDownloadModels::myUpdateLog(StringRef text) {
     if (current.len()) current += "\n";
     current += text;
     myLogBox->text.set(current);
+
 }
 
 void DialogDownloadModels::onTick() {
@@ -148,6 +156,11 @@ void DialogDownloadModels::onTick() {
                     current = current.substr(current.len() - 100000);
                 }
                 myLogBox->text.set(current);
+                size_t pctPos = newContent.find("%|");
+                if (pctPos != String::npos) {
+                    myProgressBar->setProgress(myProgressBar->getProgress() + 0.05f);
+                }
+                myLogBox->setScrollPos(1.0);
             }
         }
 
@@ -160,6 +173,7 @@ void DialogDownloadModels::onTick() {
 
             if (success) {
                 myUpdateLog("\nDownload complete!");
+                myProgressBar->setProgress(1.0f);
             } else {
                 myUpdateLog("\nERROR: Download failed. Check log for details.");
             }
