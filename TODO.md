@@ -9,8 +9,8 @@
 
 ## Short-term
 - [ ] Complete SymNet training for remaining 9 difficulty buckets.
-- [ ] Implement multi-threading for `myGenerate()` in `BatchDDC.cpp`.
-- [ ] Add a "Cancel" button to the Batch DDC Generation dialog.
+- [x] Implement multi-threading for `myGenerate()` in `BatchDDC.cpp`.
+- [x] Add a "Cancel" button to the Batch DDC Generation dialog.
 - [ ] Improve metadata extraction for obscure audio formats.
 
 ## Documentation
