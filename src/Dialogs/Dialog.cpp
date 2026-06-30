@@ -25,6 +25,7 @@ static const char* IdStrings[NUM_DIALOG_IDS] =
 	"bgChanges",
 	"preferences",
 	"batchDDC",
+	"downloadModels",
 	"themeEditor"
 };
 

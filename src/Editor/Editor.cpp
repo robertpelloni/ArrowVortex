@@ -51,6 +51,8 @@
 #include <Dialogs/GenerateNotes.h>
 #include <Dialogs/WaveformSettings.h>
 #include <Dialogs/Zoom.h>
+#include <Dialogs/BatchDDC.h>
+#include <Dialogs/DownloadModels.h>
 
 #include <algorithm>
 
@@ -748,6 +750,10 @@ void handleDialogOpening(DialogId id, recti rect)
 		dlg = new DialogWaveformSettings; break;
 	case DIALOG_ZOOM:
 		dlg = new DialogZoom; break;
+	case DIALOG_BATCH_DDC:
+		dlg = new DialogBatchDDC; break;
+	case DIALOG_DOWNLOAD_MODELS:
+		dlg = new DialogDownloadModels; break;
 	};
 
 	dlg->setId(id);

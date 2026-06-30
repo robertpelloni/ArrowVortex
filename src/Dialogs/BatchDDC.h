@@ -21,8 +21,8 @@ class DialogBatchDDC : public EditorDialog {
     void mySelectModelDir();
     void mySelectFFRModelDir();
     void myGenerate();
-    void myCancel();
     void myUpdateLog(StringRef text);
+    void myCancel();
 
     WgListbox* myFileList;
     WgTextbox* myOutDirBox;
