@@ -123,6 +123,11 @@ void DialogBatchDDC::myCreateWidgets() {
     myCancelBtn->onPress.bind(this, &DialogBatchDDC::myCancel);
     myCancelBtn->setEnabled(false);
 
+    // Progress Bar
+    myLayout.row().col(300).h(30);
+    myProgressBar = myLayout.add<WgProgressBar>();
+    myProgressBar->setProgress(0.0f);
+
     // Log
     myLayout.row().col(300).h(100);
     myLogBox = myLayout.add<WgTextbox>();
@@ -358,6 +363,9 @@ void DialogBatchDDC::myGenerate() {
     // Ensure we start reading from the beginning of the new log
     myLastLogReadPos = 0;
 
+    // Reset progress
+    myProgressBar->setProgress(0.0f);
+
     // Start background thread
     myThread = new DDCThread(cmd);
     myThread->start();
@@ -419,6 +427,24 @@ void DialogBatchDDC::onTick() {
                 }
 
                 myLogBox->text.set(current);
+
+                // Update progress based on "Processing " mentions
+                // Note: autochart_lib.py prints "Processing <file>..."
+                int processedCount = 0;
+                size_t pos = 0;
+                while ((pos = current.find("Processing ", pos)) != String::npos) {
+                    processedCount++;
+                    pos += 11; // length of "Processing "
+                }
+
+                // Approximate total count
+                int totalCount = myFiles.size();
+                if (totalCount > 0) {
+                    // It could be more if they selected folders, but we estimate based on files/folders added
+                    // Limit to 0.99 so it doesn't look fully done until the thread actually finishes
+                    float progress = min(0.99f, static_cast<float>(processedCount) / static_cast<float>(totalCount));
+                    myProgressBar->setProgress(progress);
+                }
             }
         }
 
@@ -430,6 +456,7 @@ void DialogBatchDDC::onTick() {
             myThread = nullptr;
 
             if (success) {
+                myProgressBar->setProgress(1.0f);
                 myUpdateLog("");
                 myUpdateLog("Generation complete!");
                 myUpdateLog("Check output directory: " + myOutDir);

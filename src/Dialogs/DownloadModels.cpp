@@ -156,9 +156,24 @@ void DialogDownloadModels::onTick() {
                     current = current.substr(current.len() - 100000);
                 }
                 myLogBox->text.set(current);
-                size_t pctPos = newContent.find("%|");
+
+                // Parse percentage from our new log format: "Downloading: 45%|"
+                size_t pctPos = newContent.rfind("Downloading: ");
                 if (pctPos != String::npos) {
-                    myProgressBar->setProgress(myProgressBar->getProgress() + 0.05f);
+                    size_t endPos = newContent.find("%|", pctPos);
+                    if (endPos != String::npos) {
+                        String pctStr = newContent.substr(pctPos + 13, endPos - (pctPos + 13));
+                        try {
+                            float pct = std::stof(pctStr.str());
+                            myProgressBar->setProgress(pct / 100.0f);
+                        } catch (...) {}
+                    }
+                } else {
+                    // Fallback to older mechanism if present
+                    size_t pctPosOld = newContent.find("%|");
+                    if (pctPosOld != String::npos) {
+                        myProgressBar->setProgress(myProgressBar->getProgress() + 0.05f);
+                    }
                 }
                 myLogBox->setScrollPos(1.0);
             }
