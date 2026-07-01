@@ -115,6 +115,7 @@ add_subdirectory(src/Dialogs)
 add_subdirectory(src/Editor)
 add_subdirectory(src/Managers)
 add_subdirectory(src/Simfile)
+add_subdirectory(lib/bobcoin)
 add_subdirectory(src/System)
 
 install(TARGETS ArrowVortex RUNTIME)
