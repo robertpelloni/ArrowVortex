@@ -6,21 +6,20 @@
 
 namespace Vortex {
 
-class DialogGoTo : public EditorDialog
-{
-public:
-	~DialogGoTo();
-	DialogGoTo();
+class DialogGoTo : public EditorDialog {
+   public:
+    ~DialogGoTo();
+    DialogGoTo();
 
-	void onChanges(int changes) override;
+    void onChanges(int changes) override;
 
-private:
-	void myCreateWidgets();
-	void myUpdateWidgets();
-	void onGo();
+   private:
+    void myCreateWidgets();
+    void myUpdateWidgets();
+    void onGo();
 
-	WgLineEdit* myInput;
-	String myValue;
+    WgLineEdit* myInput;
+    String myValue;
 };
 
-}; // namespace Vortex
+};  // namespace Vortex
