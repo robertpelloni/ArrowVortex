@@ -27,7 +27,7 @@ endif()
 
 include_directories("${PROJECT_SOURCE_DIR}/src")
 
-find_package(PkgConfig REQUIRED)
+find_package(PkgConfig)
 
 # Some things needed for macOS are available via Homebrew but not vcpkg.
 # To support both, we adjust PKG_CONFIG_PATH to include Homebrew paths.
@@ -47,7 +47,7 @@ endif()
 
 find_package(aubio CONFIG QUIET)
 if(NOT aubio_FOUND)
-    pkg_check_modules(aubio REQUIRED IMPORTED_TARGET aubio)
+    pkg_check_modules(aubio IMPORTED_TARGET aubio)
     message(STATUS "Found aubio via pkg-config (likely Homebrew)")
     add_library(Aubio::aubio ALIAS PkgConfig::aubio)
 else()
@@ -60,20 +60,22 @@ find_package(Freetype REQUIRED)
 
 find_package(iir CONFIG QUIET)
 if(NOT iir_FOUND)
-    pkg_check_modules(iir REQUIRED IMPORTED_TARGET iir)
+    pkg_check_modules(iir IMPORTED_TARGET iir)
     message(STATUS "Found iir via pkg-config")
 else()
     message(STATUS "Found iir via CONFIG")
 endif()
 
-pkg_check_modules(MAD REQUIRED IMPORTED_TARGET mad)
+pkg_check_modules(MAD IMPORTED_TARGET mad)
 
-# Without this alias, later references to MAD::MAD could fail
-add_library(MAD::MAD ALIAS PkgConfig::MAD)
+if(MAD_FOUND)
+    # Without this alias, later references to MAD::MAD could fail
+    add_library(MAD::MAD ALIAS PkgConfig::MAD)
+endif()
 
 find_package(Ogg CONFIG QUIET)
 if(NOT Ogg_FOUND)
-    pkg_check_modules(Ogg REQUIRED IMPORTED_TARGET ogg)
+    pkg_check_modules(Ogg IMPORTED_TARGET ogg)
     message(STATUS "Found Ogg via pkg-config")
 else()
     message(STATUS "Found Ogg via CONFIG")
@@ -102,7 +104,7 @@ endif()
 
 find_package(Vorbis CONFIG QUIET)
 if(NOT Vorbis_FOUND)
-    pkg_check_modules(Vorbis REQUIRED IMPORTED_TARGET vorbis vorbisfile)
+    pkg_check_modules(Vorbis IMPORTED_TARGET vorbis vorbisfile)
     message(STATUS "Found Vorbis via pkg-config")
 else()
     message(STATUS "Found Vorbis via CONFIG")
@@ -113,6 +115,7 @@ add_subdirectory(src/Dialogs)
 add_subdirectory(src/Editor)
 add_subdirectory(src/Managers)
 add_subdirectory(src/Simfile)
+add_subdirectory(lib/bobcoin)
 add_subdirectory(src/System)
 
 install(TARGETS ArrowVortex RUNTIME)

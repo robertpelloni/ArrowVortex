@@ -3,5 +3,5 @@
 	url = https://github.com/robertpelloni/odcnn
 [submodule "lib/ddc"]
 	path = lib/ddc
-	url = https://github.com/robertpelloni/ddc
+	url = https://github.com/robertpelloni/ddc.git
 	branch = master

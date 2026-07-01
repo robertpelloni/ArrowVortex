@@ -7,9 +7,9 @@
 - [x] End-to-end verification for major genres.
 
 ## Phase 2: User Experience & Stability
-- [ ] Implement asynchronous DDC generation with non-blocking UI.
-- [ ] Add real-time progress bars and log streaming to the Batch DDC dialog.
-- [ ] Automated model download/update system within the editor.
+- [x] Implement asynchronous DDC generation with non-blocking UI.
+- [x] Add real-time progress bars and log streaming to the Batch DDC dialog.
+- [x] Automated model download/update system within the editor.
 
 ## Phase 3: Bobcoin Integration
 - [ ] Implement "Proof of Dance" gameplay logic.
