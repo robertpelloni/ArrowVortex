@@ -26,8 +26,7 @@ static const char* IdStrings[NUM_DIALOG_IDS] =
 	"preferences",
 	"batchDDC",
 	"downloadModels",
-	"themeEditor",
-	"bobcoinWallet"
+	"themeEditor"
 };
 
 EditorDialog::~EditorDialog()

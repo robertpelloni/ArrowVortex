@@ -10,50 +10,51 @@
 
 namespace Vortex {
 
-class DialogSongProperties : public EditorDialog {
-   public:
-    ~DialogSongProperties();
-    DialogSongProperties();
+class DialogSongProperties : public EditorDialog
+{
+public:
+	~DialogSongProperties();
+	DialogSongProperties();
 
-    void onChanges(int changes) override;
+	void onChanges(int changes) override;
 
-    void onSetPreview();
-    void onPlayPreview();
+	void onSetPreview();
+	void onPlayPreview();
 
-    void onFindMusic();
-    void onFindBanner();
-    void onFindBG();
-    void onFindCdTitle();
+	void onFindMusic();
+	void onFindBanner();
+	void onFindBG();
+	void onFindCdTitle();
 
-   private:
-    struct BannerWidget;
+private:
+	struct BannerWidget;
 
-    void myCreateWidgets();
-    void myUpdateWidgets();
+	void myCreateWidgets();
+	void myUpdateWidgets();
 
-    void myUpdateProperties();
-    void myUpdateBanner();
+	void myUpdateProperties();
+	void myUpdateBanner();
 
-    void mySetProperty(int p);
-    void mySetDisplayBpm();
+	void mySetProperty(int p);
+	void mySetDisplayBpm();
 
-    String myTitle;
-    String mySubtitle;
-    String myArtist;
-    String myCredit;
-    String myMusic;
-    String myBackground;
-    String myBanner;
-    String myCdTitle;
-    bool myIsSelectable;
+	String myTitle;
+	String mySubtitle;
+	String myArtist;
+	String myCredit;
+	String myMusic;
+	String myBackground;
+	String myBanner;
+	String myCdTitle;
+	bool myIsSelectable;
 
-    int myDisplayBpmType;
-    BpmRange myDisplayBpmRange;
+	int myDisplayBpmType;
+	BpmRange myDisplayBpmRange;
 
-    BannerWidget* myBannerWidget;
-    WgCycleButton* myBpmTypeList;
-    WgSpinner *mySpinMinBPM, *mySpinMaxBPM;
-    String myPreviewStart, myPreviewEnd;
+	BannerWidget* myBannerWidget;
+	WgCycleButton* myBpmTypeList;
+	WgSpinner* mySpinMinBPM, *mySpinMaxBPM;
+	String myPreviewStart, myPreviewEnd;
 };
 
-};  // namespace Vortex
+}; // namespace Vortex
