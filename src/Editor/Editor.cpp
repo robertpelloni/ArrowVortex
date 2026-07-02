@@ -53,7 +53,6 @@
 #include <Dialogs/Zoom.h>
 #include <Dialogs/BatchDDC.h>
 #include <Dialogs/DownloadModels.h>
-#include <Dialogs/BobcoinWallet.h>
 
 #include <algorithm>
 
@@ -755,8 +754,6 @@ void handleDialogOpening(DialogId id, recti rect)
 		dlg = new DialogBatchDDC; break;
 	case DIALOG_DOWNLOAD_MODELS:
 		dlg = new DialogDownloadModels; break;
-	case DIALOG_BOBCOIN_WALLET:
-		dlg = new DialogBobcoinWallet; break;
 	};
 
 	dlg->setId(id);

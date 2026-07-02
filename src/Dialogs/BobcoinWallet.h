@@ -18,6 +18,15 @@ class DialogBobcoinWallet : public EditorDialog {
     void myUpdateWidgets();
 
     WgLabel* myBalanceLabel;
+    WgLabel* myAddressLabel;
+    WgLineEdit* myRecipientInput;
+    WgLineEdit* myAmountInput;
+    WgButton* mySendButton;
+    WgButton* myLoadButton;
+    WgLineEdit* myPasswordInput;
+
+    void onSend();
+    void onLoad();
 };
 
 }  // namespace Vortex

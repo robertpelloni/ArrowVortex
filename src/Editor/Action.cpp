@@ -279,8 +279,6 @@ void Action::perform(Type action)
 		gEditor->openDialog(DIALOG_DOWNLOAD_MODELS);
 	CASE(OPEN_DIALOG_THEME_EDITOR)
 		gEditor->openDialog(DIALOG_THEME_EDITOR);
-	CASE(OPEN_DIALOG_BOBCOIN_WALLET)
-		gEditor->openDialog(DIALOG_BOBCOIN_WALLET);
 
 	CASE(EDIT_UNDO)
 		gSystem->getEvents().addKeyPress(Key::Z, Keyflag::CTRL, false);
