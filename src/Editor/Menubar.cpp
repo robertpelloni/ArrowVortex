@@ -420,6 +420,7 @@ void init(Item* menu)
 	sep(myViewMenu);
 	add(myViewMenu, OPEN_DIALOG_WAVEFORM_SETTINGS, "Waveform...");
 	add(myViewMenu, OPEN_DIALOG_THEME_EDITOR, "Theme Editor...");
+	add(myViewMenu, OPEN_DIALOG_BOBCOIN_WALLET, "Bobcoin Wallet...");
 	add(myViewMenu, 0 /*dummy*/, "Noteskins");
 	sub(myViewMenu, myMinimapMenu, "Minimap");
 	sub(myViewMenu, myBgStyleMenu, "Background");
