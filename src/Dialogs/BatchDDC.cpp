@@ -432,17 +432,22 @@ void DialogBatchDDC::onTick() {
                 // Note: autochart_lib.py prints "Processing <file>..."
                 int processedCount = 0;
                 size_t pos = 0;
-                while ((pos = current.find("Processing ", pos)) != String::npos) {
+                while ((pos = current.find("Processing ", pos)) !=
+                       String::npos) {
                     processedCount++;
-                    pos += 11; // length of "Processing "
+                    pos += 11;  // length of "Processing "
                 }
 
                 // Approximate total count
                 int totalCount = myFiles.size();
                 if (totalCount > 0) {
-                    // It could be more if they selected folders, but we estimate based on files/folders added
-                    // Limit to 0.99 so it doesn't look fully done until the thread actually finishes
-                    float progress = min(0.99f, static_cast<float>(processedCount) / static_cast<float>(totalCount));
+                    // It could be more if they selected folders, but we
+                    // estimate based on files/folders added Limit to 0.99 so it
+                    // doesn't look fully done until the thread actually
+                    // finishes
+                    float progress =
+                        min(0.99f, static_cast<float>(processedCount) /
+                                       static_cast<float>(totalCount));
                     myProgressBar->setProgress(progress);
                 }
             }
