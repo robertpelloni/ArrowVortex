@@ -24,7 +24,11 @@ struct MiningManImpl : public MiningMan {
         // In a real session, we'd wait until the end of the song to calculate the total combo and notes.
         // For demonstration, we assume we just hit a single note in a sequence.
 
-        if (accuracy <= 0.0f) return;
+        if (accuracy <= 0.0f) {
+            // Note miss or boo
+            myCurrentCombo = 0;
+            return;
+        }
 
         // Arbitrary tracking for Practice Mode single-hit logic
         myTotalNotesHit++;
