@@ -6,14 +6,14 @@
 namespace Vortex {
 
 class DialogBobcoinWallet : public EditorDialog {
-   public:
+public:
     DialogBobcoinWallet();
     ~DialogBobcoinWallet();
 
     void onChanges(int changes) override;
     void onTick() override;
 
-   private:
+private:
     void myCreateWidgets();
     void myUpdateWidgets();
 
@@ -29,4 +29,4 @@ class DialogBobcoinWallet : public EditorDialog {
     void onLoad();
 };
 
-}  // namespace Vortex
+} // namespace Vortex
