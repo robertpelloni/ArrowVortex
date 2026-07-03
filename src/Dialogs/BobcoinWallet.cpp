@@ -59,8 +59,7 @@ void DialogBobcoinWallet::myUpdateWidgets() {
     }
 
     if (Bobcoin::IsWalletLoaded()) {
-        myAddressLabel->text.set(
-            Str::fmt("Addr: %s", Bobcoin::GetStealthAddress().c_str()).str());
+        myAddressLabel->text.set(Str::fmt("Addr: %s", Bobcoin::GetStealthAddress().c_str()).str());
         mySendButton->setEnabled(true);
     } else {
         myAddressLabel->text.set("Wallet Not Loaded");
@@ -98,11 +97,13 @@ void DialogBobcoinWallet::onSend() {
     }
 }
 
-void DialogBobcoinWallet::onChanges(int changes) { myUpdateWidgets(); }
+void DialogBobcoinWallet::onChanges(int changes) {
+    myUpdateWidgets();
+}
 
 void DialogBobcoinWallet::onTick() {
     myUpdateWidgets();
     EditorDialog::onTick();
 }
 
-}  // namespace Vortex
+} // namespace Vortex
