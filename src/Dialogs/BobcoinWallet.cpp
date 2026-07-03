@@ -2,9 +2,28 @@
 #include <Managers/MiningMan.h>
 #include <Core/StringUtils.h>
 #include <Core/Widgets.h>
+#include <System/Thread.h>
 #include <bobcoin.h>
+#include <thread>
 
 namespace Vortex {
+
+struct DialogBobcoinWallet::WalletThread : public BackgroundThread {
+    String address;
+    double amount;
+    String txid;
+    bool success = false;
+
+    WalletThread(StringRef a, double amt) : address(a), amount(amt) {}
+
+    void exec() override {
+        // Sleep to simulate network delay for transaction processing
+        std::this_thread::sleep_for(std::chrono::seconds(2));
+        std::string res = Bobcoin::SendTransaction(address.str(), amount);
+        txid = res.c_str();
+        success = !res.empty();
+    }
+};
 
 DialogBobcoinWallet::DialogBobcoinWallet() {
     setTitle("BOBCOIN WALLET");
@@ -12,8 +31,6 @@ DialogBobcoinWallet::DialogBobcoinWallet() {
     myCreateWidgets();
     myUpdateWidgets();
 }
-
-DialogBobcoinWallet::~DialogBobcoinWallet() {}
 
 void DialogBobcoinWallet::myCreateWidgets() {
     myLayout.row().col(350).h(30);
@@ -50,9 +67,23 @@ void DialogBobcoinWallet::myCreateWidgets() {
     mySendButton = myLayout.add<WgButton>();
     mySendButton->text.set("Send");
     mySendButton->onPress.bind(this, &DialogBobcoinWallet::onSend);
+
+    myLayout.row().col(350).h(20);
+    myStatusLabel = myLayout.add<WgLabel>();
+    myStatusLabel->text.set("");
+}
+
+DialogBobcoinWallet::~DialogBobcoinWallet() {
+    if (myThread) {
+        myThread->terminate();
+        delete myThread;
+        myThread = nullptr;
+    }
 }
 
 void DialogBobcoinWallet::myUpdateWidgets() {
+    if (isSending) return; // Don't update buttons while sending
+
     if (gMining) {
         double balance = gMining->getBalance();
         myBalanceLabel->text.set(Str::fmt("%.4f BC", balance).str());
@@ -79,7 +110,7 @@ void DialogBobcoinWallet::onLoad() {
 }
 
 void DialogBobcoinWallet::onSend() {
-    if (!Bobcoin::IsWalletLoaded()) return;
+    if (!Bobcoin::IsWalletLoaded() || isSending) return;
 
     String addr = myRecipientInput->text.get();
     String amountStr = myAmountInput->text.get();
@@ -87,12 +118,14 @@ void DialogBobcoinWallet::onSend() {
     if (addr.len() > 0 && amountStr.len() > 0) {
         double amount = Str::toDouble(amountStr);
         if (amount > 0 && amount <= Bobcoin::GetBalance()) {
-            std::string txid = Bobcoin::SendTransaction(addr.str(), amount);
-            if (!txid.empty()) {
-                // Success
-                myRecipientInput->text.set("");
-                myAmountInput->text.set("");
-            }
+            isSending = true;
+            mySendButton->setEnabled(false);
+            myStatusLabel->text.set("Sending transaction...");
+
+            myThread = new WalletThread(addr, amount);
+            myThread->start();
+        } else {
+            myStatusLabel->text.set("Invalid amount or insufficient balance.");
         }
     }
 }
@@ -102,8 +135,31 @@ void DialogBobcoinWallet::onChanges(int changes) {
 }
 
 void DialogBobcoinWallet::onTick() {
-    myUpdateWidgets();
     EditorDialog::onTick();
+
+    if (isSending && myThread) {
+        if (myThread->isDone()) {
+            bool success = myThread->success;
+            String txid = myThread->txid;
+
+            myThread->waitUntilDone();
+            delete myThread;
+            myThread = nullptr;
+            isSending = false;
+
+            if (success) {
+                myRecipientInput->text.set("");
+                myAmountInput->text.set("");
+                myStatusLabel->text.set(Str::fmt("Success! TXID: %s", txid.str()).str());
+            } else {
+                myStatusLabel->text.set("Transaction failed.");
+            }
+
+            myUpdateWidgets();
+        }
+    } else if (!isSending) {
+        myUpdateWidgets();
+    }
 }
 
 } // namespace Vortex

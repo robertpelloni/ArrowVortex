@@ -24,6 +24,11 @@ private:
     WgButton* mySendButton;
     WgButton* myLoadButton;
     WgLineEdit* myPasswordInput;
+    WgLabel* myStatusLabel;
+
+    struct WalletThread;
+    WalletThread* myThread = nullptr;
+    bool isSending = false;
 
     void onSend();
     void onLoad();
