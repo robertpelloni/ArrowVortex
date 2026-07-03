@@ -1,5 +1,6 @@
 #include "ProofOfDance.h"
 #include "bobcoin.h"
+#include "DecentralizedPool.h"
 #include <cmath>
 
 namespace Bobcoin {
@@ -16,11 +17,13 @@ std::string ProofOfDance::GenerateAndSubmitProof(int difficultyMeter, int totalN
     // Scale effort down so it's not printing millions of coins
     double reward = effort * 0.001;
 
-    // Directly credit the wallet since we are mocking the P2P pool
-    Mine(reward);
-
     // Mock cryptographic proof hash
-    return "pod_proof_" + chartHash + "_reward_" + std::to_string(reward);
+    std::string proof = "pod_proof_" + chartHash + "_reward_" + std::to_string(reward);
+
+    // Connect to decentralized pool and process
+    DecentralizedPool::ProcessProof(proof, effort, reward);
+
+    return proof;
 }
 
 }
