@@ -4,6 +4,7 @@
 - **C++/Qt Frontend**: Handles the main editor logic, graphics, and user interaction.
 - **Python ML Backend**: Powers the Dance Dance Convolution (DDC) system for automatic chart generation.
 - **Submodule Strategy**: Heavy use of submodules (ddc, odcnn, bobcoin) to allow independent development of core components.
+- **Proof of Dance**: Gameplay logic dynamically interacts with the `Bobcoin` module, generating hashed proofs and automatically rewarding the local wallet based on real-time performance. P2P Pool networking allows localized verification via `DecentralizedPool`.
 
 ## DDC Integration
 - **PyTorch Transition**: The system has successfully transitioned from TensorFlow to PyTorch for model training and inference.
