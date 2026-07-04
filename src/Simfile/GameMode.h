@@ -25,6 +25,9 @@ struct GameMode
 	// Name of the mode within the game (e.g. "Single", "Double").
 	std::string mode;
 
+	// Check if this mode uses Pump It Up style layout (center panel)
+	bool isPumpMode() const;
+
 	// Index of the game mode in the global game mode list, used for sorting.
 	Index index;
 
