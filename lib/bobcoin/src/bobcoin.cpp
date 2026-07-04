@@ -42,6 +42,16 @@ bool IsWalletLoaded() {
     return g_walletLoaded;
 }
 
+// Generates a mock RingCT stealth address using a simple random hash
+static std::string GenerateStealthHash() {
+    const char charset[] = "0123456789abcdefghijklmnopqrstuvwxyz";
+    std::string result = "stealth_";
+    for(int i = 0; i < 32; i++) {
+        result += charset[rand() % (sizeof(charset) - 1)];
+    }
+    return result;
+}
+
 std::string GetStealthAddress() {
     if (!g_walletLoaded) return "";
     return g_address;
@@ -53,9 +63,12 @@ std::string SendTransaction(const std::string& address, double amount) {
     }
 
     // Apply RingCT/stealth logic (mocked)
+    // Validate address format roughly
+    if (address.length() < 10) return "";
+
     g_balance -= amount;
 
-    return "txid_mock_1234567890abcdef";
+    return "txid_ringct_" + GenerateStealthHash();
 }
 
 }
