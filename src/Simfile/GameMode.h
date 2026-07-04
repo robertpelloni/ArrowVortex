@@ -28,6 +28,9 @@ struct GameMode
 	// Check if this mode uses Pump It Up style layout (center panel)
 	bool isPumpMode() const;
 
+    // Check if this mode uses Solo style layout (6 panels)
+    bool isSoloMode() const;
+
 	// Index of the game mode in the global game mode list, used for sorting.
 	Index index;
 

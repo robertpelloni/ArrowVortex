@@ -17,5 +17,5 @@
 - [x] Deploy decentralized rewards pool.
 
 ## Phase 4: Expansion
-- [ ] Support for additional game modes (Pump It Up, Solo).
+- [x] Support for additional game modes (Pump It Up, Solo).
 - [ ] Advanced AI features (Lyrics generation, artwork searching).
