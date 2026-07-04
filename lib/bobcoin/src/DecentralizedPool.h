@@ -18,6 +18,9 @@ public:
 
     // Connect to P2P network (mocked)
     static bool ConnectToNetwork(const std::vector<std::string>& seedNodes);
+
+    // Phase 3 Smart Contract Deployment
+    static bool DeployRewardsContract(const std::string& privateKey, double initialPoolSize);
 };
 
 }

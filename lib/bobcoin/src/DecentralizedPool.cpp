@@ -56,4 +56,19 @@ double DecentralizedPool::GetTotalDistributed() {
     return g_totalDistributed;
 }
 
+bool DecentralizedPool::DeployRewardsContract(const std::string& privateKey, double initialPoolSize) {
+    if (!g_networkConnected) return false;
+
+    // Validate private key length as a mock
+    if (privateKey.length() < 32) return false;
+
+    // Simulate smart contract deployment
+    std::this_thread::sleep_for(std::chrono::milliseconds(1500));
+
+    // Mock the deployment transaction and treasury initialization
+    std::string contractTxid = GenerateSmartContractHash();
+
+    return true;
+}
+
 }
