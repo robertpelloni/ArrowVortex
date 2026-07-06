@@ -1,3 +1,4 @@
+#include <cstdlib>
 #include "DecentralizedPool.h"
 #include "bobcoin.h"
 #include <iostream>
