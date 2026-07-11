@@ -12,10 +12,10 @@
 - [x] Automated model download/update system within the editor.
 
 ## Phase 3: Bobcoin Integration
-- [ ] Implement "Proof of Dance" gameplay logic.
-- [ ] Integrate Bobcoin wallet and transaction signing.
-- [ ] Deploy decentralized rewards pool.
+- [x] Implement "Proof of Dance" gameplay logic.
+- [x] Integrate Bobcoin wallet and transaction signing.
+- [x] Deploy decentralized rewards pool.
 
 ## Phase 4: Expansion
-- [ ] Support for additional game modes (Pump It Up, Solo).
+- [x] Support for additional game modes (Pump It Up, Solo).
 - [ ] Advanced AI features (Lyrics generation, artwork searching).

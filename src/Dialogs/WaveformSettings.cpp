@@ -226,7 +226,7 @@ void DialogWaveformSettings::myEnableFilter()
 void DialogWaveformSettings::myDisableFilter()
 {
 	gWaveform->disableFilter();
-}	
+}
 
 void DialogWaveformSettings::myToggleShowOnsets()
 {

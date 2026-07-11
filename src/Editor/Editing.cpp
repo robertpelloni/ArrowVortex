@@ -26,6 +26,7 @@
 #include <Managers/StyleMan.h>
 #include <Managers/TempoMan.h>
 #include <Managers/SimfileMan.h>
+#include <Managers/MiningMan.h>
 
 #include <Core/Draw.h>
 
@@ -205,13 +206,25 @@ void onKeyPress(KeyPress& evt) override
 				{
 					const char* judge = "Boo";
 					double absDiff = std::abs(bestDiff);
-					if (absDiff <= setup.windowMarvelous) judge = "{tc:AAF}Marvelous{tc}";
-					else if (absDiff <= setup.windowPerfect) judge = "{tc:DD4}Perfect{tc}";
-					else if (absDiff <= setup.windowGreat) judge = "{tc:4D4}Great{tc}";
-					else if (absDiff <= setup.windowGood) judge = "{tc:44D}Good{tc}";
+					float accuracy = 0.0f;
+
+					if (absDiff <= setup.windowMarvelous) { judge = "{tc:AAF}Marvelous{tc}"; accuracy = 1.0f; }
+					else if (absDiff <= setup.windowPerfect) { judge = "{tc:DD4}Perfect{tc}"; accuracy = 0.8f; }
+					else if (absDiff <= setup.windowGreat) { judge = "{tc:4D4}Great{tc}"; accuracy = 0.5f; }
+					else if (absDiff <= setup.windowGood) { judge = "{tc:44D}Good{tc}"; accuracy = 0.2f; }
+					else { accuracy = 0.1f; } // Boo
 
 					String msg = Str::fmt("%s %+.3fs", judge, bestDiff);
 					HudNote("%s", msg.str());
+
+					// Trigger Mining Logic
+					int difficulty = 1; // Default fallback
+					if (gChart && gChart->properties) {
+						difficulty = gChart->properties->meter;
+					}
+					if (gMining) {
+						gMining->onNoteHit(accuracy, difficulty);
+					}
 				}
 
 				evt.handled = true;

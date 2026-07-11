@@ -20,7 +20,7 @@ public:
 	void onChanges(int changes) override;
 	void onTick() override;
 
-	void onAction(int id);	
+	void onAction(int id);
 	void onApplyBPM();
 	void onFindBPM();
 

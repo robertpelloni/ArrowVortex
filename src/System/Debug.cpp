@@ -131,7 +131,7 @@ void blockBegin(Type type, const char* title)
 	default:
 		log("[INFO] %s\n", title);
 		break;
-	};	
+	};
 }
 
 void blockEnd()

@@ -150,7 +150,7 @@ void DialogThemeEditor::myCreateWidgets()
 
 	myLayout.add<WgSeperator>();
 	myLayout.row().col(100).col(100).col(100);
-	
+
 	auto btnSave = myLayout.add<WgButton>();
 	btnSave->text.set("Save...");
 	btnSave->onPress.bind(this, &DialogThemeEditor::onSave);

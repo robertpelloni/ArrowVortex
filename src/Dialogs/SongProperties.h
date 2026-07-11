@@ -47,7 +47,7 @@ private:
 	String myBanner;
 	String myCdTitle;
 	bool myIsSelectable;
-	
+
 	int myDisplayBpmType;
 	BpmRange myDisplayBpmRange;
 

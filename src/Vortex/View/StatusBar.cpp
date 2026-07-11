@@ -23,6 +23,7 @@
 
 #include <Vortex/View/StatusBar.h>
 #include <Vortex/View/View.h>
+#include <Managers/MiningMan.h>
 
 namespace AV {
 
@@ -114,6 +115,11 @@ void StatusbarUi::draw(bool enabled)
 			info.push_back("{tc:888}Timing:{tc} chart");
 			break;
 		}
+	}
+
+	if (gMining) {
+		double balance = gMining->getBalance();
+		info.push_back(format("{} {:.4f} BC", "{tc:888}Bobcoin:{tc} ", balance));
 	}
 
 	if (info.size())

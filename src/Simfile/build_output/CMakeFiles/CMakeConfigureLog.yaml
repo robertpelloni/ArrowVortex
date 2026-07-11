@@ -126,15 +126,15 @@ events:
       - "CMakeLists.txt"
     message: |
       Compiling the C compiler identification source file "CMakeCCompilerId.c" succeeded.
-      Compiler:  
-      Build flags: 
-      Id flags:  
-      
+      Compiler:
+      Build flags:
+      Id flags:
+
       The output was:
       0
       MSBuild version 18.4.0+6e61e96ac for .NET Framework
       Build started 3/1/2026 5:38:42 AM.
-      
+
       Project "C:\\Users\\hyper\\workspace\\bobmani\\arrowvortex\\src\\Simfile\\build_output\\CMakeFiles\\4.2.3\\CompilerIdC\\CompilerIdC.vcxproj" on node 1 (default targets).
       PrepareForBuild:
         Creating directory "Debug\\".
@@ -164,21 +164,21 @@ events:
         Deleting file "Debug\\CompilerIdC.tlog\\unsuccessfulbuild".
         Touching "Debug\\CompilerIdC.tlog\\CompilerIdC.lastbuildstate".
       Done Building Project "C:\\Users\\hyper\\workspace\\bobmani\\arrowvortex\\src\\Simfile\\build_output\\CMakeFiles\\4.2.3\\CompilerIdC\\CompilerIdC.vcxproj" (default targets).
-      
+
       Build succeeded.
           0 Warning(s)
           0 Error(s)
-      
+
       Time Elapsed 00:00:01.84
-      
-      
+
+
       Compilation of the C compiler identification source "CMakeCCompilerId.c" produced "CompilerIdC.exe"
-      
+
       Compilation of the C compiler identification source "CMakeCCompilerId.c" produced "CompilerIdC.vcxproj"
-      
+
       The C compiler identification is MSVC, found in:
         C:/Users/hyper/workspace/bobmani/arrowvortex/src/Simfile/build_output/CMakeFiles/4.2.3/CompilerIdC/CompilerIdC.exe
-      
+
   -
     kind: "find-v1"
     backtrace:
@@ -1659,15 +1659,15 @@ events:
       - "CMakeLists.txt"
     message: |
       Compiling the CXX compiler identification source file "CMakeCXXCompilerId.cpp" succeeded.
-      Compiler:  
-      Build flags: 
-      Id flags:  
-      
+      Compiler:
+      Build flags:
+      Id flags:
+
       The output was:
       0
       MSBuild version 18.4.0+6e61e96ac for .NET Framework
       Build started 3/1/2026 5:38:44 AM.
-      
+
       Project "C:\\Users\\hyper\\workspace\\bobmani\\arrowvortex\\src\\Simfile\\build_output\\CMakeFiles\\4.2.3\\CompilerIdCXX\\CompilerIdCXX.vcxproj" on node 1 (default targets).
       PrepareForBuild:
         Creating directory "Debug\\".
@@ -1697,21 +1697,21 @@ events:
         Deleting file "Debug\\CompilerIdCXX.tlog\\unsuccessfulbuild".
         Touching "Debug\\CompilerIdCXX.tlog\\CompilerIdCXX.lastbuildstate".
       Done Building Project "C:\\Users\\hyper\\workspace\\bobmani\\arrowvortex\\src\\Simfile\\build_output\\CMakeFiles\\4.2.3\\CompilerIdCXX\\CompilerIdCXX.vcxproj" (default targets).
-      
+
       Build succeeded.
           0 Warning(s)
           0 Error(s)
-      
+
       Time Elapsed 00:00:01.89
-      
-      
+
+
       Compilation of the CXX compiler identification source "CMakeCXXCompilerId.cpp" produced "CompilerIdCXX.exe"
-      
+
       Compilation of the CXX compiler identification source "CMakeCXXCompilerId.cpp" produced "CompilerIdCXX.vcxproj"
-      
+
       The CXX compiler identification is MSVC, found in:
         C:/Users/hyper/workspace/bobmani/arrowvortex/src/Simfile/build_output/CMakeFiles/4.2.3/CompilerIdCXX/CompilerIdCXX.exe
-      
+
   -
     kind: "find-v1"
     backtrace:
@@ -2598,11 +2598,11 @@ events:
       cached: true
       stdout: |
         Change Dir: 'C:/Users/hyper/workspace/bobmani/arrowvortex/src/Simfile/build_output/CMakeFiles/CMakeScratch/TryCompile-o24vzs'
-        
+
         Run Build Command(s): "C:/Program Files/Microsoft Visual Studio/18/Insiders/MSBuild/Current/Bin/amd64/MSBuild.exe" cmTC_e3e2e.vcxproj /p:Configuration=Debug /p:Platform=x64 /p:VisualStudioVersion=18.0 /v:n
         MSBuild version 18.4.0+6e61e96ac for .NET Framework
         Build started 3/1/2026 5:38:46 AM.
-        
+
         Project "C:\\Users\\hyper\\workspace\\bobmani\\arrowvortex\\src\\Simfile\\build_output\\CMakeFiles\\CMakeScratch\\TryCompile-o24vzs\\cmTC_e3e2e.vcxproj" on node 1 (default targets).
         PrepareForBuild:
           Structured output is enabled. The formatting of compiler diagnostics will reflect the error hierarchy. See https://aka.ms/cpp/structured-output for more details.
@@ -2631,13 +2631,13 @@ events:
           Deleting file "cmTC_e3e2e.dir\\Debug\\cmTC_e3e2e.tlog\\unsuccessfulbuild".
           Touching "cmTC_e3e2e.dir\\Debug\\cmTC_e3e2e.tlog\\cmTC_e3e2e.lastbuildstate".
         Done Building Project "C:\\Users\\hyper\\workspace\\bobmani\\arrowvortex\\src\\Simfile\\build_output\\CMakeFiles\\CMakeScratch\\TryCompile-o24vzs\\cmTC_e3e2e.vcxproj" (default targets).
-        
+
         Build succeeded.
             0 Warning(s)
             0 Error(s)
-        
+
         Time Elapsed 00:00:01.81
-        
+
       exitCode: 0
   -
     kind: "message-v1"
@@ -2654,8 +2654,8 @@ events:
         implicit objs: []
         implicit dirs: []
         implicit fwks: []
-      
-      
+
+
   -
     kind: "message-v1"
     backtrace:
@@ -2687,11 +2687,11 @@ events:
       cached: true
       stdout: |
         Change Dir: 'C:/Users/hyper/workspace/bobmani/arrowvortex/src/Simfile/build_output/CMakeFiles/CMakeScratch/TryCompile-povwro'
-        
+
         Run Build Command(s): "C:/Program Files/Microsoft Visual Studio/18/Insiders/MSBuild/Current/Bin/amd64/MSBuild.exe" cmTC_d88fd.vcxproj /p:Configuration=Debug /p:Platform=x64 /p:VisualStudioVersion=18.0 /v:n
         MSBuild version 18.4.0+6e61e96ac for .NET Framework
         Build started 3/1/2026 5:38:49 AM.
-        
+
         Project "C:\\Users\\hyper\\workspace\\bobmani\\arrowvortex\\src\\Simfile\\build_output\\CMakeFiles\\CMakeScratch\\TryCompile-povwro\\cmTC_d88fd.vcxproj" on node 1 (default targets).
         PrepareForBuild:
           Structured output is enabled. The formatting of compiler diagnostics will reflect the error hierarchy. See https://aka.ms/cpp/structured-output for more details.
@@ -2720,13 +2720,13 @@ events:
           Deleting file "cmTC_d88fd.dir\\Debug\\cmTC_d88fd.tlog\\unsuccessfulbuild".
           Touching "cmTC_d88fd.dir\\Debug\\cmTC_d88fd.tlog\\cmTC_d88fd.lastbuildstate".
         Done Building Project "C:\\Users\\hyper\\workspace\\bobmani\\arrowvortex\\src\\Simfile\\build_output\\CMakeFiles\\CMakeScratch\\TryCompile-povwro\\cmTC_d88fd.vcxproj" (default targets).
-        
+
         Build succeeded.
             0 Warning(s)
             0 Error(s)
-        
+
         Time Elapsed 00:00:01.81
-        
+
       exitCode: 0
   -
     kind: "message-v1"
@@ -2743,8 +2743,8 @@ events:
         implicit objs: []
         implicit dirs: []
         implicit fwks: []
-      
-      
+
+
   -
     kind: "message-v1"
     backtrace:

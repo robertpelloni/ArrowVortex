@@ -209,7 +209,7 @@ void DialogPreferences::myCreateWidgets()
 	spLow->setRange(20.0, 20000.0);
 	spLow->value.bind(&myRGBLow);
 	spLow->onChange.bind(this, &DialogPreferences::onRGBCrossoverChanged);
-	
+
 	auto spHigh = myLayout.add<WgSpinner>();
 	spHigh->setRange(20.0, 20000.0);
 	spHigh->value.bind(&myRGBHigh);
