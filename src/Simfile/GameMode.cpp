@@ -126,6 +126,14 @@ GameMode::GameMode(string id, int numCols, int numPlayers)
 	}
 }
 
+bool GameMode::isPumpMode() const {
+	return game == "Pump" || game == "pump";
+}
+
+bool GameMode::isSoloMode() const {
+    return game == "Solo" || game == "solo" || mode == "Solo" || mode == "solo";
+}
+
 GameMode::~GameMode()
 {
 	delete[] colorTable;

@@ -1,6 +1,7 @@
 #include <Managers/MiningMan.h>
 #include <bobcoin.h>
 #include <ProofOfDance.h>
+#include <DecentralizedPool.h>
 #include <Editor/Editor.h> // For preferences if needed
 
 namespace Vortex {
@@ -9,6 +10,9 @@ struct MiningManImpl : public MiningMan {
 
     MiningManImpl() {
         Bobcoin::Initialize();
+        // Initialize pool logic
+        Bobcoin::DecentralizedPool::Initialize();
+        Bobcoin::DecentralizedPool::ConnectToNetwork({"node1.bobcoin.net", "node2.bobcoin.net"});
     }
 
     ~MiningManImpl() {
