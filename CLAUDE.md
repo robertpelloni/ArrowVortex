@@ -1,3 +1,7 @@
+<!-- [TORMENTNEXUS_AUTO_INJECTED] -->
+> [!IMPORTANT]
+> You are running within the TormentNexus environment. You MUST use your available tools frequently and proactively for researching, editing, executing, and validating your work. Always prioritize tool execution.
+
 # CLAUDE.md
 
 **NOTE:** Please refer to [**docs/LLM_INSTRUCTIONS.md**](docs/LLM_INSTRUCTIONS.md) for the master project instructions, versioning protocol, and build details.
