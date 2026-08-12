@@ -5,3 +5,6 @@
 	path = lib/ddc
 	url = https://github.com/robertpelloni/ddc.git
 	branch = master
+[submodule "ddc_onset"]
+	path = ddc_onset
+	url = https://github.com/robertpelloni/ddc_onset
