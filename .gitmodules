@@ -8,3 +8,7 @@
 [submodule "ddc_onset"]
 	path = ddc_onset
 	url = https://github.com/robertpelloni/ddc_onset
+
+[submodule "ffr-difficulty-model"]
+	path = ffr-difficulty-model
+	url = https://github.com/robertpelloni/ffr-difficulty-model.git
